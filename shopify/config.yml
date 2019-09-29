@@ -1,0 +1,15 @@
+development:
+  password: 42c546817fd5bd27dda95b621fdb3912
+  theme_id: "43725422643"
+  store: stacked-demo-1.myshopify.com
+  ignore_files:
+    # - config/settings_data.json
+    - "*.png" # patterns that start with * need to be quoted to have vaild yaml
+    - "*.scss" # patterns that start with * need to be quoted to have vaild yaml
+    - /\.(txt|gif|bat)$/
+    - gulpfile.js
+    - package.json
+    - package-lock.json
+    - schema.json
+    - functions.js
+    - style.scss
