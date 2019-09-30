@@ -1,5 +1,5 @@
 # Environment Configuration
-
+package-lock.json
 # Dependency directory
 node_modules
 
