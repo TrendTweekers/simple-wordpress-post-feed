@@ -12,6 +12,7 @@ import { receiveWebhook } from "@shopify/koa-shopify-webhooks";
 // Routes
 import { redactRoute } from "./routes/redactRoute";
 import { uninstallRoute } from "./routes/uninstallRoute";
+import { getRoute } from "./routes/getRoute.js";
 
 const env = require("./config/config");
 const {
