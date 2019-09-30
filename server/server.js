@@ -8,7 +8,11 @@ import Router from "koa-router";
 import session from "koa-session";
 import getSubscriptionStatus from "./lib/firebase/getSubscriptionStatus";
 import { receiveWebhook } from "@shopify/koa-shopify-webhooks";
-import * as handlers from "./handlers/index";
+
+// Routes
+import { redactRoute } from "./routes/redactRoute";
+import { uninstallRoute } from "./routes/uninstallRoute";
+import { getRoute } from "./routes/getRoute.js";
 
 const env = require("./config/config");
 const {
@@ -66,6 +70,12 @@ app.prepare().then(() => {
     })
   );
   const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
+
+  router
+    .get("/api/data", getRoute)
+    .post("/api/redact", webhook, redactRoute)
+    .post("/api/uninstall", webhook, uninstallRoute);
+
   router.get("*", verifyRequest(), async ctx => {
     await handle(ctx.req, ctx.res);
     ctx.respond = false;
