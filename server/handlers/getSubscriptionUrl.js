@@ -1,23 +1,21 @@
+const env = require("../config/config");
+const { TUNNEL_URL, TEST, API_VERSION, PRICE } = env;
+const { checkStore } = require("./checkStore");
+const { createWebhook } = require("./register-webhooks");
+
 const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const query = JSON.stringify({
     query: `mutation {
       appSubscriptionCreate(
           name: "Super Duper Plan"
-          returnUrl: "${process.env.HOST}"
-          test: true
+          returnUrl: "${TUNNEL_URL}"
+          test: ${TEST}
+          trialDays: 7
           lineItems: [
           {
             plan: {
-              appUsagePricingDetails: {
-                  cappedAmount: { amount: 10, currencyCode: USD }
-                  terms: "$1 for 1000 emails"
-              }
-            }
-          }
-          {
-            plan: {
               appRecurringPricingDetails: {
-                  price: { amount: 10, currencyCode: USD }
+                  price: { amount: ${PRICE}, currencyCode: USD }
               }
             }
           }
@@ -36,7 +34,7 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   });
 
   const response = await fetch(
-    `https://${shop}/admin/api/2019-07/graphql.json`,
+    `https://${shop}/admin/api/${API_VERSION}/graphql.json`,
     {
       method: "POST",
       headers: {
@@ -50,6 +48,14 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const responseJson = await response.json();
   const confirmationUrl =
     responseJson.data.appSubscriptionCreate.confirmationUrl;
+  checkStore(shop, accessToken);
+
+  createWebhook(
+    `${TUNNEL_URL}/api/uninstall`,
+    "APP_UNINSTALLED",
+    accessToken,
+    shop
+  );
   return ctx.redirect(confirmationUrl);
 };
 

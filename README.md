@@ -1,30 +1,36 @@
-# Shopify App Node
+# Dev environment Wordpress Shopify --- DEV
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
-[![Build Status](https://travis-ci.com/Shopify/shopify-app-node.svg?branch=master)](https://travis-ci.com/Shopify/shopify-app-node)
+`npm install ngrok -g`
 
-Boilerplate to create an embedded Shopify app made with Node, [Next.js](https://nextjs.org/), [Shopify-koa-auth](https://github.com/Shopify/quilt/tree/master/packages/koa-shopify-auth), [Polaris](https://github.com/Shopify/polaris-react), and [App Bridge React](https://github.com/Shopify/app-bridge/tree/master/packages/app-bridge-react).
+Adding ngrok token  
+`ngrok authtoken 6gSpC39U3skFF6CsmPJYF_3opca5N75GRHr6u8Ga6u8`
 
-## Installation
+In terminal start ngrok  
+`ngrok http 3000 -region eu -subdomain=ingrid`
 
-Using the [Shopify-App-CLI](https://github.com/Shopify/shopify-app-cli) run:
+Copying forwarding https address to shopify  
+`admin => Apps=>Better Related... => App setup`
 
-```sh
-~/ $ shopify create project APP_NAME
-```
+App url : ngrok address for example  
+`https://ingrid.eu.ngrok.io`
 
-Or, fork and clone repo
+Whitelisted redirection URL(s) ngrok url + /auth/callback for example  
+`https://ingrid.eu.ngrok.io/auth/callback`
 
-## Requirements
+`Save`
 
-- If you don’t have one, [create a Shopify partner account](https://partners.shopify.com/signup).
-- If you don’t have one, [create a Development store](https://help.shopify.com/en/partners/dashboard/development-stores#create-a-development-store) where you can install and test your app.
-- In the Partner dashboard, [create a new app](https://help.shopify.com/en/api/tools/partner-dashboard/your-apps#create-a-new-app). You’ll need this app’s API credentials during the setup process.
+---
 
-## Usage
+For payment test, change the config/config.js config.TUNNEL_URL to the ngrok address otherwise leave it as it is
 
-This repository is used by [Shopify-App-CLI](https://github.com/Shopify/shopify-app-cli) as a scaffold for Node apps. You can clone or fork it yourself, but it’s faster and easier to use Shopify App CLI, which handles additional routine development tasks for you.
+Installing app to an application(unlisted way) ngrok url + /auth?shop= + shop url for example  
+`https://ingrid.eu.ngrok.io/auth?shop=stacked-development.myshopify.com`
+`https://shopify-related-blog-posts-rga4phvsoq-uc.a.run.app/auth?shop=stacked-demo-1.myshopify.com`
+`npm run dev`
 
-## License
+## Dev environment Better Related Blog Posts --- PRODUCTION
 
-This respository is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+`npm run start`  
+Deploy newest version on google cloud run.
+
+https://ingrid.eu.ngrok.io/auth?shop=stacked-demo-1.myshopify.com

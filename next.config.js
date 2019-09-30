@@ -1,13 +1,18 @@
-const { parsed: localEnv } = require("dotenv").config();
+const withSass = require("@zeit/next-sass");
+const APIconfig = require("./server/config/config");
 const withCSS = require("@zeit/next-css");
 
 const webpack = require("webpack");
-const apiKey = JSON.stringify(process.env.SHOPIFY_API_KEY);
+const { SHOPIFY_API_KEY } = APIconfig;
+console.log(APIconfig);
+const apiKey = JSON.stringify(SHOPIFY_API_KEY);
 
-module.exports = withCSS({
-  webpack: config => {
-    const env = { API_KEY: apiKey };
-    config.plugins.push(new webpack.DefinePlugin(env));
-    return config;
-  }
-});
+module.exports = withSass(
+  withCSS({
+    webpack: config => {
+      const env = { API_KEY: apiKey };
+      config.plugins.push(new webpack.DefinePlugin(env));
+      return config;
+    }
+  })
+);
