@@ -6,7 +6,9 @@ const { COLLECTION } = config;
 const db = myModule.FStore.firestore();
 const { API_VERSION } = config;
 
-// // Deleting stored data for shop(liquid file in the snippets brbp.liquid )
+/** Deleting stored data for shop(liquid file in the snippets brbp.liquid )
+ *
+ */
 module.exports = async ctx => {
   const { shop_domain } = ctx.request.body;
   const shopRef = await db.collection(COLLECTION).doc(shop_domain);

@@ -9,7 +9,6 @@ import session from "koa-session";
 import getSubscriptionStatus from "./lib/firebase/getSubscriptionStatus";
 import { receiveWebhook } from "@shopify/koa-shopify-webhooks";
 
-// Routes
 import { redactRoute } from "./routes/redactRoute";
 import { uninstallRoute } from "./routes/uninstallRoute";
 import { getRoute } from "./routes/getRoute.js";
@@ -44,8 +43,11 @@ app.prepare().then(() => {
       scopes: SCOPES,
 
       async afterAuth(ctx) {
-        //Auth token and shop available in session
-        //Redirect to shop upon auth
+        /**       Auth token and shop available in session
+        Redirect to shop upon auth
+         *
+         */
+
         const { shop, accessToken } = ctx.session;
         ctx.cookies.set("shopOrigin", shop, {
           httpOnly: false

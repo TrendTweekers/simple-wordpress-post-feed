@@ -18,22 +18,17 @@ module.exports.db = db;
 
 const getShop = (collection, shop) => {
   const documentReference = db.doc(`${collection}/${shop}`).get();
-  // console.log('getShop');
   return documentReference
     .then(doc => {
       if (!doc.exists) {
-        // console.log('doc not exist');
         return false;
       }
-      // console.log('Document data:', doc.data());
       return doc.data();
     })
     .catch(err => {
       console.log("Error getting document", err);
     });
 };
-
-module.exports.getShop = getShop;
 
 /**
  * Delete shop
@@ -61,16 +56,11 @@ const deleteShop = (collection, shop) => {
     });
 };
 
-module.exports.deleteShop = deleteShop;
-
-/**
- * Pushdata to DB
- * target => COLLECTION > SHOP
- * @param {*} shop
- * @param {*} collection
- *
+/**Pushdata to DB
+ * @param  {} collection
+ * @param  {} shop
+ * @param  {} data
  */
-
 const pushDB = (collection, shop, data) => {
   const documentReference = db.doc(`${collection}/${shop}`);
   console.log("PushDB");
@@ -79,35 +69,21 @@ const pushDB = (collection, shop, data) => {
     return true;
   });
 };
-
-const updateDB = (collection, shop, newBlogs) => {
+/**Update data in DB MERGE:FALSE
+ * @param  {} collection
+ * @param  {} shop
+ * @param  {} data
+ */
+const updateDB = (collection, shop, data) => {
   const documentReference = db.doc(`${collection}/${shop}`);
   console.log("Update DB");
-  documentReference.update({ newBlogs }, { merge: false }).then(() => {
+  documentReference.update({ data }, { merge: false }).then(() => {
     console.log("data saved update db");
-    return newBlogs;
+    return data;
   });
 };
 
-//
-const updateDBPromise = (collection, shop, newBlogs) =>
-  new Promise((resolve, reject) => {
-    const documentReference = db.doc(`${collection}/${shop}`);
-    console.log("Update DB");
-    const docUpdate = documentReference
-      .update(newBlogs, { merge: false })
-      .then(() => {
-        console.log("data saved update db");
-        return true;
-      });
-    if (docUpdate === true) {
-      resolve(newBlogs);
-    } else {
-      reject(Error);
-    }
-  });
-//
-
 module.exports.pushDB = pushDB;
 module.exports.updateDB = updateDB;
-module.exports.updateDBPromise = updateDBPromise;
+module.exports.getShop = getShop;
+module.exports.deleteShop = deleteShop;
