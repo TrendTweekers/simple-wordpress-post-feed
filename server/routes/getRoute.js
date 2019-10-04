@@ -3,7 +3,9 @@ const config = require("../config/config");
 
 const { COLLECTION } = config;
 
-// getting all the settings and blog data from the DB
+/** Getting all the data from DB
+ * @param  {context} ctx
+ */
 exports.getRoute = async ctx => {
   const { shop } = await ctx.session;
 

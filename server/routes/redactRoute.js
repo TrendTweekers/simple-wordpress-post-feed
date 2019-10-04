@@ -5,7 +5,9 @@ const config = require("../config/config");
 
 const { COLLECTION } = config;
 
-// // Deleting stored data for shop mandatory webhook
+/** Deleting stored data in DB
+ * @param  {context} ctx
+ */
 exports.redactRoute = async ctx => {
   ctx.response.status = 200;
   const { shop_domain } = ctx.request.body;

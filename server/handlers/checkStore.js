@@ -11,15 +11,16 @@ const { COLLECTION } = config;
 
 exports.checkStore = async (shop, accessToken) => {
   // init values
-  let storeData = {
+  const storeData = {
     mainThemeId: "",
     email: ""
   };
 
-  storeData.mainThemeId = await checkTheme(shop, accessToken); // fetch theme ID
+  storeData.mainThemeId = await checkTheme(shop, accessToken);
   storeData.email = await checkEmail(shop, accessToken);
 
-  const { mainThemeId, email } = storeData; // destructuring before push
+  /** destructuring before push */
+  const { mainThemeId, email } = storeData;
 
   console.log("CHECKSTORE");
   async function getSnapshot() {
@@ -30,9 +31,12 @@ exports.checkStore = async (shop, accessToken) => {
   getSnapshot()
     .then(snapshot => {
       const dbData = snapshot;
+
+      /** Document does not exist in the database */
       if (dbData === false) {
         console.log("DOCUMENT DONT EXIST");
         const newData = {
+          shop,
           token: accessToken,
           themeId: mainThemeId,
           email,
@@ -43,18 +47,16 @@ exports.checkStore = async (shop, accessToken) => {
         };
         return pushDB(COLLECTION, shop, newData);
       }
+
+      /** Document exist in the database so we update */
       console.log("DOCUMENT EXIST");
-      /* Check if something was not deleted from Shopify and existing in DB */
-      // console.log(dbData);
       const addData = {
-        shop,
         token: accessToken,
         themeId: mainThemeId,
         email,
         lastUpdate: new Date(),
         status: "ACTIVE"
       };
-      console.log("update data");
       pushDB(COLLECTION, shop, addData);
       return addData;
     })

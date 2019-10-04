@@ -1,7 +1,7 @@
 const { getShop } = require("./firebase");
 
 /**
- * Check if there is a active subscription
+ * Check if there is an active subscription
  * @param {string} collection
  * @param {string} shop
  */

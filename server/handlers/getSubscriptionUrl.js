@@ -1,8 +1,14 @@
 const env = require("../config/config");
+
 const { TUNNEL_URL, TEST, API_VERSION, PRICE } = env;
 const { checkStore } = require("./checkStore");
-const { createWebhook } = require("./register-webhooks");
+const { createWebhook } = require("./createWebhook");
 
+/** Creating subscription URL
+ * @param  {object} ctx context object
+ * @param  {string} accessToken
+ * @param  {string} shop
+ */
 const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const query = JSON.stringify({
     query: `mutation {
