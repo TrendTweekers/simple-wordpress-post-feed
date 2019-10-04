@@ -1,9 +1,10 @@
 const env = require("../config/config");
+
 const { TUNNEL_URL, TEST, API_VERSION, PRICE } = env;
 const { checkStore } = require("./checkStore");
 const { createWebhook } = require("./createWebhook");
 
-/**Creating subscription URL
+/** Creating subscription URL
  * @param  {object} ctx context object
  * @param  {string} accessToken
  * @param  {string} shop

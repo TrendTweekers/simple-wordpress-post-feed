@@ -5,7 +5,7 @@ const config = require("../config/config");
 
 const { COLLECTION } = config;
 
-/**Deleting stored data in DB
+/** Deleting stored data in DB
  * @param  {context} ctx
  */
 exports.redactRoute = async ctx => {

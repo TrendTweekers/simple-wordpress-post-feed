@@ -1,8 +1,10 @@
 import { registerWebhook } from "@shopify/koa-shopify-webhooks";
+
 const env = require("../config/config");
+
 const { GRAPHQL_VERSION } = env;
 
-/**Create webhook for the shop
+/** Create webhook for the shop
  * @param  {string} shop
  * @param  {string} accessToken
  * @param  {string} topic

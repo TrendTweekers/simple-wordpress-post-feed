@@ -3,7 +3,7 @@ const config = require("../config/config");
 
 const { COLLECTION } = config;
 
-/**Getting all the data from DB
+/** Getting all the data from DB
  * @param  {context} ctx
  */
 exports.getRoute = async ctx => {

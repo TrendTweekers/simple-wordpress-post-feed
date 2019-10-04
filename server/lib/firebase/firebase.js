@@ -56,7 +56,7 @@ const deleteShop = (collection, shop) => {
     });
 };
 
-/**Pushdata to DB
+/** Pushdata to DB
  * @param  {} collection
  * @param  {} shop
  * @param  {} data
@@ -69,7 +69,8 @@ const pushDB = (collection, shop, data) => {
     return true;
   });
 };
-/**Update data in DB MERGE:FALSE
+
+/** Update data in DB MERGE:FALSE
  * @param  {} collection
  * @param  {} shop
  * @param  {} data

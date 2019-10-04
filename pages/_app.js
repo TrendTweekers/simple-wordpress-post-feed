@@ -5,32 +5,35 @@ import { AppProvider } from "@shopify/polaris";
 import { Provider } from "@shopify/app-bridge-react";
 import Cookies from "js-cookie";
 import "@shopify/polaris/styles.css";
+import React from "react";
+
+import { SHOPIFY_API_KEY } from "../server/config/config";
 
 const client = new ApolloClient({
   fetchOptions: {
     credentials: "include"
   }
 });
+
 class MyApp extends App {
   render() {
     const { Component, pageProps } = this.props;
     const shopOrigin = Cookies.get("shopOrigin");
+    const config = {
+      apiKey: SHOPIFY_API_KEY,
+      shopOrigin,
+      forceRedirect: true
+    };
     return (
-      <React.Fragment>
+      <>
         <AppProvider>
-          <Provider
-            config={{
-              apiKey: API_KEY,
-              shopOrigin: shopOrigin,
-              forceRedirect: true
-            }}
-          >
+          <Provider config={config}>
             <ApolloProvider client={client}>
               <Component {...pageProps} />
             </ApolloProvider>
           </Provider>
         </AppProvider>
-      </React.Fragment>
+      </>
     );
   }
 }
