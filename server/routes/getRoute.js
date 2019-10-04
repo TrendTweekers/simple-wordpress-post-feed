@@ -13,7 +13,7 @@ exports.getRoute = async ctx => {
 
   const getDoc = await shopRef
     .get()
-    .then(async doc => {
+    .then(doc => {
       if (doc.exists) {
         console.log("doc exist .... checkstore ran from getroute");
         const docu = doc.data();
