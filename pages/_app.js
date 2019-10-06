@@ -6,7 +6,7 @@ import { Provider } from "@shopify/app-bridge-react";
 import Cookies from "js-cookie";
 import "@shopify/polaris/styles.css";
 import React from "react";
-import fetch from "node-fetch";
+import fetch from "cross-fetch/polyfill";
 
 import { SHOPIFY_API_KEY } from "../server/config/config";
 
