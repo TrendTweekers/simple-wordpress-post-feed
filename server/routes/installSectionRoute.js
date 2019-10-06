@@ -21,19 +21,19 @@ exports.installSectionRoute = async ctx => {
     .then(async doc => {
       if (doc.exists) {
         console.log("doc exist .... checkstore ran from installSectionRoute");
-        const docu = doc.data();
+        const docu = await doc.data();
         console.log(docu);
 
         // Add two custom attributes, origin and username, to the message
         const customAttributes = {
           app: "wordpress-shopify",
-          shop: toString(docu.shop),
-          token: toString(docu.token),
-          mainThemeId: toString(docu.themeId)
+          shop,
+          token: docu.token,
+          mainThemeId: `${docu.themeId}`
         };
 
         const data = Buffer.from("Hello, world!");
-
+        console.log(customAttributes);
         const messageId = await pubsub
           .topic(topicName)
           .publish(data, customAttributes);
