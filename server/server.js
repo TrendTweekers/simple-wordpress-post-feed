@@ -1,7 +1,7 @@
 import "@babel/polyfill";
 import "isomorphic-fetch";
 import createShopifyAuth, { verifyRequest } from "@shopify/koa-shopify-auth";
-import graphQLProxy, { ApiVersion } from "@shopify/koa-shopify-graphql-proxy";
+import graphQLProxy from "@shopify/koa-shopify-graphql-proxy";
 import Koa from "koa";
 import next from "next";
 import Router from "koa-router";
@@ -20,10 +20,10 @@ const {
   SHOPIFY_API_SECRET_KEY,
   SHOPIFY_API_KEY,
   SCOPES,
-  port,
   GRAPHQL_VERSION,
   COLLECTION
 } = env;
+const port = parseInt(process.env.PORT, 10) || 3000;
 
 const dev = process.env.NODE_ENV !== "production";
 const app = next({
