@@ -25,7 +25,7 @@ For payment test, change the config/config.js config.TUNNEL_URL to the ngrok add
 
 Installing app to an application(unlisted way) ngrok url + /auth?shop= + shop url for example  
 `https://ingrid.eu.ngrok.io/auth?shop=stacked-development.myshopify.com`
-`https://shopify-related-blog-posts-rga4phvsoq-uc.a.run.app/auth?shop=stacked-demo-1.myshopify.com`
+`https://shopify-wordpress-post-feed-app-rga4phvsoq-uc.a.run.app/auth?shop=stacked-development.myshopify.com`
 `npm run dev`
 
 ## Dev environment Better Related Blog Posts --- PRODUCTION

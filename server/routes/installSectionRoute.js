@@ -10,7 +10,7 @@ const { COLLECTION } = config;
 exports.installSectionRoute = async ctx => {
   const { shop } = await ctx.session;
   const pubsub = new PubSub();
-  const topicName = "MyTopic";
+  const topicName = "shopify";
 
   const shopRef = db.collection(COLLECTION).doc(shop);
 
@@ -21,19 +21,18 @@ exports.installSectionRoute = async ctx => {
         console.log("doc exist .... checkstore ran from installSectionRoute");
         const docu = doc.data();
         console.log(docu);
-        const data = JSON.stringify({ foo: "bar" });
-        const dataBuffer = Buffer.from(data);
+
         // Add two custom attributes, origin and username, to the message
         const customAttributes = {
           app: "wordpress-shopify",
-          shop: "nodejs-sample",
-          token: "gcp",
-          mainThemeId: "f"
+          shop: docu.shop,
+          token: docu.token,
+          mainThemeId: docu.themeId
         };
 
         const messageId = await pubsub
           .topic(topicName)
-          .publish(dataBuffer, customAttributes);
+          .publish(customAttributes);
         console.log(`Message ${messageId} published.`);
         // /
         return docu.email;
