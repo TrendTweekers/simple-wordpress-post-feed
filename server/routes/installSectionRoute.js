@@ -26,7 +26,7 @@ exports.installSectionRoute = async ctx => {
 
         // Add two custom attributes, origin and username, to the message
         const customAttributes = {
-          app: "wordpress-shopify",
+          app: "shopifyWordpress",
           shop,
           token: docu.token,
           mainThemeId: `${docu.themeId}`

@@ -28,9 +28,10 @@ Installing app to an application(unlisted way) ngrok url + /auth?shop= + shop ur
 `https://shopify-wordpress-post-feed-app-rga4phvsoq-uc.a.run.app/auth?shop=stacked-development.myshopify.com`
 `npm run dev`
 
-## Dev environment Better Related Blog Posts --- PRODUCTION
+## Wordpress Shopify --- PRODUCTION
 
 `npm run start`  
 Deploy newest version on google cloud run.
 
 https://ingrid.eu.ngrok.io/auth?shop=stacked-demo-1.myshopify.com
+https://shopify-wordpress-post-feed-app-rga4phvsoq-uc.a.run.app>
