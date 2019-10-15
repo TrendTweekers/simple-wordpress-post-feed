@@ -3,7 +3,12 @@ const env = {};
 
 /** Global Settings */
 env.PRICE = "3.9";
-env.SCOPES = ["write_themes", "read_themes"];
+env.SCOPES = [
+  "write_themes",
+  "read_themes",
+  "read_script_tags",
+  "write_script_tags"
+];
 env.API_VERSION = "2019-07";
 env.GRAPHQL_VERSION = "2019-07";
 env.port = 3000;
