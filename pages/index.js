@@ -1,21 +1,56 @@
-import { Heading, Page } from "@shopify/polaris";
-import React, { useEffect } from "react";
+import { Page } from "@shopify/polaris";
+import React, { useState, useEffect } from "react";
+import ApolloClient, { gql } from "apollo-boost";
 
+/**
+ * Index is fetching data with graphql from wordpress.
+ * @param  {pageURI}
+ * has to be set
+ */
 const Index = () => {
+  const [content, setContent] = useState();
+  const [updated, setUpdated] = useState(false);
+  const pageURI = "mesmerize-pro";
+
   const fetchDataAction = () => {
-    fetch("/api/install")
-      .then(res => res.json())
+    const wordpress = new ApolloClient({
+      uri: "https://stackedboost.com/graphql"
+    });
+    fetch("/api/install").catch(err => console.log(err));
+
+    wordpress
+      .query({
+        query: gql`
+          query($uri: String, $format: PostObjectFieldFormatEnum) {
+            pageBy(uri: $uri) {
+              id
+              pageId
+              title
+              date
+              uri
+              content(format: $format)
+            }
+          }
+        `,
+        variables: {
+          uri: pageURI,
+          format: "RENDERED"
+        }
+      })
+      .then(result => {
+        setContent({ __html: result.data.pageBy.content });
+        setUpdated(true);
+      })
       .catch(err => console.log(err));
   };
 
+  const MyComponent = () => <div dangerouslySetInnerHTML={content} />;
+
   useEffect(() => {
     fetchDataAction();
-  }, []);
-  return (
-    <Page>
-      <Heading>Shopify app with Node and React 🎉</Heading>
-    </Page>
-  );
+  }, [updated]);
+
+  return <Page>{MyComponent()}</Page>;
 };
 
 export default Index;
