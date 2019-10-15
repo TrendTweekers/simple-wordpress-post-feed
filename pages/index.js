@@ -9,10 +9,10 @@ import ApolloClient, { gql } from "apollo-boost";
  */
 const Index = () => {
   const [content, setContent] = useState();
-  const [updated, setUpdated] = useState(false);
   const pageURI = "mesmerize-pro";
 
   const fetchDataAction = () => {
+    console.log("fetchupdate run");
     const wordpress = new ApolloClient({
       uri: "https://stackedboost.com/graphql"
     });
@@ -39,7 +39,6 @@ const Index = () => {
       })
       .then(result => {
         setContent({ __html: result.data.pageBy.content });
-        setUpdated(true);
       })
       .catch(err => console.log(err));
   };
@@ -48,7 +47,7 @@ const Index = () => {
 
   useEffect(() => {
     fetchDataAction();
-  }, [updated]);
+  }, [pageURI]);
 
   return <Page>{MyComponent()}</Page>;
 };
