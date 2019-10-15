@@ -1,5 +1,5 @@
 const { PubSub } = require("@google-cloud/pubsub");
-const { db } = require("../lib/firebase/firebase");
+const { db, pushDB } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 
 const pubsub = new PubSub();
@@ -22,16 +22,27 @@ exports.installSectionRoute = async ctx => {
       if (doc.exists) {
         console.log("doc exist .... checkstore ran from installSectionRoute");
         const docu = await doc.data();
-        console.log(docu);
+        const { script } = docu;
+        let customAttributes = {};
 
-        // Add two custom attributes, origin and username, to the message
-        const customAttributes = {
-          app: "shopifyWordpress",
-          shop,
-          token: docu.token,
-          mainThemeId: `${docu.themeId}`,
-          scriptTag: "scriptTag"
-        };
+        /** If script is true no new script upload */
+        if (script) {
+          customAttributes = {
+            app: "shopifyWordpress",
+            shop,
+            token: docu.token,
+            mainThemeId: `${docu.themeId}`
+          };
+        } else {
+          customAttributes = {
+            app: "shopifyWordpress",
+            shop,
+            token: docu.token,
+            mainThemeId: `${docu.themeId}`,
+            scriptTag: "scriptTag"
+          };
+          pushDB(COLLECTION, shop, { script: true });
+        }
 
         const data = Buffer.from("Hello, world!");
         console.log(customAttributes);
