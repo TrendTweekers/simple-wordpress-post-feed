@@ -29,7 +29,8 @@ exports.installSectionRoute = async ctx => {
           app: "shopifyWordpress",
           shop,
           token: docu.token,
-          mainThemeId: `${docu.themeId}`
+          mainThemeId: `${docu.themeId}`,
+          scriptTag: "scriptTag"
         };
 
         const data = Buffer.from("Hello, world!");
