@@ -15,7 +15,7 @@ COPY . /usr/src/app
 
 RUN npm run build
 
-# Expose port 3000
+# Expose P 3000
 EXPOSE 3000
 
 # Start service
