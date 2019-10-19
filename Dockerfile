@@ -4,7 +4,7 @@ FROM node:alpine
 # Create app directory
 
 RUN mkdir -p /usr/src/app
-# Set workdirr 
+# Set workdirr
 WORKDIR /usr/src/app
 # Install app dependencies
 COPY package.json /usr/src/app/
@@ -15,7 +15,7 @@ COPY . /usr/src/app
 
 RUN npm run build
 
-# Expose port 3000 for traffic
+# Expose port 3000
 EXPOSE 3000
 
 # Start service
