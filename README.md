@@ -11,7 +11,7 @@ In terminal start ngrok
 Copying forwarding https address to shopify  
 `admin => Apps=>Better Related... => App setup`
 
-App url : ngrok address for example  
+App url :ngrok address for example  
 `https://ingrid.eu.ngrok.io`
 
 Whitelisted redirection URL(s) ngrok url + /auth/callback for example  
