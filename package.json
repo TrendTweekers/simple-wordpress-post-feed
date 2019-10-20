@@ -12,7 +12,11 @@
     "test": "jest",
     "dev": "NODE_ENV=development nodemon ./server/index.js --watch ./server/index.js",
     "build": "next build",
-    "start": "NODE_ENV=production node ./server/index.js"
+    "start": "NODE_ENV=production node ./server/index.js",
+    "preversion": "",
+    "version": "git add -A",
+    "postversion": "git push --tags",
+    "prettier": "prettier --write \"**/*.{js,jsx,json,ts,tsx,md,mdx,css,html,yml,yaml,scss,sass}\""
   },
   "repository": {
     "type": "git",
