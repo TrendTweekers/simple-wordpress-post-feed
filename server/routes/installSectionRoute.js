@@ -1,8 +1,6 @@
-const { PubSub } = require("@google-cloud/pubsub");
 const { db, pushDB } = require("../lib/firebase/firebase");
+const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
-
-const pubsub = new PubSub();
 
 const { COLLECTION } = config;
 
@@ -11,8 +9,6 @@ const { COLLECTION } = config;
  */
 exports.installSectionRoute = async ctx => {
   const { shop } = await ctx.session;
-
-  const topicName = "shopify";
 
   const shopRef = db.collection(COLLECTION).doc(shop);
 
@@ -23,34 +19,21 @@ exports.installSectionRoute = async ctx => {
         console.log("doc exist .... checkstore ran from installSectionRoute");
         const docu = await doc.data();
         const { script } = docu;
-        let customAttributes = {};
 
-        /** If script is true no new script upload */
         if (script) {
-          customAttributes = {
-            app: "shopifyWordpress",
-            shop,
-            token: docu.token,
-            mainThemeId: `${docu.themeId}`
-          };
+          pushTopic("shopifyWordpress", shop, docu.token, docu.themeId, "");
         } else {
-          customAttributes = {
-            app: "shopifyWordpress",
+          pushTopic(
+            "shopifyWordpress",
             shop,
-            token: docu.token,
-            mainThemeId: `${docu.themeId}`,
-            scriptTag: "scriptTag"
-          };
+            docu.token,
+            docu.themeId,
+            "scriptTag"
+          );
+
           pushDB(COLLECTION, shop, { script: true });
         }
 
-        const data = Buffer.from("Hello, world!");
-        console.log(customAttributes);
-        const messageId = await pubsub
-          .topic(topicName)
-          .publish(data, customAttributes);
-        console.log(`Message ${messageId} published.`);
-        // /
         return docu.email;
       }
       console.log("doc not exist ....");

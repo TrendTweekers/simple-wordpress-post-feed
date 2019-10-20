@@ -1,5 +1,8 @@
 # Dev environment Wordpress Shopify --- DEV
 
+To allow pub/sub to run in local enviorment path to keyfile need to be set. For example in  
+`export GOOGLE_APPLICATION_CREDENTIALS="/Users/mathiasasberg/Projects/stackedboost/Simple-Wordpress-Post-Feed-APP/server/lib/ServiceAccountKey.json"`
+
 `npm install ngrok -g`
 
 Adding ngrok token  
