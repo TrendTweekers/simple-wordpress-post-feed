@@ -10,8 +10,7 @@ const pubsub = new PubSub();
  * @param {number} theme - Store theme ID
  * @param {string} tag - ScriptTag
  */
-const pushTopic = async (app, shop, token, theme, tag) => {
-  const topic = "shopify";
+const pushTopic = async (topic, app, shop, token, theme, tag) => {
   const attributes = {
     app,
     shop,

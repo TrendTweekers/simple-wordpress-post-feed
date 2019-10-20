@@ -2,7 +2,7 @@ const { db, pushDB } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
 
-const { COLLECTION } = config;
+const { COLLECTION, PS_APP, PS_TOPIC } = config;
 
 /** Getting all the data from DB
  * @param  {context} ctx
@@ -21,10 +21,11 @@ exports.installSectionRoute = async ctx => {
         const { script } = docu;
 
         if (script) {
-          pushTopic("shopifyWordpress", shop, docu.token, docu.themeId, "");
+          pushTopic(PS_TOPIC, PS_APP, shop, docu.token, docu.themeId, "");
         } else {
           pushTopic(
-            "shopifyWordpress",
+            PS_TOPIC,
+            PS_APP,
             shop,
             docu.token,
             docu.themeId,

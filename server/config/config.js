@@ -13,6 +13,10 @@ env.API_VERSION = "2019-10";
 env.GRAPHQL_VERSION = "2019-07";
 env.port = 3000;
 
+/** Pub/Sub */
+env.PS_TOPIC = "shopify";
+env.PS_APP = "shopifyWordpress";
+
 /** Settings depending if running in development or production */
 if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_KEY = "8a664d8080a60db1866490c2e9cc1834";
