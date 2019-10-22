@@ -22,24 +22,27 @@ const Index = () => {
     wordpress
       .query({
         query: gql`
-          query($uri: String, $format: PostObjectFieldFormatEnum) {
-            pageBy(uri: $uri) {
-              id
-              pageId
-              title
-              date
-              uri
-              content(format: $format)
+          query($id: Int) {
+            apps(where: { id: $id }) {
+              edges {
+                node {
+                  id
+                  title
+                  date
+                  content(format: RENDERED)
+                }
+              }
             }
           }
         `,
         variables: {
-          uri: pageURI,
+          id: 387,
           format: "RENDERED"
         }
       })
       .then(result => {
-        setContent({ __html: result.data.pageBy.content });
+        console.log(result.data.apps.edges[0].node.content);
+        setContent({ __html: result.data.apps.edges[0].node.content });
       })
       .catch(err => console.log(err));
   };
