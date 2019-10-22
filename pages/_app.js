@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import "@shopify/polaris/styles.css";
 import React from "react";
 import fetch from "cross-fetch/polyfill";
+import Header from "../components/Header.js";
 
 import { SHOPIFY_API_KEY } from "../server/config/config";
 
@@ -31,6 +32,7 @@ class MyApp extends App {
         <AppProvider>
           <Provider config={config}>
             <ApolloProvider client={client}>
+              <Header />
               <Component {...pageProps} />
             </ApolloProvider>
           </Provider>
