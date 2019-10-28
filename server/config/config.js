@@ -15,7 +15,7 @@ env.port = 3000;
 
 /** Pub/Sub */
 env.PS_TOPIC = "shopify";
-env.PS_APP = "shopifyWordpress";
+env.PS_APP = "wp-shopify";
 
 /** Settings depending if running in development or production */
 if (process.env.NODE_ENV === "development") {

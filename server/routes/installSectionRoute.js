@@ -16,7 +16,6 @@ exports.installSectionRoute = async ctx => {
     .get()
     .then(async doc => {
       if (doc.exists) {
-        console.log("doc exist .... checkstore ran from installSectionRoute");
         const docu = await doc.data();
         const { script } = docu;
 
