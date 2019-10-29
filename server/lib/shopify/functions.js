@@ -62,6 +62,35 @@ const checkEmail = async (shop, token) => {
   return console.log("check email");
 };
 
+/**Check if shop is in devmode
+ * @param  {string} shop
+ * @param  {string} token
+ */
+const checkDevShop = async (shop, token) => {
+  try {
+    const devShop = await fetch(
+      `https://${shop}/admin/api/${API_VERSION}/shop.json`,
+      {
+        headers: {
+          "X-Shopify-Access-Token": token
+        }
+      }
+    )
+      .then(response => response.json())
+      .then(json => {
+        console.log(json.shop.plan_name);
+        if (json.shop.plan_name === "affiliate") {
+          return true;
+        }
+        return false;
+      });
+    return devShop;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 // exports
 module.exports.checkTheme = checkTheme;
 module.exports.checkEmail = checkEmail;
+module.exports.checkDevShop = checkDevShop;

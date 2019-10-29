@@ -1,4 +1,4 @@
-import { Page } from "@shopify/polaris";
+import { Page, Button } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
 import ApolloClient, { gql } from "apollo-boost";
 
@@ -10,7 +10,19 @@ import "../styles.scss";
  * has to be set
  */
 const Index = () => {
-  return <Page>Hello world</Page>;
+  const install = () => {
+    fetch("/api/install")
+      .then(res => res.json())
+      .then(json => console.log(json))
+      .catch(err => console.log(err));
+  };
+
+  return (
+    <>
+      <Page>Hello world</Page>
+      <Button onClick={install}>Update Script</Button>
+    </>
+  );
 };
 
 export default Index;

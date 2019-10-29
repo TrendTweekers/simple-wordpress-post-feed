@@ -10,13 +10,12 @@ const pubsub = new PubSub();
  * @param {number} theme - Store theme ID
  * @param {string} tag - ScriptTag
  */
-const pushTopic = async (topic, app, shop, token, theme, tag) => {
+const pushTopic = async (topic, app, store, token, theme) => {
   const attributes = {
     app,
-    shop,
+    store,
     token,
-    mainThemeId: `${theme}`,
-    scriptTag: tag
+    theme: `${theme}`
   };
   const data = Buffer.from("Hello, world!");
   console.log(attributes);
