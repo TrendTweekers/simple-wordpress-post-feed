@@ -80,9 +80,9 @@ const checkDevShop = async (shop, token) => {
       .then(json => {
         console.log(json.shop.plan_name);
         if (json.shop.plan_name === "affiliate") {
-          return true;
+          return "DEV";
         }
-        return false;
+        return "ACTIVE";
       });
     return devShop;
   } catch (err) {
