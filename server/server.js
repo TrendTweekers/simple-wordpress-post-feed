@@ -8,11 +8,8 @@ import Router from "koa-router";
 import session from "koa-session";
 import { receiveWebhook } from "@shopify/koa-shopify-webhooks";
 import getSubscriptionStatus from "./lib/firebase/getSubscriptionStatus";
-const {
-  checkDevShop,
-  checkStore,
-  checkStoreDEV
-} = require("./handlers/checkStore");
+const { checkStore, checkStoreDEV } = require("./handlers/checkStore");
+const { checkDevShop } = require("./lib/shopify/functions");
 
 import { redactRoute } from "./routes/redactRoute";
 import { uninstallRoute } from "./routes/uninstallRoute";
@@ -62,15 +59,15 @@ app
           });
 
           /**Check if its a development shop */
-          const dev = await checkDevShop(shop, accessToken);
+          const devShop = await checkDevShop(shop, accessToken);
           /**Check if subscription is active or not in our DB */
           const status = await getSubscriptionStatus(COLLECTION, shop);
-          if (status === "ACTIVE" && !dev) {
+          if (status === "ACTIVE" && !devShop === "ACTIVE") {
             // exist and not a Development shop
             ctx.redirect("/");
-          } else if (dev) {
+          } else if (devShop === "DEV") {
             // development shop
-            checkStoreDEV(shop, accessToken);
+            checkStore(shop, accessToken);
             ctx.redirect("/");
           } else {
             //  don't exist so we set it up

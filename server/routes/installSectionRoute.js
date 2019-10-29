@@ -8,6 +8,7 @@ const { COLLECTION, PS_APP, PS_TOPIC } = config;
  * @param  {context} ctx
  */
 exports.installSectionRoute = async ctx => {
+  console.log(`Install section route ran`);
   const { shop } = await ctx.session;
 
   const shopRef = db.collection(COLLECTION).doc(shop);
@@ -16,25 +17,10 @@ exports.installSectionRoute = async ctx => {
     .get()
     .then(async doc => {
       if (doc.exists) {
-        const docu = await doc.data();
-        const { script } = docu;
-
-        if (script) {
-          pushTopic(PS_TOPIC, PS_APP, shop, docu.token, docu.themeId, "");
-        } else {
-          pushTopic(
-            PS_TOPIC,
-            PS_APP,
-            shop,
-            docu.token,
-            docu.themeId,
-            "scriptTag"
-          );
-
-          pushDB(COLLECTION, shop, { script: true });
-        }
-
-        return docu.email;
+        const docu = doc.data();
+        pushTopic(PS_TOPIC, PS_APP, shop, docu.token, docu.themeId);
+        pushDB(COLLECTION, shop, { script: true });
+        return { success: "OK" };
       }
       console.log("doc not exist ....");
       ctx.response.status = 404;
