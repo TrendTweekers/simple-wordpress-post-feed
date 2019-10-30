@@ -15,7 +15,7 @@ env.port = 3000;
 
 /** Pub/Sub */
 env.PS_TOPIC = "shopify";
-env.PS_APP = "wp-shopify";
+env.PS_APP = "swpf";
 
 /** Settings depending if running in development or production */
 if (process.env.NODE_ENV === "development") {
@@ -23,7 +23,7 @@ if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_SECRET_KEY = "a1081d3ac38bfe4f8b8580dca0347ead";
   env.TUNNEL_URL = "https://ingrid.eu.ngrok.io";
   env.TEST = true;
-  env.COLLECTION = "wp-shopify-dev";
+  env.COLLECTION = "swpf-dev";
 
   /** Production Mode */
 } else if (process.env.NODE_ENV === "production") {
@@ -32,7 +32,7 @@ if (process.env.NODE_ENV === "development") {
   env.TUNNEL_URL =
     "https://shopify-wordpress-post-feed-app-rga4phvsoq-uc.a.run.app";
   env.TEST = true;
-  env.COLLECTION = "wp-shopify";
+  env.COLLECTION = "swpf";
 }
 
 module.exports = env;
