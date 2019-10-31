@@ -17,17 +17,17 @@ const { COLLECTION, API_VERSION, PS_APP, PS_TOPIC } = config;
 exports.checkStore = async (shop, token) => {
   // init values
   const storeData = {
-    mainThemeId: "",
+    themeId: "",
     email: "",
     status: ""
   };
 
-  storeData.mainThemeId = await checkTheme(shop, token);
+  storeData.themeId = await checkTheme(shop, token);
   storeData.email = await checkEmail(shop, token);
   storeData.status = await checkDevShop(shop, token);
 
   /** destructuring before push */
-  const { mainThemeId, email, status } = storeData;
+  const { themeId, email, status } = storeData;
 
   console.log("CHECKSTORE");
   async function getSnapshot() {
@@ -45,14 +45,14 @@ exports.checkStore = async (shop, token) => {
         const newData = {
           shop,
           token,
-          themeId: mainThemeId,
+          themeId,
           email,
           installDate: new Date(),
           lastUpdate: new Date(),
           trialDays: 7,
           status
         };
-        pushTopic(PS_TOPIC, PS_APP, shop, token, mainThemeId);
+        pushTopic(PS_TOPIC, PS_APP, shop, token, themeId);
         return pushDB(COLLECTION, shop, newData);
       }
 
@@ -60,7 +60,7 @@ exports.checkStore = async (shop, token) => {
       console.log("DOCUMENT EXIST");
       const addData = {
         token,
-        themeId: mainThemeId,
+        themeId,
         email,
         lastUpdate: new Date(),
         status

@@ -18,7 +18,8 @@ exports.installSectionRoute = async ctx => {
     .then(async doc => {
       if (doc.exists) {
         const docu = doc.data();
-        pushTopic(PS_TOPIC, PS_APP, shop, docu.token, docu.themeId);
+        const { token, themeId } = docu;
+        pushTopic(PS_TOPIC, PS_APP, shop, token, themeId);
         pushDB(COLLECTION, shop, { script: true });
         return { success: "OK" };
       }

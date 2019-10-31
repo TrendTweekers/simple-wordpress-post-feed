@@ -9,9 +9,9 @@ const { API_VERSION } = config;
  */
 
 /**
- * Get current Theme ID
- * @param {*} shop
- * @param {*} token
+ * Get currently used Theme ID
+ * @param {string} shop
+ * @param {string} token
  */
 
 const checkTheme = async (shop, token) => {
@@ -38,8 +38,8 @@ const checkTheme = async (shop, token) => {
 
 /**
  * Check shop owner email
- * @param {*} shop
- * @param {*} token
+ * @param {string} shop
+ * @param {string} token
  */
 const checkEmail = async (shop, token) => {
   try {
@@ -62,7 +62,7 @@ const checkEmail = async (shop, token) => {
   return console.log("check email");
 };
 
-/**Check if shop is in devmode
+/**Check if shop is on affiliate plan
  * @param  {string} shop
  * @param  {string} token
  */
@@ -78,7 +78,7 @@ const checkDevShop = async (shop, token) => {
     )
       .then(response => response.json())
       .then(json => {
-        console.log(json.shop.plan_name);
+        console.log(`${json.shop.plan_name} plan active`);
         if (json.shop.plan_name === "affiliate") {
           return "DEV";
         }
