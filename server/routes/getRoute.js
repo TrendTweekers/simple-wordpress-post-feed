@@ -15,7 +15,7 @@ exports.getRoute = async ctx => {
     .get()
     .then(doc => {
       if (doc.exists) {
-        console.log("doc exist .... checkstore ran from getroute");
+        console.log("doc exist .... ");
         const docu = doc.data();
         // console.log(docu);
 

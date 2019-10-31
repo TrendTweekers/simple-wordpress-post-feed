@@ -10,7 +10,7 @@ const db = admin.firestore();
 module.exports.db = db;
 
 /**
- * Check if store exist and fetch data
+ * Check if shop exist and fetch data
  * target => COLLECTION > SHOP
  * @param {string} collection
  * @param {string} shop
