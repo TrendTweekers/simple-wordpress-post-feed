@@ -14,11 +14,9 @@ const About = () => {
   const pageURI = "mesmerize-pro";
 
   const fetchDataAction = () => {
-    console.log("fetchupdate run");
     const wordpress = new ApolloClient({
       uri: "https://stackedboost.com/graphql"
     });
-    fetch("/api/install").catch(err => console.log(err));
 
     wordpress
       .query({
