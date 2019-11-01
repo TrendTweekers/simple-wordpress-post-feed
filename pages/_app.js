@@ -7,7 +7,7 @@ import Cookies from "js-cookie";
 import "@shopify/polaris/styles.css";
 import React from "react";
 import fetch from "cross-fetch/polyfill";
-import Header from "../components/Header.js";
+import Header from "../components/Header";
 
 import { SHOPIFY_API_KEY } from "../server/config/config";
 
