@@ -8,7 +8,7 @@ import Router from "koa-router";
 import session from "koa-session";
 import { receiveWebhook } from "@shopify/koa-shopify-webhooks";
 import getSubscriptionStatus from "./lib/firebase/getSubscriptionStatus";
-const { checkStore, checkStoreDEV } = require("./handlers/checkStore");
+const { checkShop } = require("./handlers/checkShop");
 const { checkDevShop } = require("./lib/shopify/functions");
 
 import { redactRoute } from "./routes/redactRoute";
@@ -67,7 +67,7 @@ app
             ctx.redirect("/");
           } else if (devShop === "DEV") {
             // development shop
-            checkStore(shop, accessToken);
+            checkShop(shop, accessToken);
             ctx.redirect("/");
           } else {
             //  don't exist so we set it up

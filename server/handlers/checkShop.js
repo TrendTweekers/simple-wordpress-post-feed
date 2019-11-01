@@ -9,27 +9,27 @@ const config = require("../config/config");
 
 const { COLLECTION, API_VERSION, PS_APP, PS_TOPIC } = config;
 
-/** Fetch store data and push DB
+/** Fetch shop data and push DB
  * @param {string} shop
  * @param {string} accessToken
  */
 
-exports.checkStore = async (shop, token) => {
+exports.checkShop = async (shop, token) => {
   // init values
-  const storeData = {
+  const shopData = {
     themeId: "",
     email: "",
     status: ""
   };
 
-  storeData.themeId = await checkTheme(shop, token);
-  storeData.email = await checkEmail(shop, token);
-  storeData.status = await checkDevShop(shop, token);
+  shopData.themeId = await checkTheme(shop, token);
+  shopData.email = await checkEmail(shop, token);
+  shopData.status = await checkDevShop(shop, token);
 
   /** destructuring before push */
-  const { themeId, email, status } = storeData;
+  const { themeId, email, status } = shopData;
 
-  console.log("CHECKSTORE");
+  console.log("CHECKSHOP");
   async function getSnapshot() {
     const snapshot = await getShop(COLLECTION, shop);
     return snapshot;
@@ -71,5 +71,5 @@ exports.checkStore = async (shop, token) => {
     .catch(err => {
       console.log("error getting document", err);
     });
-  return storeData;
+  return shopData;
 };

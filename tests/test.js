@@ -10,9 +10,9 @@ const pubsub = new PubSub();
 /**
  * Push message to pub/sub topic
  * @param {string} app - trigger "app" cloudfunction
- * @param {string} shop - Store url
- * @param {string} token - Store token
- * @param {number} theme - Store theme ID
+ * @param {string} shop - Shop url
+ * @param {string} token - Shop token
+ * @param {number} theme - Shop theme ID
  * @param {string} tag - ScriptTag
  */
 const pushTopic = async (app, shop, token, theme, tag) => {

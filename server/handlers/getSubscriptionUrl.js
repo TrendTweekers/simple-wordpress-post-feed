@@ -1,7 +1,7 @@
 const env = require("../config/config");
 
 const { TUNNEL_URL, TEST, API_VERSION, PRICE } = env;
-const { checkStore } = require("./checkStore");
+const { checkShop } = require("./checkShop");
 const { createWebhook } = require("./createWebhook");
 
 /** Creating subscription URL
@@ -54,7 +54,7 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const responseJson = await response.json();
   const confirmationUrl =
     responseJson.data.appSubscriptionCreate.confirmationUrl;
-  checkStore(shop, accessToken);
+  checkShop(shop, accessToken);
 
   createWebhook(
     `${TUNNEL_URL}/api/uninstall`,
