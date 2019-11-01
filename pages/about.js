@@ -1,4 +1,4 @@
-import { Page } from "@shopify/polaris";
+import { Page, Heading, DisplayText } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
 import ApolloClient, { gql } from "apollo-boost";
 
@@ -48,13 +48,25 @@ const About = () => {
       .catch(err => console.log(err));
   };
 
-  const MyComponent = () => <div dangerouslySetInnerHTML={content} />;
+  const MyComponent = () => (
+    <div className="post" dangerouslySetInnerHTML={content} />
+  );
 
   useEffect(() => {
     fetchDataAction();
   }, [pageURI]);
 
-  return <Page>{MyComponent()}</Page>;
+  return (
+    <Page>
+      <div className="post-heading">
+        <DisplayText size="Large" element="h1">
+          Documentaion
+        </DisplayText>
+      </div>
+
+      {MyComponent()}
+    </Page>
+  );
 };
 
 export default About;
