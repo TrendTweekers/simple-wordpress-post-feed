@@ -7,15 +7,16 @@ const pubsub = new PubSub();
  * @param {string} app - trigger "app" cloudfunction
  * @param {string} shop - Shop url
  * @param {string} token - Shop token
- * @param {number} theme - Shop theme ID
+ * @param {number} themeid - Shop theme ID
  * @param {string} tag - ScriptTag
  */
-const pushTopic = async (topic, app, shop, token, theme) => {
+const pushTopic = async (topic, app, shop, token, themeId) => {
+  console.log(`Pushed topic by >>> ${shop}`);
   const attributes = {
     app,
     shop,
     token,
-    theme: `${theme}`
+    theme: `${themeId}`
   };
   const data = Buffer.from("Hello, world!");
   console.log(attributes);
