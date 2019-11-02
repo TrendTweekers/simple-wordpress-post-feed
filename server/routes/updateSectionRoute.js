@@ -7,7 +7,7 @@ const { COLLECTION, PS_APP, PS_TOPIC } = config;
 /** Getting all the data from DB
  * @param  {context} ctx
  */
-exports.installSectionRoute = async ctx => {
+exports.updateSectionRoute = async ctx => {
   console.log(`Install section route ran`);
   const { shop } = await ctx.session;
 

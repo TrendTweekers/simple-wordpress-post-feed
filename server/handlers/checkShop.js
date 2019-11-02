@@ -7,7 +7,7 @@ const { getShop, pushDB } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
 
-const { COLLECTION, API_VERSION, PS_APP, PS_TOPIC } = config;
+const { COLLECTION, PS_APP, PS_TOPIC } = config;
 
 /** Fetch shop data and push DB
  * @param {string} shop

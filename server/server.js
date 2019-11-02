@@ -14,7 +14,7 @@ const { checkDevShop } = require("./lib/shopify/functions");
 import { redactRoute } from "./routes/redactRoute";
 import { uninstallRoute } from "./routes/uninstallRoute";
 import { getRoute } from "./routes/getRoute";
-import { installSectionRoute } from "./routes/installSectionRoute";
+import { updateSectionRoute } from "./routes/updateSectionRoute";
 
 const env = require("./config/config");
 
@@ -85,7 +85,7 @@ app
 
     router
       .get("/api/data", getRoute)
-      .get("/api/install", installSectionRoute)
+      .get("/api/update", updateSectionRoute)
       .post("/api/redact", webhook, redactRoute)
       .post("/api/uninstall", webhook, uninstallRoute);
 
