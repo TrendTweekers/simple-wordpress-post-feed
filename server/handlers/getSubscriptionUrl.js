@@ -13,10 +13,10 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const query = JSON.stringify({
     query: `mutation {
       appSubscriptionCreate(
-          name: "Super Duper Plan"
+          name: "Standard"
           returnUrl: "${TUNNEL_URL}"
           test: ${TEST}
-          trialDays: 7
+          trialDays: 14
           lineItems: [
           {
             plan: {

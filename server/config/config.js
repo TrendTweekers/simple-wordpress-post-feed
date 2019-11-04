@@ -2,7 +2,7 @@
 const env = {};
 
 /** Global Settings */
-env.PRICE = "3.9";
+env.PRICE = "6.9";
 env.SCOPES = [
   "write_themes",
   "read_themes",
@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_SECRET_KEY = "53c84cfb4aa7d5dee3b12f677b19fbfb";
   env.TUNNEL_URL =
     "https://shopify-wordpress-post-feed-app-rga4phvsoq-uc.a.run.app";
-  env.TEST = true;
+  env.TEST = false;
   env.COLLECTION = "swpf";
 }
 
