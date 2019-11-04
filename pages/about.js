@@ -40,7 +40,6 @@ const About = () => {
         }
       })
       .then(result => {
-        console.log(result.data.apps.edges[0].node.content);
         setContent({ __html: result.data.apps.edges[0].node.content });
       })
       .catch(err => console.log(err));
@@ -54,17 +53,7 @@ const About = () => {
     fetchDataAction();
   }, [pageURI]);
 
-  return (
-    <Page>
-      <div className="post-heading">
-        <DisplayText size="Large" element="h1">
-          Documentaion
-        </DisplayText>
-      </div>
-
-      {MyComponent()}
-    </Page>
-  );
+  return <Page title="Documentaion">{MyComponent()}</Page>;
 };
 
 export default About;
