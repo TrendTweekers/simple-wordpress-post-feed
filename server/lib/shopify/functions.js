@@ -65,6 +65,7 @@ const checkEmail = async (shop, token) => {
 /**Check if shop is on affiliate plan
  * @param  {string} shop
  * @param  {string} token
+ * @return {boolean}
  */
 const checkDevShop = async (shop, token) => {
   try {
@@ -80,9 +81,9 @@ const checkDevShop = async (shop, token) => {
       .then(json => {
         console.log(`${json.shop.plan_name} plan active`);
         if (json.shop.plan_name === "affiliate") {
-          return "DEV";
+          return true;
         }
-        return "ACTIVE";
+        return false;
       });
     return devShop;
   } catch (err) {

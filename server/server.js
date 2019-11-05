@@ -62,10 +62,10 @@ app
           const devShop = await checkDevShop(shop, accessToken);
           /**Check if subscription is active or not in our DB */
           const status = await getSubscriptionStatus(COLLECTION, shop);
-          if (status === "ACTIVE" && !devShop === "ACTIVE") {
+          if (status) {
             // exist and not a Development shop
             ctx.redirect("/");
-          } else if (devShop === "DEV") {
+          } else if (devShop) {
             // development shop
             checkShop(shop, accessToken);
             ctx.redirect("/");

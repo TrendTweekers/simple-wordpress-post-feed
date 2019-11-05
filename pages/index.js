@@ -1,4 +1,11 @@
-import { Page, Button, Layout, Card, FormLayout } from "@shopify/polaris";
+import {
+  Page,
+  Button,
+  Layout,
+  Card,
+  FormLayout,
+  Banner
+} from "@shopify/polaris";
 import Divider from "./../components/Divider";
 import React, { useState, useEffect } from "react";
 import ApolloClient, { gql } from "apollo-boost";
@@ -12,20 +19,35 @@ import "../styles.scss";
  * has to be set
  */
 const Index = () => {
+  const [buttonDisabled, setButtonDisabled] = useState(false);
+  const [banner, setBanner] = useState(false);
+
   const install = () => {
     fetch("/api/update")
       .then(res => res.json())
-      .then(json => console.log(json))
+      .then(json => {
+        console.log(json);
+        setButtonDisabled(true);
+        setBanner(true);
+        setTimeout(() => {
+          setBanner(false);
+        }, 8000);
+      })
       .catch(err => console.log(err));
   };
 
+  const bannerMessage = banner ? (
+    <Banner status="success">Reinstall &amp; Update was successful!</Banner>
+  ) : null;
+
   return (
     <Page title="Simple Wordpress Feed">
+      {bannerMessage}
       <Card sectioned>
         <p>
           <b>Thank for installing Simple Wordpress Post Feed.</b>
           <br /> To get started go to theme section editor and add the Simple
-          Wordpress Post Feed section. For more detaild instructions see the{" "}
+          Wordpress Post Feed section. For more detaild instructions see the
           <Link href="/about">
             <a>documentation</a>
           </Link>
@@ -34,7 +56,7 @@ const Index = () => {
           <i>Hope you enjoy the app and dont forget to leave a reveiew.</i>
         </p>
       </Card>
-      <Divider XL />
+      <Divider xl />
       <Layout>
         <Layout.AnnotatedSection
           title="Update App"
@@ -45,7 +67,9 @@ const Index = () => {
             files & Scripts.
             <br />
             <br />
-            <Button onClick={install}>Update</Button>
+            <Button onClick={install} disabled={buttonDisabled}>
+              Update
+            </Button>
           </Card>
         </Layout.AnnotatedSection>
       </Layout>
