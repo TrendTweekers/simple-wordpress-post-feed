@@ -13,7 +13,8 @@ module.exports.db = db;
  * Check if shop exist and fetch data
  * target => COLLECTION > SHOP
  * @param {string} collection
- * @param {string} shop
+ * @param {string} shop_or_setting
+ * @return {object}
  */
 
 const getShop = async (collection, shop) => {

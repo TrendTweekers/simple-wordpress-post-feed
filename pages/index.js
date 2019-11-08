@@ -19,7 +19,7 @@ import "../styles.scss";
  * has to be set
  */
 const Index = () => {
-  const [buttonDisabled, setButtonDisabled] = useState(false);
+  const [buttonDisabled, setButtonDisabled] = useState(true);
   const [banner, setBanner] = useState(false);
   const [settings, setSettings] = useState();
   const fetchURL = "/api/data";
@@ -28,7 +28,7 @@ const Index = () => {
     fetch("/api/update")
       .then(res => res.json())
       .then(json => {
-        console.log(json);
+        //console.log(json);
         setButtonDisabled(true);
         setBanner(true);
         setTimeout(() => {
@@ -42,8 +42,8 @@ const Index = () => {
     fetch(fetchURL)
       .then(res => res.json())
       .then(json => {
-        setSettings(json);
-        console.log(json);
+        setButtonDisabled(json.updated);
+        //console.log(json);
       });
   };
 
@@ -57,7 +57,6 @@ const Index = () => {
 
   return (
     <Page title="Simple Wordpress Feed">
-      {bannerMessage}
       <Card sectioned>
         <p>
           <b>Thank for installing Simple Wordpress Post Feed.</b>
@@ -72,6 +71,7 @@ const Index = () => {
         </p>
       </Card>
       <Divider xl />
+      {bannerMessage}
       <Layout>
         <Layout.AnnotatedSection
           title="Update App"

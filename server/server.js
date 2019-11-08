@@ -6,7 +6,6 @@ import Koa from "koa";
 import next from "next";
 import Router from "koa-router";
 import session from "koa-session";
-import { receiveWebhook } from "@shopify/koa-shopify-webhooks";
 import getSubscriptionStatus from "./lib/firebase/getSubscriptionStatus";
 const { checkShop } = require("./handlers/checkShop");
 const { checkDevShop } = require("./lib/shopify/functions");
@@ -58,10 +57,11 @@ app
           });
 
           /**Check if its a development shop */
-          const devShop = checkDevShop(shop, accessToken);
+          const devShop = await checkDevShop(shop, accessToken);
           /**Check if subscription is active or not in our DB */
-          const status = await getSubscriptionStatus(COLLECTION, shop);
-          if (status) {
+          const active = await getSubscriptionStatus(COLLECTION, shop);
+          console.log(`${devShop} and ${active}`);
+          if (active && !devShop) {
             // exist and not a Development shop
             ctx.redirect("/");
           } else if (devShop) {
@@ -80,12 +80,12 @@ app
         version: GRAPHQL_VERSION
       })
     );
-    const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
 
     router
       .get("/api/data", getRoute)
-      .post("/api/update", updateSectionRoute)
-      .post("/api/uninstall", uninstallRoute);
+      .get("/api/update", updateSectionRoute)
+      /**Delete section route */
+      .post("/api/deletesection", uninstallRoute);
 
     router.get("*", verifyRequest(), async ctx => {
       await handle(ctx.req, ctx.res);

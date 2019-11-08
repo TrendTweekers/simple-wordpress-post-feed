@@ -2,7 +2,6 @@
 const env = {};
 
 /** Global Settings */
-env.PRICE = "6.9";
 env.SCOPES = [
   "write_themes",
   "read_themes",

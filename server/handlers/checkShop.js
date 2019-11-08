@@ -1,6 +1,6 @@
 const {
   checkTheme,
-  checkEmail,
+  checkEmailId,
   checkDevShop
 } = require("../lib/shopify/functions");
 const { getShop, pushDB } = require("../lib/firebase/firebase");
@@ -20,16 +20,19 @@ exports.checkShop = async (shop, token) => {
     theme: "",
     email: "",
     active: "",
-    development: ""
+    development: "",
+    id: ""
   };
   const action = "install";
 
   shopData.theme = await checkTheme(shop, token);
-  shopData.email = await checkEmail(shop, token);
-  shopData.development = checkDevShop(shop, token);
+  const emailId = await checkEmailId(shop, token);
+  shopData.email = emailId.email;
+  shopData.id = emailId.id;
+  shopData.development = await checkDevShop(shop, token);
 
   /** destructuring before push */
-  const { theme, email, development } = shopData;
+  const { theme, email, development, id } = shopData;
 
   console.log("CHECKSHOP");
   async function getSnapshot() {
@@ -46,6 +49,7 @@ exports.checkShop = async (shop, token) => {
         console.log("DOCUMENT DONT EXIST");
         const newData = {
           shop,
+          id,
           token,
           theme,
           email,
@@ -55,6 +59,7 @@ exports.checkShop = async (shop, token) => {
           development,
           active: !development
         };
+        console.log(newData);
         pushTopic(shop, theme, token, action);
         return pushDB(COLLECTION, shop, newData);
       }
@@ -69,6 +74,7 @@ exports.checkShop = async (shop, token) => {
         development,
         active: !development
       };
+
       pushDB(COLLECTION, shop, addData);
       return addData;
     })

@@ -12,7 +12,6 @@ exports.getRoute = async ctx => {
   const shopRef = db.collection(COLLECTION).doc(shop);
   /** Checking version in settings DB */
   const { version } = await getShop("settings", COLLECTION);
-  console.log(version);
 
   const getDoc = await shopRef
     .get()
@@ -21,8 +20,11 @@ exports.getRoute = async ctx => {
         console.log("doc exist .... ");
         const docu = doc.data();
         const docuversion = docu.version;
-        console.log(docuversion);
-        const dataObj = { script };
+        const dataObj = {
+          version: version,
+          installedVersion: docuversion,
+          updated: docuversion === version
+        };
         return dataObj;
       }
       console.log("doc not exist ....");

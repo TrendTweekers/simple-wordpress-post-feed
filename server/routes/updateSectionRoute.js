@@ -9,7 +9,7 @@ const { COLLECTION } = config;
  */
 exports.updateSectionRoute = async ctx => {
   const action = "update";
-  console.log(`Install section route ran`);
+  console.log(`Update section route ran`);
   const { shop } = await ctx.session;
 
   const shopRef = db.collection(COLLECTION).doc(shop);

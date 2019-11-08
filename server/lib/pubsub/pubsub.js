@@ -14,7 +14,7 @@ const pubsub = new PubSub();
 const pushTopic = async (shop, theme, token, action) => {
   console.log(`Pushed topic by >>> ${shop}`);
   const attributes = {
-    PS_APP,
+    app: PS_APP,
     shop,
     theme: `${theme}`,
     token,

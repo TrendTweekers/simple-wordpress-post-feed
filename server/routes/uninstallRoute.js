@@ -1,7 +1,6 @@
 /** Creating webhook for uninstall */
 // //////////////////////////////////
-
-const { pushDB } = require("../lib/firebase/firebase");
+const { pushDB, db } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 
 const { COLLECTION } = config;

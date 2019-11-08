@@ -8,12 +8,8 @@ const { getShop } = require("./firebase");
  */
 const getSubscriptionStatus = async (collection, shop) => {
   const data = await getShop(collection, shop);
-  if (data.status === "ACTIVE") {
-    console.log("it appers to be active");
-    return true;
-  }
-  console.log("it appers to NOT be active or dev");
-  return false;
+  console.log(`shop is active:${data.active}`);
+  return data.active;
 };
 
 module.exports = getSubscriptionStatus;
