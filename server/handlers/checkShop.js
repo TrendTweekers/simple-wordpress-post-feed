@@ -7,7 +7,7 @@ const { getShop, pushDB } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
 
-const { COLLECTION, PS_APP, PS_TOPIC } = config;
+const { COLLECTION } = config;
 
 /** Fetch shop data and push DB
  * @param {string} shop
@@ -17,17 +17,19 @@ const { COLLECTION, PS_APP, PS_TOPIC } = config;
 exports.checkShop = async (shop, token) => {
   // init values
   const shopData = {
-    themeId: "",
+    theme: "",
     email: "",
-    status: ""
+    active: "",
+    development: ""
   };
+  const action = "install";
 
-  shopData.themeId = await checkTheme(shop, token);
+  shopData.theme = await checkTheme(shop, token);
   shopData.email = await checkEmail(shop, token);
-  shopData.status = await checkDevShop(shop, token);
+  shopData.development = checkDevShop(shop, token);
 
   /** destructuring before push */
-  const { themeId, email, status } = shopData;
+  const { theme, email, development } = shopData;
 
   console.log("CHECKSHOP");
   async function getSnapshot() {
@@ -45,14 +47,15 @@ exports.checkShop = async (shop, token) => {
         const newData = {
           shop,
           token,
-          themeId,
+          theme,
           email,
           installDate: new Date(),
           lastUpdate: new Date(),
           trialDays: 7,
-          status
+          development,
+          active: !development
         };
-        pushTopic(PS_TOPIC, PS_APP, shop, token, themeId);
+        pushTopic(shop, theme, token, action);
         return pushDB(COLLECTION, shop, newData);
       }
 
@@ -60,10 +63,11 @@ exports.checkShop = async (shop, token) => {
       console.log("DOCUMENT EXIST");
       const addData = {
         token,
-        themeId,
+        theme,
         email,
         lastUpdate: new Date(),
-        status
+        development,
+        active: !development
       };
       pushDB(COLLECTION, shop, addData);
       return addData;

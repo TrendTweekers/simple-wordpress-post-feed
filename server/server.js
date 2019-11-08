@@ -11,7 +11,6 @@ import getSubscriptionStatus from "./lib/firebase/getSubscriptionStatus";
 const { checkShop } = require("./handlers/checkShop");
 const { checkDevShop } = require("./lib/shopify/functions");
 
-import { redactRoute } from "./routes/redactRoute";
 import { uninstallRoute } from "./routes/uninstallRoute";
 import { getRoute } from "./routes/getRoute";
 import { updateSectionRoute } from "./routes/updateSectionRoute";
@@ -59,7 +58,7 @@ app
           });
 
           /**Check if its a development shop */
-          const devShop = await checkDevShop(shop, accessToken);
+          const devShop = checkDevShop(shop, accessToken);
           /**Check if subscription is active or not in our DB */
           const status = await getSubscriptionStatus(COLLECTION, shop);
           if (status) {
@@ -85,9 +84,8 @@ app
 
     router
       .get("/api/data", getRoute)
-      .get("/api/update", updateSectionRoute)
-      .post("/api/redact", webhook, redactRoute)
-      .post("/api/uninstall", webhook, uninstallRoute);
+      .post("/api/update", updateSectionRoute)
+      .post("/api/uninstall", uninstallRoute);
 
     router.get("*", verifyRequest(), async ctx => {
       await handle(ctx.req, ctx.res);

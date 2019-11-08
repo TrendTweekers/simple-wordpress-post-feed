@@ -21,6 +21,8 @@ import "../styles.scss";
 const Index = () => {
   const [buttonDisabled, setButtonDisabled] = useState(false);
   const [banner, setBanner] = useState(false);
+  const [settings, setSettings] = useState();
+  const fetchURL = "/api/data";
 
   const install = () => {
     fetch("/api/update")
@@ -35,6 +37,19 @@ const Index = () => {
       })
       .catch(err => console.log(err));
   };
+
+  const getSettings = () => {
+    fetch(fetchURL)
+      .then(res => res.json())
+      .then(json => {
+        setSettings(json);
+        console.log(json);
+      });
+  };
+
+  useEffect(() => {
+    getSettings();
+  }, [fetchURL]);
 
   const bannerMessage = banner ? (
     <Banner status="success">Reinstall &amp; Update was successful!</Banner>

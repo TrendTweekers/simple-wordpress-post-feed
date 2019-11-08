@@ -16,7 +16,7 @@ module.exports.db = db;
  * @param {string} shop
  */
 
-const getShop = (collection, shop) => {
+const getShop = async (collection, shop) => {
   const documentReference = db.doc(`${collection}/${shop}`).get();
   return documentReference
     .then(doc => {
@@ -38,7 +38,7 @@ const getShop = (collection, shop) => {
  *
  */
 
-const deleteShop = (collection, shop) => {
+const deleteShop = async (collection, shop) => {
   const documentReference = db.doc(`${collection}/${shop}`).get();
   console.log("deleteShop");
   return documentReference

@@ -1,26 +1,28 @@
 const { PubSub } = require("@google-cloud/pubsub");
+const config = require("../../config/config");
+const { COLLECTION, PS_APP, PS_TOPIC } = config;
 
 const pubsub = new PubSub();
 
 /**
  * Push message to pub/sub topic
- * @param {string} app - trigger "app" cloudfunction
  * @param {string} shop - Shop url
+ * @param {number} theme - Shop theme ID
  * @param {string} token - Shop token
- * @param {number} themeid - Shop theme ID
- * @param {string} tag - ScriptTag
+ * @param {number} action - Shop theme ID
  */
-const pushTopic = async (topic, app, shop, token, themeId) => {
+const pushTopic = async (shop, theme, token, action) => {
   console.log(`Pushed topic by >>> ${shop}`);
   const attributes = {
-    app,
+    PS_APP,
     shop,
+    theme: `${theme}`,
     token,
-    theme: `${themeId}`
+    action
   };
-  const data = Buffer.from("Hello, world!");
+  const data = Buffer.from("shopify");
   console.log(attributes);
-  const messageId = await pubsub.topic(topic).publish(data, attributes);
+  const messageId = await pubsub.topic(PS_TOPIC).publish(data, attributes);
   console.log(`Message ${messageId} published.`);
 };
 
