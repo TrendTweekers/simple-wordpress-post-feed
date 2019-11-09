@@ -2,7 +2,6 @@
 const env = {};
 
 /** Global Settings */
-env.PRICE = "6.9";
 env.SCOPES = [
   "write_themes",
   "read_themes",
@@ -23,7 +22,7 @@ if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_SECRET_KEY = "a1081d3ac38bfe4f8b8580dca0347ead";
   env.TUNNEL_URL = "https://ingrid.eu.ngrok.io";
   env.TEST = true;
-  env.COLLECTION = "swpf-dev";
+  env.COLLECTION = "swpf";
 
   /** Production Mode */
 } else if (process.env.NODE_ENV === "production") {

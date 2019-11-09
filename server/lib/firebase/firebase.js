@@ -13,10 +13,11 @@ module.exports.db = db;
  * Check if shop exist and fetch data
  * target => COLLECTION > SHOP
  * @param {string} collection
- * @param {string} shop
+ * @param {string} shop_or_setting
+ * @return {object}
  */
 
-const getShop = (collection, shop) => {
+const getShop = async (collection, shop) => {
   const documentReference = db.doc(`${collection}/${shop}`).get();
   return documentReference
     .then(doc => {
@@ -38,7 +39,7 @@ const getShop = (collection, shop) => {
  *
  */
 
-const deleteShop = (collection, shop) => {
+const deleteShop = async (collection, shop) => {
   const documentReference = db.doc(`${collection}/${shop}`).get();
   console.log("deleteShop");
   return documentReference

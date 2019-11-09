@@ -37,11 +37,12 @@ const checkTheme = async (shop, token) => {
 };
 
 /**
- * Check shop owner email
+ * Check shop owner email and shop ID
  * @param {string} shop
  * @param {string} token
+ * @return {email:string,id:number}
  */
-const checkEmail = async (shop, token) => {
+const checkEmailId = async (shop, token) => {
   try {
     const results = await fetch(
       `https://${shop}/admin/api/${API_VERSION}/shop.json`,
@@ -53,13 +54,13 @@ const checkEmail = async (shop, token) => {
     )
       .then(response => response.json())
       .then(json => {
-        return json.shop.email;
+        return { email: json.shop.email, id: json.shop.id };
       });
     return results;
   } catch (err) {
     console.log(err);
   }
-  return console.log("check email");
+  return console.log("check email,id");
 };
 
 /**Check if shop is on affiliate plan
@@ -93,5 +94,5 @@ const checkDevShop = async (shop, token) => {
 
 // exports
 module.exports.checkTheme = checkTheme;
-module.exports.checkEmail = checkEmail;
+module.exports.checkEmailId = checkEmailId;
 module.exports.checkDevShop = checkDevShop;

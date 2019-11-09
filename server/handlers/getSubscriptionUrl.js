@@ -1,6 +1,7 @@
 const env = require("../config/config");
+const { getShop } = require("../lib/firebase/firebase");
 
-const { TUNNEL_URL, TEST, API_VERSION, PRICE } = env;
+const { TUNNEL_URL, TEST, API_VERSION, COLLECTION } = env;
 const { checkShop } = require("./checkShop");
 const { createWebhook } = require("./createWebhook");
 
@@ -10,18 +11,20 @@ const { createWebhook } = require("./createWebhook");
  * @param  {string} shop
  */
 const getSubscriptionUrl = async (ctx, accessToken, shop) => {
+  const { trial } = await getShop("settings", COLLECTION);
+  const { price } = await getShop("settings", COLLECTION);
   const query = JSON.stringify({
     query: `mutation {
       appSubscriptionCreate(
           name: "Standard"
           returnUrl: "${TUNNEL_URL}"
           test: ${TEST}
-          trialDays: 14
+          trialDays: ${trial}
           lineItems: [
           {
             plan: {
               appRecurringPricingDetails: {
-                  price: { amount: ${PRICE}, currencyCode: USD }
+                  price: { amount: ${price}, currencyCode: USD }
               }
             }
           }

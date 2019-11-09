@@ -1,4 +1,4 @@
-const { db } = require("../lib/firebase/firebase");
+const { db, getShop } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 
 const { COLLECTION } = config;
@@ -10,6 +10,8 @@ exports.getRoute = async ctx => {
   const { shop } = await ctx.session;
 
   const shopRef = db.collection(COLLECTION).doc(shop);
+  /** Checking version in settings DB */
+  const { version } = await getShop("settings", COLLECTION);
 
   const getDoc = await shopRef
     .get()
@@ -17,9 +19,13 @@ exports.getRoute = async ctx => {
       if (doc.exists) {
         console.log("doc exist .... ");
         const docu = doc.data();
-        // console.log(docu);
-
-        return docu.email;
+        const docuversion = docu.version;
+        const dataObj = {
+          version: version,
+          installedVersion: docuversion,
+          updated: docuversion === version
+        };
+        return dataObj;
       }
       console.log("doc not exist ....");
       ctx.response.status = 404;
