@@ -84,7 +84,7 @@ const Index = ({ storeData }) => {
         <p>
           <b>Thank for installing Simple Wordpress Post Feed.</b>
           <br /> To get started go to theme section editor and add the Simple
-          Wordpress Post Feed section. For more detaild instructions see the
+          Wordpress Post Feed section. For more detaild instructions see the{" "}
           <Link href="/about">
             <a>documentation</a>
           </Link>
