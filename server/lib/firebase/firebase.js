@@ -1,91 +1,92 @@
 const admin = require("firebase-admin");
-const serviceAccount = require("./../../config/ServiceAccountKey.json");
+const serviceAccount = require("../../../pluginmaker-955a081d0d03.json");
 
-// Initialize Firestore.
+//Initialize Firestore.
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
+  // credential: admin.credential.applicationDefault()
 });
 const db = admin.firestore();
 
-module.exports.db = db;
-
 /**
- * Check if shop exist and fetch data
- * target => COLLECTION > SHOP
- * @param {string} collection
- * @param {string} shop_or_setting
- * @return {object}
+ * Get data for shop
+ * @param {*} app app collection
+ * @param {*} shop shop
  */
 
-const getShop = async (collection, shop) => {
-  const documentReference = db.doc(`${collection}/${shop}`).get();
-  return documentReference
+const getFs = (app, shop) => {
+  const docRef = db.collection(app).doc(shop);
+  const getDoc = docRef
+    .get()
     .then(doc => {
       if (!doc.exists) {
-        return false;
+        return console.log("No such document!");
       }
       return doc.data();
     })
     .catch(err => {
       console.log("Error getting document", err);
     });
+
+  return getDoc;
 };
 
 /**
- * Delete shop
- * target => COLLECTION > SHOP
- * @param {*} shop
- * @param {*} collection
- *
+ * Gett Application settings from Firestore
+ * @param {*} app name of app
  */
 
-const deleteShop = async (collection, shop) => {
-  const documentReference = db.doc(`${collection}/${shop}`).get();
-  console.log("deleteShop");
-  return documentReference
+const getSettings = app => {
+  const docRef = db.collection("settings").doc(app);
+  const getDoc = docRef
+    .get()
     .then(doc => {
       if (!doc.exists) {
-        console.log(`ERROR: deleteShop(): ${shop} does not exist`);
-        return false;
+        return console.log("No such document!");
       }
-      db.doc(`${collection}/${shop}`).delete();
-      console.log(`SUCCESS deleteShop(): ${shop} deleted`);
-      return true;
+
+      // return document data
+      return doc.data();
     })
     .catch(err => {
       console.log("Error getting document", err);
     });
+
+  return getDoc;
 };
 
-/** Pushdata to DB
- * @param  {} collection
- * @param  {} shop
- * @param  {} data
+/**
+ * Delete Shop
+ * target => COLLECTION > SHOP
+ * @param {*} app
+ * @param {*} shop
  */
-const pushDB = (collection, shop, data) => {
-  const documentReference = db.doc(`${collection}/${shop}`);
-  console.log("PushDB");
-  documentReference.set(data, { merge: true }).then(() => {
-    console.log("data saved push db");
-    return true;
-  });
+
+const deleteFs = (app, shop) => {
+  const deleteDoc = db
+    .collection(app)
+    .doc(shop)
+    .delete();
+
+  return deleteDoc;
 };
 
-/** Update data in DB MERGE:FALSE
- * @param  {} collection
- * @param  {} shop
- * @param  {} data
+/**
+ * Write to Firebase
+ * @param {string} app
+ * @param {string} shop
+ * @param {any} data
+ *
  */
-const updateDB = (collection, shop, data) => {
-  const documentReference = db.doc(`${collection}/${shop}`);
-  console.log("Update DB");
-  documentReference.update({ data }, { merge: false }).then(() => {
-    console.log("data saved update db");
-    return data;
-  });
+const writeFs = (app, shop, data) => {
+  const docRef = db.collection(app).doc(shop);
+  const writeData = docRef.update(data, { merge: false });
+
+  return writeData;
 };
 
-module.exports.pushDB = pushDB;
-module.exports.updateDB = updateDB;
-module.exports.getShop = getShop;
-module.exports.deleteShop = deleteShop;
+module.exports.getFs = getFs;
+module.exports.writeFs = writeFs;
+module.exports.deleteFs = deleteFs;
+module.exports.getSettings = getSettings;
+module.exports.db = db;

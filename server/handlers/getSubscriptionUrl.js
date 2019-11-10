@@ -1,9 +1,7 @@
 const env = require("../config/config");
-const { getShop } = require("../lib/firebase/firebase");
-
-const { TUNNEL_URL, TEST, API_VERSION, COLLECTION } = env;
+const { getFs } = require("../lib/firebase/firebase");
 const { checkShop } = require("./checkShop");
-const { createWebhook } = require("./createWebhook");
+const { TUNNEL_URL, TEST, API_VERSION, APP } = env;
 
 /** Creating subscription URL
  * @param  {object} ctx context object
@@ -11,20 +9,20 @@ const { createWebhook } = require("./createWebhook");
  * @param  {string} shop
  */
 const getSubscriptionUrl = async (ctx, accessToken, shop) => {
-  const { trial } = await getShop("settings", COLLECTION);
-  const { price } = await getShop("settings", COLLECTION);
+  const settings = await getFs("settings", APP);
+
   const query = JSON.stringify({
     query: `mutation {
       appSubscriptionCreate(
           name: "Standard"
           returnUrl: "${TUNNEL_URL}"
           test: ${TEST}
-          trialDays: ${trial}
+          trialDays: ${settings.trial}
           lineItems: [
           {
             plan: {
               appRecurringPricingDetails: {
-                  price: { amount: ${price}, currencyCode: USD }
+                  price: { amount: ${settings.price}, currencyCode: USD }
               }
             }
           }
@@ -57,14 +55,8 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const responseJson = await response.json();
   const confirmationUrl =
     responseJson.data.appSubscriptionCreate.confirmationUrl;
-  checkShop(shop, accessToken);
+  await checkShop(shop, accessToken);
 
-  createWebhook(
-    `${TUNNEL_URL}/api/uninstall`,
-    "APP_UNINSTALLED",
-    accessToken,
-    shop
-  );
   return ctx.redirect(confirmationUrl);
 };
 
