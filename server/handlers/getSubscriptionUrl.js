@@ -1,6 +1,7 @@
 const env = require("../config/config");
 const { getFs } = require("../lib/firebase/firebase");
 const { checkShop } = require("./checkShop");
+const { checkDevShop } = require("./../lib/shopify/functions");
 const { TUNNEL_URL, TEST, API_VERSION, APP } = env;
 
 /** Creating subscription URL
@@ -10,13 +11,17 @@ const { TUNNEL_URL, TEST, API_VERSION, APP } = env;
  */
 const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const settings = await getFs("settings", APP);
-
+  const devShop = checkDevShop(shop, accessToken);
+  let test = TEST;
+  if (devShop) {
+    test = true;
+  }
   const query = JSON.stringify({
     query: `mutation {
       appSubscriptionCreate(
           name: "Standard"
           returnUrl: "${TUNNEL_URL}"
-          test: ${TEST}
+          test: ${test}
           trialDays: ${settings.trial}
           lineItems: [
           {
