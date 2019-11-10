@@ -46,6 +46,7 @@ const Index = ({ storeData }) => {
   const [buttonDisabled, setButtonDisabled] = useState(storeData.disableUpdate);
   const [banner, setBanner] = useState(false);
   const [settings, setSettings] = useState();
+  const [deleted, setDeleted] = useState(false);
   const [version, setVersion] = useState(storeData.version);
 
   const install = () => {
@@ -56,6 +57,7 @@ const Index = ({ storeData }) => {
         setButtonDisabled(true);
         setVersion(storeData.latestVersion);
         setBanner(true);
+        setDeleted(true);
         setTimeout(() => {
           setBanner(false);
         }, 8000);
@@ -113,22 +115,6 @@ const Index = ({ storeData }) => {
         </Layout.AnnotatedSection>
       </Layout>
       <Divider xl />
-      <Layout>
-        <Layout.AnnotatedSection
-          title="Remove App Files"
-          description="Remove Liquid files added by application"
-        >
-          <Card sectioned>
-            <Button destructive onClick={unInstall}>
-              Uninstall
-            </Button>
-            <br />
-            <br />
-            This will delete all liquid files and is recommended to do just
-            before removing the app from your shopify store.
-          </Card>
-        </Layout.AnnotatedSection>
-      </Layout>
     </Page>
   );
 };
