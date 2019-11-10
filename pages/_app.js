@@ -28,16 +28,14 @@ class MyApp extends App {
       forceRedirect: true
     };
     return (
-      <>
-        <AppProvider>
-          <Provider config={config}>
-            <ApolloProvider client={client}>
-              <Header />
-              <Component {...pageProps} />
-            </ApolloProvider>
-          </Provider>
-        </AppProvider>
-      </>
+      <AppProvider>
+        <Provider config={config}>
+          <ApolloProvider client={client}>
+            <Header />
+            <Component {...pageProps} />
+          </ApolloProvider>
+        </Provider>
+      </AppProvider>
     );
   }
 }

@@ -3,11 +3,11 @@ const {
   checkEmailId,
   checkDevShop
 } = require("../lib/shopify/functions");
-const { getShop, pushDB } = require("../lib/firebase/firebase");
+const { getFs, pushDB } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
 
-const { COLLECTION } = config;
+const { PS_TOPIC, PS_APP } = config;
 
 /** Fetch shop data and push DB
  * @param {string} shop
@@ -23,7 +23,6 @@ exports.checkShop = async (shop, token) => {
     development: "",
     id: ""
   };
-  const action = "install";
 
   shopData.theme = await checkTheme(shop, token);
   const emailId = await checkEmailId(shop, token);
@@ -31,55 +30,28 @@ exports.checkShop = async (shop, token) => {
   shopData.id = emailId.id;
   shopData.development = await checkDevShop(shop, token);
 
-  /** destructuring before push */
+  // destructuring values
   const { theme, email, development, id } = shopData;
 
-  console.log("CHECKSHOP");
-  async function getSnapshot() {
-    const snapshot = await getShop(COLLECTION, shop);
-    return snapshot;
-  }
+  // construction values for DB
+  const newData = {
+    shop,
+    id,
+    token,
+    theme: theme,
+    email,
+    installDate: new Date(),
+    lastUpdate: new Date(),
+    trial: 7,
+    development
+  };
+  console.log("NEW DATA");
+  console.log(newData);
 
-  getSnapshot()
-    .then(snapshot => {
-      const dbData = snapshot;
+  // push to DB
+  await pushDB(PS_APP, shop, newData);
+  // push to pub/sub
+  await pushTopic(PS_TOPIC, PS_APP, shop, theme.toString(), token, "install");
 
-      /** Document does not exist in the database */
-      if (dbData === false) {
-        console.log("DOCUMENT DONT EXIST");
-        const newData = {
-          shop,
-          id,
-          token,
-          theme,
-          email,
-          installDate: new Date(),
-          lastUpdate: new Date(),
-          trialDays: 7,
-          development,
-          active: !development
-        };
-        console.log(newData);
-        pushTopic(shop, theme, token, action);
-        return pushDB(COLLECTION, shop, newData);
-      }
-
-      /** Document exist in the database so we update */
-      console.log("DOCUMENT EXIST");
-      const addData = {
-        token,
-        theme,
-        email,
-        lastUpdate: new Date(),
-        development,
-        active: !development
-      };
-
-      pushDB(COLLECTION, shop, addData);
-      return addData;
-    })
-    .catch(err => {
-      console.log("error getting document", err);
-    });
   return shopData;
 };

@@ -1,10 +1,6 @@
 module.exports = {
-  extends: [
-    "plugin:shopify/react",
-    "plugin:shopify/polaris",
-    "plugin:shopify/jest",
-    "plugin:shopify/webpack"
-  ],
+  extends: ["prettier"],
+  plugins: ["prettier", "chai-expect"],
   rules: {
     "import/no-unresolved": "off",
     "no-console": "off",
@@ -17,7 +13,8 @@ module.exports = {
       files: ["*.test.*"],
       rules: {
         "shopify/jsx-no-hardcoded-content": "off",
-        "react/react-in-jsx-scope": "off"
+        "react/react-in-jsx-scope": "off",
+        "jsx-a11y/anchor-is-valid": "off"
       }
     }
   ],
