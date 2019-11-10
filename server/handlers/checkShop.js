@@ -3,7 +3,7 @@ const {
   checkEmailId,
   checkDevShop
 } = require("../lib/shopify/functions");
-const { getFs, pushDB } = require("../lib/firebase/firebase");
+const { getFs, writeFs } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
 
@@ -49,7 +49,7 @@ exports.checkShop = async (shop, token) => {
   console.log(newData);
 
   // push to DB
-  await pushDB(PS_APP, shop, newData);
+  await writeFs(PS_APP, shop, newData);
   // push to pub/sub
   await pushTopic(PS_TOPIC, PS_APP, shop, theme.toString(), token, "install");
 
