@@ -7,6 +7,8 @@ import {
   Banner
 } from "@shopify/polaris";
 import Divider from "./../components/Divider";
+import Update from "./../components/update_section";
+// import deleteSection from './../components/delete_section';
 import React, { useState, useEffect } from "react";
 import ApolloClient, { gql } from "apollo-boost";
 import Cookies from "js-cookie";
@@ -46,6 +48,7 @@ const Index = ({ storeData }) => {
   const [buttonDisabled, setButtonDisabled] = useState(storeData.disableUpdate);
   const [banner, setBanner] = useState(false);
   const [settings, setSettings] = useState();
+  const [deleted, setDeleted] = useState(false);
   const [version, setVersion] = useState(storeData.version);
 
   const install = () => {
@@ -56,18 +59,10 @@ const Index = ({ storeData }) => {
         setButtonDisabled(true);
         setVersion(storeData.latestVersion);
         setBanner(true);
+        setDeleted(true);
         setTimeout(() => {
           setBanner(false);
         }, 8000);
-      })
-      .catch(err => console.log(err));
-  };
-
-  const unInstall = () => {
-    fetch(`${TUNNEL_URL}/api/delete`)
-      .then(res => res.json())
-      .then(json => {
-        //console.log(json);
       })
       .catch(err => console.log(err));
   };
@@ -93,42 +88,7 @@ const Index = ({ storeData }) => {
           <i>Hope you enjoy the app and dont forget to leave a reveiew 😘</i>
         </p>
       </Card>
-      <Divider xl />
-      {bannerMessage}
-      <Layout>
-        <Layout.AnnotatedSection
-          title="Update App"
-          description="Keep your app up to date when new versions is relesed"
-        >
-          <Card sectioned>
-            <Button onClick={install} disabled={buttonDisabled}>
-              Update now
-            </Button>
-            <br />
-            <br />
-            {buttonDisabled
-              ? `Store version: ${storeData.latestVersion} is up to date`
-              : `update: ${storeData.version} => ${storeData.latestVersion}`}
-          </Card>
-        </Layout.AnnotatedSection>
-      </Layout>
-      <Divider xl />
-      <Layout>
-        <Layout.AnnotatedSection
-          title="Remove App Files"
-          description="Remove Liquid files added by application"
-        >
-          <Card sectioned>
-            <Button destructive onClick={unInstall}>
-              Uninstall
-            </Button>
-            <br />
-            <br />
-            This will delete all liquid files and is recommended to do just
-            before removing the app from your shopify store.
-          </Card>
-        </Layout.AnnotatedSection>
-      </Layout>
+      <Update data={storeData} />
     </Page>
   );
 };
