@@ -7,6 +7,8 @@ import {
   Banner
 } from "@shopify/polaris";
 import Divider from "./../components/Divider";
+import Update from "./../components/update_section";
+// import deleteSection from './../components/delete_section';
 import React, { useState, useEffect } from "react";
 import ApolloClient, { gql } from "apollo-boost";
 import Cookies from "js-cookie";
@@ -65,15 +67,6 @@ const Index = ({ storeData }) => {
       .catch(err => console.log(err));
   };
 
-  const unInstall = () => {
-    fetch(`${TUNNEL_URL}/api/delete`)
-      .then(res => res.json())
-      .then(json => {
-        //console.log(json);
-      })
-      .catch(err => console.log(err));
-  };
-
   // console.log(getSettings());
 
   const bannerMessage = banner ? (
@@ -95,26 +88,7 @@ const Index = ({ storeData }) => {
           <i>Hope you enjoy the app and dont forget to leave a reveiew 😘</i>
         </p>
       </Card>
-      <Divider xl />
-      {bannerMessage}
-      <Layout>
-        <Layout.AnnotatedSection
-          title="Update App"
-          description="Keep your app up to date when new versions is relesed"
-        >
-          <Card sectioned>
-            <Button onClick={install} disabled={buttonDisabled}>
-              Update now
-            </Button>
-            <br />
-            <br />
-            {buttonDisabled
-              ? `Store version: ${storeData.latestVersion} is up to date`
-              : `update: ${storeData.version} => ${storeData.latestVersion}`}
-          </Card>
-        </Layout.AnnotatedSection>
-      </Layout>
-      <Divider xl />
+      <Update data={storeData} />
     </Page>
   );
 };
