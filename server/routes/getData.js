@@ -14,10 +14,7 @@ exports.getData = async ctx => {
 
   /** Checking version in settings DB */
   const settings = await getSettings(APP);
-  const fsData = await getFs(
-    APP,
-    "brbp-theme-assets-development-store.myshopify.com"
-  );
+  const fsData = await getFs(APP, shop);
 
   let disableUpdate = true;
   if (fsData.version !== settings.version) {

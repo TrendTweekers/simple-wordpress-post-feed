@@ -57,6 +57,7 @@ app.prepare().then(() => {
           } else {
             // confirm store is still in development
             const isDev = await checkDevShop(shop, accessToken);
+            console.log(isDev);
             if (isDev === true) {
               return ctx.redirect("/");
             }
