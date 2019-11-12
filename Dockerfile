@@ -9,10 +9,11 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY package.json /usr/src/app/
 #RUN npm install grpc --build-from-source
-RUN npm install
+
 # Bundle app source
 COPY . /usr/src/app
 
+RUN npm install
 RUN npm run build
 
 # Expose P 3000
