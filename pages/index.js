@@ -94,7 +94,16 @@ const Index = ({ storeData }) => {
 };
 
 Index.getInitialProps = async ({ req }) => {
-  const res = await fetch(`${TUNNEL_URL}/api/data`);
+  const shop = "storehello";
+  const action = "mivan";
+  const res = await fetch(
+    `${TUNNEL_URL}/api/data?shop=${shop}&action=${action}`,
+    {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
   const json = await res.json();
   return { storeData: json };
 };
