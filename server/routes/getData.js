@@ -13,7 +13,7 @@ exports.getData = async ctx => {
 
   /** Checking version in settings DB */
   const settings = await getSettings(APP);
-  const fsData = await getFs(APP, "stacked-development.myshopify.com");
+  const fsData = await getFs(APP, shop);
 
   let disableUpdate = true;
   if (fsData.version !== settings.version) {

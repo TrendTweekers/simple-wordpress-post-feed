@@ -23,6 +23,7 @@ import { TUNNEL_URL } from "../server/config/config";
  */
 
 const update = props => {
+  console.log(props);
   const [buttonDisabled, setButtonDisabled] = useState(
     props.data.disableUpdate
   );
