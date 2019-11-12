@@ -1,5 +1,5 @@
 const config = require("../../config/config");
-
+require("isomorphic-unfetch");
 const { API_VERSION } = config;
 
 /**
@@ -80,13 +80,17 @@ const checkDevShop = async (shop, token) => {
     )
       .then(response => response.json())
       .then(json => {
-        console.log(`${json.shop.plan_name} plan active`);
+        console.log(`${json.shop.plan_name}`);
         if (json.shop.plan_name === "affiliate") {
           return true;
         }
         return false;
       });
-    return devShop;
+
+    if (devShop === "affiliate") {
+      return true;
+    }
+    return false;
   } catch (err) {
     console.log(err);
   }

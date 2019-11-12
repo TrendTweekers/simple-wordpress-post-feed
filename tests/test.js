@@ -2,6 +2,7 @@
 // const { getFs } = require("./../server/lib/firebase/firebase")
 // const { getSubscriptionStatus } = require("./../server/lib/firebase/getSubscriptionStatus")
 const { pushTopic } = require("./../server/lib/pubsub/pubsub");
+const { checkDevShop } = require("./../server/lib/shopify/functions");
 
 // const serviceAccount = require("./pluginmaker-955a081d0d03.json");
 
@@ -60,9 +61,28 @@ const cat = async () => {
   // return storeDB;
 };
 
-const cat3 = async () => {
-  await console.log(cat());
-};
-cat3();
+// const cat3 = async () => {
+//   await console.log(cat());
+// };
+// cat3();
 
 //
+
+const hello = async () => {
+  const newVal = await checkDevShop(
+    "restless-mama.myshopify.com",
+    "550c4146e98f134973018f144f10038d"
+  );
+  console.log(newVal);
+  let test;
+  if (newVal) {
+    test = true;
+  } else {
+    test = false;
+  }
+  console.log(test);
+
+  // console.log(checkDevShop('brbp-theme-assets-development-store.myshopify.com', 'ae263f3ea78ff5b5a16fb3f00250a89f'));
+};
+
+hello();
