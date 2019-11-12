@@ -12,6 +12,8 @@ import fetch from "isomorphic-unfetch";
 import Link from "next/link";
 import { TUNNEL_URL } from "./../server/config/config";
 
+import createApp from "@shopify/app-bridge";
+import { Loading } from "@shopify/app-bridge/actions";
 import "../styles.scss";
 
 /**

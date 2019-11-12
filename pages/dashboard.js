@@ -25,29 +25,30 @@ import "../styles.scss";
  */
 
 const Dashboard = ({ storeData }) => {
+  // console.log(storeData)
   const [banner, setBanner] = useState(false);
   const [settings, setSettings] = useState();
   const [deleted, setDeleted] = useState(false);
   const [action, setAction] = useState("init");
-  const [buttonDisabled, setButtonDisabled] = useState(storeData.disableUpdate);
-  const [version, setVersion] = useState(storeData.version);
+  // const [buttonDisabled, setButtonDisabled] = useState(storeData.disableUpdate);
+  // const [version, setVersion] = useState(storeData.version);
   const shop = Cookies.get("shopOrigin");
 
-  const install = () => {
-    fetch(`${TUNNEL_URL}/api/update`)
-      .then(res => res.json())
-      .then(json => {
-        //console.log(json);
-        setButtonDisabled(true);
-        setVersion(storeData.latestVersion);
-        setBanner(true);
-        setDeleted(true);
-        setTimeout(() => {
-          setBanner(false);
-        }, 8000);
-      })
-      .catch(err => console.log(err));
-  };
+  // const install = () => {
+  //   fetch(`${TUNNEL_URL}/api/update`)
+  //     .then(res => res.json())
+  //     .then(json => {
+  //       //console.log(json);
+  //       setButtonDisabled(true);
+  //       setVersion(storeData.latestVersion);
+  //       setBanner(true);
+  //       setDeleted(true);
+  //       setTimeout(() => {
+  //         setBanner(false);
+  //       }, 8000);
+  //     })
+  //     .catch(err => console.log(err));
+  // };
 
   const bannerMessage = banner ? (
     <Banner status="success">Reinstall &amp; Update was successful!</Banner>

@@ -8,8 +8,6 @@ import {
 } from "@shopify/polaris";
 import Divider from "./Divider";
 import React, { useState, useEffect } from "react";
-import ApolloClient, { gql } from "apollo-boost";
-import Cookies from "js-cookie";
 
 import fetch from "isomorphic-unfetch";
 
@@ -23,7 +21,7 @@ import { TUNNEL_URL } from "../server/config/config";
  */
 
 const update = props => {
-  console.log(props);
+  //console.log(props);
   const [buttonDisabled, setButtonDisabled] = useState(
     props.data.disableUpdate
   );
