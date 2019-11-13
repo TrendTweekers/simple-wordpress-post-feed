@@ -43,7 +43,7 @@ const Index = () => {
   }, [shop]);
 
   if (storeData) {
-    return <Dashboard storeData={storeData} />;
+    return <Dashboard storeData={storeData} shop={shop} />;
   } else {
     return <div>Loading...</div>;
   }

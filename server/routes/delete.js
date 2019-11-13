@@ -8,11 +8,9 @@ const { APP, PS_TOPIC } = config;
  * @param  {context} ctx
  */
 exports.delete = async ctx => {
-  const action = "delete";
-  const { shop } = await ctx.session;
+  const { shop, action } = await ctx.request.query;
   const shopData = await getFs(APP, shop);
-  console.log(`Update section route ran`);
-  console.log(ctx.session);
+  console.log(`Delete section route ran`);
   pushTopic(
     PS_TOPIC,
     APP,
