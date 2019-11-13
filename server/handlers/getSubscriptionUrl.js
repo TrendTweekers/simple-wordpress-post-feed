@@ -10,9 +10,9 @@ const { TUNNEL_URL, TEST, API_VERSION, APP } = env;
  * @param  {string} shop
  */
 const getSubscriptionUrl = async (ctx, accessToken, shop) => {
+  let test = false;
   const settings = await getFs("settings", APP);
-  const devShop = checkDevShop(shop, accessToken);
-  let test = TEST;
+  const devShop = await checkDevShop(shop, accessToken);
   if (devShop) {
     test = true;
   }

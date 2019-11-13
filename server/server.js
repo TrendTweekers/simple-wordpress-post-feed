@@ -1,4 +1,4 @@
-require("isomorphic-fetch");
+require("isomorphic-unfetch");
 const { checkDevShop } = require("./lib/shopify/functions");
 const { checkShop } = require("./handlers/checkShop");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
