@@ -3,6 +3,7 @@ const { getFs } = require("../lib/firebase/firebase");
 const { checkShop } = require("./checkShop");
 const { checkDevShop } = require("./../lib/shopify/functions");
 const { TUNNEL_URL, TEST, API_VERSION, APP } = env;
+const { createWebhook } = require("./createWebhook");
 
 /** Creating subscription URL
  * @param  {object} ctx context object
@@ -61,6 +62,14 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const confirmationUrl =
     responseJson.data.appSubscriptionCreate.confirmationUrl;
   await checkShop(shop, accessToken);
+
+  /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall*/
+  createWebhook(
+    `${TUNNEL_URL}/api/uninstall`,
+    "APP_UNINSTALLED",
+    accessToken,
+    shop
+  );
 
   return ctx.redirect(confirmationUrl);
 };

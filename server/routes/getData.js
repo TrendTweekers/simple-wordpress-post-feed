@@ -7,17 +7,13 @@ const { APP } = config;
  * @param  {context} ctx
  */
 exports.getData = async ctx => {
-  const { shop } = await ctx.session;
+  const { shop, action } = await ctx.request.query;
 
-  console.log("GET DATA LOG");
-  console.log(shop);
+  console.log(`GET DATA LOG ${shop} and ${action}`);
 
   /** Checking version in settings DB */
   const settings = await getSettings(APP);
-  const fsData = await getFs(
-    APP,
-    "brbp-theme-assets-development-store.myshopify.com"
-  );
+  const fsData = await getFs(APP, shop);
 
   let disableUpdate = true;
   if (fsData.version !== settings.version) {
