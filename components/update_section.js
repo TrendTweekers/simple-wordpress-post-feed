@@ -21,21 +21,18 @@ import { TUNNEL_URL } from "../server/config/config";
  */
 
 const update = props => {
-  //console.log(props);
   const [buttonDisabled, setButtonDisabled] = useState(
     props.data.disableUpdate
   );
   const [banner, setBanner] = useState(false);
-  const [settings, setSettings] = useState();
-  const [version, setVersion] = useState(props.data.version);
+  const action = "update";
+  const { shop } = props;
 
-  const install = () => {
-    fetch(`${TUNNEL_URL}/api/update`)
+  const update = () => {
+    fetch(`${TUNNEL_URL}/api/update?shop=${shop}&action=${action}`)
       .then(res => res.json())
       .then(json => {
-        //console.log(json);
         setButtonDisabled(true);
-        setVersion(props.data.latestVersion);
         setBanner(true);
         setTimeout(() => {
           setBanner(false);
@@ -60,7 +57,7 @@ const update = props => {
           description="Keep your app up to date when new versions is relesed"
         >
           <Card sectioned>
-            <Button onClick={install} disabled={buttonDisabled}>
+            <Button onClick={update} disabled={buttonDisabled}>
               Update now
             </Button>
             <br />

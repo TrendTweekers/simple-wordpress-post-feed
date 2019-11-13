@@ -69,31 +69,22 @@ const checkEmailId = async (shop, token) => {
  * @return {boolean}
  */
 const checkDevShop = async (shop, token) => {
-  try {
-    const devShop = await fetch(
-      `https://${shop}/admin/api/${API_VERSION}/shop.json`,
-      {
-        headers: {
-          "X-Shopify-Access-Token": token
-        }
+  const devShop = await fetch(
+    `https://${shop}/admin/api/${API_VERSION}/shop.json`,
+    {
+      headers: {
+        "X-Shopify-Access-Token": token
       }
-    )
-      .then(response => response.json())
-      .then(json => {
-        console.log(`${json.shop.plan_name}`);
-        if (json.shop.plan_name === "affiliate") {
-          return true;
-        }
-        return false;
-      });
-
-    if (devShop === "affiliate") {
-      return true;
     }
-    return false;
-  } catch (err) {
-    console.log(err);
-  }
+  )
+    .then(response => response.json())
+    .then(json => {
+      if (json.shop.plan_name === "affiliate") {
+        return true;
+      }
+      return false;
+    });
+  return devShop;
 };
 
 // exports

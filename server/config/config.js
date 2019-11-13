@@ -15,6 +15,8 @@ env.port = 3000;
 /** Pub/Sub */
 env.PS_TOPIC = "shopify";
 env.PS_APP = "swpf";
+env.HOOK_URL =
+  "https://us-central1-pluginmaker.cloudfunctions.net/Shopify-Hooks";
 
 /** Settings depending if running in development or production */
 if (process.env.NODE_ENV === "development") {
