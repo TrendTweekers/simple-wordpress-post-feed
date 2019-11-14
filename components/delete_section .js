@@ -19,7 +19,7 @@ import { TUNNEL_URL } from "../server/config/config";
 
 const DeleteApp = props => {
   const { shop } = props;
-  const action = "uninstall";
+  const action = "clean";
   const [banner, setBanner] = useState(false);
   const [buttonDisabled, setButtonDisabled] = useState(false);
   const unInstall = () => {
