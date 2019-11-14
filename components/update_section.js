@@ -72,4 +72,9 @@ const update = props => {
   );
 };
 
+// Specifies the default values for props:
+update.defaultProps = {
+  data: { version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true }
+};
+
 export default update;
