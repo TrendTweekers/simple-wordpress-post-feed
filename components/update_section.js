@@ -54,7 +54,7 @@ const update = props => {
       <Layout>
         <Layout.AnnotatedSection
           title="Update App"
-          description="Keep your app up to date when new versions is relesed"
+          description="Keep your app up to date when new version is relesed"
         >
           <Card sectioned>
             <Button onClick={update} disabled={buttonDisabled}>
