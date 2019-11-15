@@ -49,7 +49,7 @@ const DeleteApp = props => {
       <Layout>
         <Layout.AnnotatedSection
           title="Remove App Files"
-          description="Remove Liquid files added by application"
+          description="Remove Liquid files added by the application"
         >
           <Card sectioned>
             <Button destructive onClick={unInstall} disabled={buttonDisabled}>
@@ -57,7 +57,7 @@ const DeleteApp = props => {
             </Button>
             <br />
             <br />
-            This will delete all liquid files and is recommended to do just
+            This will delete all liquid files and it is recommended to do just
             before removing the app from your shopify store.
           </Card>
         </Layout.AnnotatedSection>

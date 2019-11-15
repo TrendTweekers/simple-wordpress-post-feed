@@ -33,15 +33,17 @@ const Dashboard = ({ storeData, shop }) => {
     <Page title="Simple Wordpress Feed">
       <Card sectioned>
         <p>
-          <b>Thank for installing Simple Wordpress Post Feed.</b>
+          <b>Thank you for installing Simple Wordpress Post Feed!</b>
           <br /> To get started go to theme section editor and add the Simple
-          Wordpress Post Feed section. For more detaild instructions see the{" "}
+          Wordpress Post Feed section. For more detailed instructions see the{" "}
           <Link href="/about">
             <a>documentation</a>
           </Link>
           .<br />
           <br />
-          <i>Hope you enjoy the app and dont forget to leave a reveiew 😘</i>
+          <i>
+            Hope you enjoy the app and please don't forget to leave a review 😘
+          </i>
         </p>
       </Card>
       <Update data={storeData} shop={shop} />
