@@ -3,10 +3,10 @@ const { checkDevShop } = require("./lib/shopify/functions");
 const { checkShop } = require("./handlers/checkShop");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
 const { default: graphQLProxy } = require("@shopify/koa-shopify-graphql-proxy");
-const { getData } = require("./routes/getData");
+const { getData, update, uninstall, redact } = require("./routes/");
 const { getFs } = require("./lib/firebase/firebase");
-const { update } = require("./routes/update");
 const { verifyRequest } = require("@shopify/koa-shopify-auth");
+const { receiveWebhook } = require("@shopify/koa-shopify-webhooks");
 const env = require("./config/config");
 const getSubscriptionUrl = require("./handlers/getSubscriptionUrl");
 const Koa = require("koa");
@@ -69,8 +69,12 @@ app.prepare().then(() => {
     })
   );
   server.use(graphQLProxy({ version: GRAPHQL_VERSION }));
-
-  router.get("/api/data", getData).get("/api/update", update);
+  const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
+  router
+    .get("/api/data", getData)
+    .get("/api/update", update)
+    .post("/swpf/uninstall", webhook, uninstall)
+    .post("/swpf/redact", webhook, redact);
 
   router.get("*", verifyRequest(), async ctx => {
     await handle(ctx.req, ctx.res);

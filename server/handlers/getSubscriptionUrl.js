@@ -65,7 +65,7 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
 
   /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall*/
   createWebhook(
-    `${HOOK_URL}/${APP}/uninstall`,
+    `${TUNNEL_URL}/${APP}/uninstall`,
     "APP_UNINSTALLED",
     accessToken,
     shop
