@@ -6,32 +6,34 @@ const {
 const { getFs, writeFs } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
-
-const { PS_TOPIC, PS_APP } = config;
+const { createWebhook } = require("./createWebhook");
+const { PS_TOPIC, PS_APP, TUNNEL_URL, APP } = config;
 
 /** Fetch shop data and push DB
  * @param {string} shop
  * @param {string} accessToken
  */
 
-exports.checkShop = async (shop, token) => {
+const checkShop = async (shop, token) => {
   // init values
   const shopData = {
     theme: "",
     email: "",
     active: "",
     development: "",
-    id: ""
+    id: "",
+    name: ""
   };
 
   shopData.theme = await checkTheme(shop, token);
   const emailId = await checkEmailId(shop, token);
   shopData.email = emailId.email;
   shopData.id = emailId.id;
+  shopData.name = emailId.name;
   shopData.development = await checkDevShop(shop, token);
 
   // destructuring values
-  const { theme, email, development, id } = shopData;
+  const { theme, email, development, id, name } = shopData;
 
   // construction values for DB
   const newData = {
@@ -40,9 +42,59 @@ exports.checkShop = async (shop, token) => {
     token,
     theme: theme,
     email,
+    name,
     installDate: new Date(),
     lastUpdate: new Date(),
     trial: 7,
+    development
+  };
+  console.log("NEW DATA");
+  console.log(newData);
+  // push to DB
+  await writeFs(PS_APP, shop, newData);
+  await pushTopic(PS_TOPIC, PS_APP, shop, theme.toString(), token, "install");
+  createWebhook(
+    `${TUNNEL_URL}/${APP}/uninstall`,
+    "APP_UNINSTALLED",
+    token,
+    shop
+  );
+  return shopData;
+};
+
+const initShop = async (shop, token, chargeID) => {
+  // init values
+  const shopData = {
+    theme: "",
+    email: "",
+    active: "",
+    development: "",
+    id: "",
+    chargeID: ""
+  };
+
+  shopData.theme = await checkTheme(shop, token);
+  const emailId = await checkEmailId(shop, token);
+  shopData.email = emailId.email;
+  shopData.id = emailId.id;
+  shopData.name = emailId.name;
+  shopData.development = await checkDevShop(shop, token);
+
+  // destructuring values
+  const { theme, email, development, id, name } = shopData;
+
+  // construction values for DB
+  const newData = {
+    shop,
+    id,
+    token,
+    theme: theme,
+    email,
+    name,
+    installDate: new Date(),
+    lastUpdate: new Date(),
+    trial: 7,
+    chargeID,
     development
   };
   console.log("NEW DATA");
@@ -51,7 +103,9 @@ exports.checkShop = async (shop, token) => {
   // push to DB
   await writeFs(PS_APP, shop, newData);
   // push to pub/sub
-  await pushTopic(PS_TOPIC, PS_APP, shop, theme.toString(), token, "install");
 
   return shopData;
 };
+
+module.exports.checkShop = checkShop;
+module.exports.initShop = initShop;

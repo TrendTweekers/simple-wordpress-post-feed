@@ -27,9 +27,7 @@ const getData = async ctx => {
     clean: fsData.clean,
     disableUpdate
   };
-  console.log(settings);
   console.log("LOGGING FS DATA FROM ROUTE");
-  console.log(data);
   ctx.body = data;
   return data;
 };
