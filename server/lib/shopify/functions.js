@@ -90,7 +90,12 @@ const checkDevShop = async (shop, token) => {
     });
   return devShop;
 };
-
+/** This function checking if the charge is active or not
+ * @param  {string} shop
+ * @param  {string} token
+ * @param  {string} chargeID
+ * @return {boolean}
+ */
 const checkCharge = async (shop, token, chargeID) => {
   const active = await fetch(
     `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,

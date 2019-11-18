@@ -61,7 +61,11 @@ const checkShop = async (shop, token) => {
   );
   return shopData;
 };
-
+/**Shop initialization with charge id
+ * @param  {} shop
+ * @param  {} token
+ * @param  {} chargeID
+ */
 const initShop = async (shop, token, chargeID) => {
   // init values
   const shopData = {

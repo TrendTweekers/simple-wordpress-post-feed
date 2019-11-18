@@ -9,6 +9,7 @@ const { verifyRequest } = require("@shopify/koa-shopify-auth");
 const { receiveWebhook } = require("@shopify/koa-shopify-webhooks");
 const env = require("./config/config");
 const getSubscriptionUrl = require("./handlers/getSubscriptionUrl");
+const getSubscriptionUrlDEV = require("./handlers/getSubscriptionUrlDEV");
 const Koa = require("koa");
 const next = require("next");
 const Router = require("koa-router");
@@ -54,32 +55,22 @@ app.prepare().then(() => {
         const storeDB = await getFs(APP, shop);
 
         if (storeDB) {
-          if (isDev) {
-            console.log("shop exist dev");
+          // store is active
+          if (storeDB.development === false) {
             return ctx.redirect("/");
           } else {
-            const isChargeActive = await checkCharge(
-              shop,
-              accessToken,
-              storeDB.chargeID
-            );
-            if (isChargeActive) {
-              console.log("shop exist charge is active");
+            // confirm store is still in development
+            console.log(isDev);
+            if (isDev === true) {
               return ctx.redirect("/");
-            } else {
-              console.log("shop exist but charge is not active");
-              await getSubscriptionUrl(ctx, accessToken, shop);
             }
           }
-        } else if (!storeDB && isDev) {
-          console.log("shop not exist and its dev");
-          checkShop(shop, accessToken);
-          return ctx.redirect("/");
+        } else if (isDev) {
+          // if not active or development we run the install function
+          await getSubscriptionUrlDEV(ctx, accessToken, shop);
         } else {
-          console.log("shop not existing and not dev");
           await getSubscriptionUrl(ctx, accessToken, shop);
         }
-        // if not active or development we run the install function
       }
     })
   );

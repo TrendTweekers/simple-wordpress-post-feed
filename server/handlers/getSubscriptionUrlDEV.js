@@ -10,13 +10,14 @@ const { createWebhook } = require("./createWebhook");
  * @param  {string} accessToken
  * @param  {string} shop
  */
-const getSubscriptionUrl = async (ctx, accessToken, shop) => {
+const getSubscriptionUrlDEV = async (ctx, accessToken, shop) => {
+  let test = false;
   const settings = await getFs("settings", APP);
 
   const query = JSON.stringify({
     query: `mutation {
       appSubscriptionCreate(
-          name: "Standard"
+          name: "Development Plan"
           returnUrl: "${TUNNEL_URL}"
           test: false
           trialDays: ${settings.trial}
@@ -24,7 +25,7 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
           {
             plan: {
               appRecurringPricingDetails: {
-                  price: { amount: ${settings.price}, currencyCode: USD }
+                  price: { amount: 0, currencyCode: USD }
               }
             }
           }
@@ -72,4 +73,4 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   return ctx.redirect(confirmationUrl);
 };
 
-module.exports = getSubscriptionUrl;
+module.exports = getSubscriptionUrlDEV;
