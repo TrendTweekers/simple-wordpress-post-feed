@@ -29,15 +29,23 @@ const update = props => {
   const { shop } = props;
 
   const update = () => {
-    fetch(`${TUNNEL_URL}/api/update?shop=${shop}&action=${action}`)
-      .then(res => res.json())
-      .then(json => {
-        setButtonDisabled(true);
-        setBanner(true);
-        setTimeout(() => {
-          setBanner(false);
-        }, 8000);
-      })
+    const data = { shop: shop, action: action };
+    setButtonDisabled(true);
+    setBanner(true);
+    setTimeout(() => {
+      setBanner(false);
+    }, 8000);
+    fetch(`${TUNNEL_URL}/api/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      redirect: "follow", // manual, *follow, error
+      referrer: "no-referrer", // no-referrer, *client
+      body: JSON.stringify(data)
+    })
+      .then(res => {})
       .catch(err => console.log(err));
   };
 

@@ -17,53 +17,106 @@ import { TUNNEL_URL } from "../server/config/config";
  * has to be set
  */
 
-const DeleteApp = props => {
-  const { shop } = props;
-  const action = "clean";
+const DeleteApp = ({ shop, data }) => {
+  const { clean } = data;
+
   const [banner, setBanner] = useState(false);
-  const [buttonDisabled, setButtonDisabled] = useState(false);
-  const unInstall = () => {
-    fetch(`${TUNNEL_URL}/api/update?shop=${shop}&action=${action}`)
-      .then(res => res.json())
-      .then(json => {
-        setButtonDisabled(true);
-        setBanner(true);
-        setTimeout(() => {
-          setBanner(false);
-        }, 12000);
+  const [showDelete, setShowDelete] = useState(!clean);
+  const [deleteButtonDisabled, setDeleteButtonDisabled] = useState(false);
+  const [restoreButtonDisabled, setRestoreButtonDisabled] = useState(false);
+  const [bannertext, setBannertext] = useState("");
+  const handleClick = action => {
+    const data = { shop: shop, action: action };
+    if (action === "restore") {
+      setRestoreButtonDisabled(true);
+      setDeleteButtonDisabled(false);
+      setBannertext(restoreBannerMessage);
+      setShowDelete(true);
+    } else {
+      setRestoreButtonDisabled(false), setDeleteButtonDisabled(true);
+      setBannertext(deleteBannerMessage);
+      setShowDelete(false);
+    }
+    setBanner(true);
+    setTimeout(() => {
+      setBanner(false);
+    }, 12000);
+    fetch(`${TUNNEL_URL}/api/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      redirect: "follow", // manual, *follow, error
+      referrer: "no-referrer", // no-referrer, *client
+      body: JSON.stringify(data)
+    })
+      .then(res => {
+        //
       })
       .catch(err => console.log(err));
   };
 
-  const bannerMessage = banner ? (
-    <Banner status="success">
-      Delete was successful! Now you can uninstall the application normally from
-      the Apps
-    </Banner>
-  ) : null;
+  const deleteBannerMessage =
+    "Delete was successful! Now you can uninstall the application normally from the Apps";
+  const restoreBannerMessage = "Reinstall was successful!";
+
+  const bannerMessage = <Banner status="success">{bannertext}</Banner>;
+
+  const deleteButton = (
+    <Layout.AnnotatedSection
+      title="Remove App Files"
+      description="Remove Liquid files added by the application"
+    >
+      <Card sectioned>
+        <Button
+          destructive
+          onClick={() => handleClick("clean")}
+          disabled={deleteButtonDisabled}
+        >
+          Uninstall
+        </Button>
+        <br />
+        <br />
+        This will delete all liquid files and it is recommended to do just
+        before removing the app from your shopify store.
+      </Card>
+    </Layout.AnnotatedSection>
+  );
+
+  const restoreButton = (
+    <Layout.AnnotatedSection
+      title="Reinstall App Files"
+      description="Reinstall Liquid files"
+    >
+      <Card sectioned>
+        <Button
+          primary
+          onClick={() => handleClick("restore")}
+          disabled={restoreButtonDisabled}
+        >
+          Reinstall
+        </Button>
+        <br />
+        <br />
+        This will reinstall all liquid files.
+      </Card>
+    </Layout.AnnotatedSection>
+  );
+  const deleteFiles = showDelete ? deleteButton : restoreButton;
 
   return (
     <section>
       <Divider xl />
-      {bannerMessage}
-      <Layout>
-        <Layout.AnnotatedSection
-          title="Remove App Files"
-          description="Remove Liquid files added by the application"
-        >
-          <Card sectioned>
-            <Button destructive onClick={unInstall} disabled={buttonDisabled}>
-              Uninstall
-            </Button>
-            <br />
-            <br />
-            This will delete all liquid files and it is recommended to do just
-            before removing the app from your shopify store.
-          </Card>
-        </Layout.AnnotatedSection>
-      </Layout>
+      {banner ? bannerMessage : null}
+      <Layout>{deleteFiles}</Layout>
     </section>
   );
+};
+
+DeleteApp.defaultProps = {
+  shop: "shop",
+  data: { clean: false }
 };
 
 export default DeleteApp;

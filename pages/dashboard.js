@@ -22,7 +22,6 @@ import "../styles.scss";
  */
 
 const Dashboard = ({ storeData, shop }) => {
-  // console.log(storeData)
   const [banner, setBanner] = useState(false);
 
   const bannerMessage = banner ? (
