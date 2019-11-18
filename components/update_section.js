@@ -30,6 +30,11 @@ const update = props => {
 
   const update = () => {
     const data = { shop: shop, action: action };
+    setButtonDisabled(true);
+    setBanner(true);
+    setTimeout(() => {
+      setBanner(false);
+    }, 8000);
     fetch(`${TUNNEL_URL}/api/update`, {
       method: "POST",
       headers: {
@@ -40,14 +45,7 @@ const update = props => {
       referrer: "no-referrer", // no-referrer, *client
       body: JSON.stringify(data)
     })
-      .then(res => res.json())
-      .then(json => {
-        setButtonDisabled(true);
-        setBanner(true);
-        setTimeout(() => {
-          setBanner(false);
-        }, 8000);
-      })
+      .then(res => {})
       .catch(err => console.log(err));
   };
 

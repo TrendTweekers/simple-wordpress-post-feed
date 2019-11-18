@@ -21,7 +21,7 @@ const DeleteApp = ({ shop, data }) => {
   const { clean } = data;
 
   const [banner, setBanner] = useState(false);
-  const [showDelete, setShowDelete] = useState(clean);
+  const [showDelete, setShowDelete] = useState(!clean);
   const [deleteButtonDisabled, setDeleteButtonDisabled] = useState(false);
   const [restoreButtonDisabled, setRestoreButtonDisabled] = useState(false);
   const [bannertext, setBannertext] = useState("");
@@ -103,9 +103,7 @@ const DeleteApp = ({ shop, data }) => {
       </Card>
     </Layout.AnnotatedSection>
   );
-
   const deleteFiles = showDelete ? deleteButton : restoreButton;
-  console.log(banner);
 
   return (
     <section>
@@ -114,6 +112,11 @@ const DeleteApp = ({ shop, data }) => {
       <Layout>{deleteFiles}</Layout>
     </section>
   );
+};
+
+DeleteApp.defaultProps = {
+  shop: "shop",
+  data: { clean: false }
 };
 
 export default DeleteApp;
