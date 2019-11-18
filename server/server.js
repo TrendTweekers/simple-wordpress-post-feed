@@ -1,5 +1,5 @@
 require("isomorphic-unfetch");
-const { checkDevShop } = require("./lib/shopify/functions");
+const { checkDevShop, checkCharge } = require("./lib/shopify/functions");
 const { checkShop } = require("./handlers/checkShop");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
 const { default: graphQLProxy } = require("@shopify/koa-shopify-graphql-proxy");
@@ -50,23 +50,36 @@ app.prepare().then(() => {
         });
 
         // Check if customer exist  and route according to it
-        const storeDB = await getFs(APP, shop);
         const isDev = await checkDevShop(shop, accessToken);
+        const storeDB = await getFs(APP, shop);
 
         if (storeDB) {
-          // store is active
-          if (storeDB.development === false) {
+          if (isDev) {
+            console.log("shop exist dev");
             return ctx.redirect("/");
           } else {
-            // confirm store is still in development
-            console.log(isDev);
-            if (isDev === true) {
+            const isChargeActive = await checkCharge(
+              shop,
+              accessToken,
+              storeDB.chargeID
+            );
+            if (isChargeActive) {
+              console.log("shop exist charge is active");
               return ctx.redirect("/");
+            } else {
+              console.log("shop exist but charge is not active");
+              await getSubscriptionUrl(ctx, accessToken, shop);
             }
           }
+        } else if (!storeDB && isDev) {
+          console.log("shop not exist and its dev");
+          checkShop(shop, accessToken);
+          return ctx.redirect("/");
+        } else {
+          console.log("shop not existing and not dev");
+          await getSubscriptionUrl(ctx, accessToken, shop);
         }
         // if not active or development we run the install function
-        await getSubscriptionUrl(ctx, accessToken, shop);
       }
     })
   );

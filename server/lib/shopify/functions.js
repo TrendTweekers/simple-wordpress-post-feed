@@ -54,7 +54,11 @@ const checkEmailId = async (shop, token) => {
     )
       .then(response => response.json())
       .then(json => {
-        return { email: json.shop.email, id: json.shop.id };
+        return {
+          email: json.shop.email,
+          id: json.shop.id,
+          name: json.shop.shop_owner
+        };
       });
     return results;
   } catch (err) {
@@ -87,7 +91,27 @@ const checkDevShop = async (shop, token) => {
   return devShop;
 };
 
+const checkCharge = async (shop, token, chargeID) => {
+  const active = await fetch(
+    `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
+    {
+      headers: {
+        "X-Shopify-Access-Token": token
+      }
+    }
+  )
+    .then(response => response.json())
+    .then(json => {
+      if (json.recurring_application_charge.status === "active") {
+        return true;
+      }
+      return false;
+    });
+  return active;
+};
+
 // exports
 module.exports.checkTheme = checkTheme;
 module.exports.checkEmailId = checkEmailId;
 module.exports.checkDevShop = checkDevShop;
+module.exports.checkCharge = checkCharge;
