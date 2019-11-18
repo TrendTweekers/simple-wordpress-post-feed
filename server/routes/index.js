@@ -24,6 +24,7 @@ const getData = async ctx => {
   const data = {
     version: fsData.version,
     latestVersion: settings.version,
+    clean: fsData.clean,
     disableUpdate
   };
   console.log(settings);
@@ -37,7 +38,7 @@ const getData = async ctx => {
  * @param  {context} ctx
  */
 const redact = async ctx => {
-  console.log(`Redact section route ran`);
+  console.log(`Redact  route ran by shopify GDPR`);
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   const action = "uninstall";
@@ -50,11 +51,9 @@ const redact = async ctx => {
       shopData.token,
       action
     );
-    ctx.respond = false;
-    ctx.res.statusCode = 200;
+    ctx.status = 200;
   } else {
     ctx.respond = false;
-    ctx.body = request;
     ctx.res.statusCode = 404;
   }
 };
@@ -63,7 +62,7 @@ const redact = async ctx => {
  * @param  {context} ctx
  */
 const uninstall = async ctx => {
-  console.log(`Uninstall section route ran`);
+  console.log(`Uninstall webhook ran`);
   const action = "uninstall";
   const { myshopify_domain } = await ctx.request.body;
   const shopData = await getFs(APP, myshopify_domain);
@@ -76,20 +75,21 @@ const uninstall = async ctx => {
       shopData.token,
       action
     );
+    ctx.status = 200;
+  } else {
+    console.log(`shop is not in our db ${myshopify_domain}`);
     ctx.respond = false;
     ctx.res.statusCode = 200;
-  } else {
-    ctx.respond = false;
-    ctx.body = request;
-    ctx.res.statusCode = 404;
   }
 };
 
-/** Getting all the data from DB
+/** Multipurpose route
  * @param  {context} ctx
+ * @param {shop}
+ * @param {action}
  */
 const update = async ctx => {
-  const { shop, action } = await ctx.request.query;
+  const { shop, action } = await ctx.request.body;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
   if (shopData) {
@@ -101,12 +101,11 @@ const update = async ctx => {
       shopData.token,
       action
     );
-    ctx.respond = false;
-    ctx.res.statusCode = 200;
+    ctx.status = 200;
   } else {
+    console.log(`shop is not in our db ${shop}`);
     ctx.respond = false;
-    ctx.body = request;
-    ctx.res.statusCode = 404;
+    ctx.status = 404;
   }
 };
 

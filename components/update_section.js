@@ -29,7 +29,17 @@ const update = props => {
   const { shop } = props;
 
   const update = () => {
-    fetch(`${TUNNEL_URL}/api/update?shop=${shop}&action=${action}`)
+    const data = { shop: shop, action: action };
+    fetch(`${TUNNEL_URL}/api/update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+        // 'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      redirect: "follow", // manual, *follow, error
+      referrer: "no-referrer", // no-referrer, *client
+      body: JSON.stringify(data)
+    })
       .then(res => res.json())
       .then(json => {
         setButtonDisabled(true);

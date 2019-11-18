@@ -13,6 +13,7 @@ const Koa = require("koa");
 const next = require("next");
 const Router = require("koa-router");
 const session = require("koa-session");
+var bodyParser = require("koa-bodyparser");
 
 const {
   SHOPIFY_API_SECRET_KEY,
@@ -30,6 +31,7 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
   const server = new Koa();
   const router = new Router();
+  server.use(bodyParser());
   server.use(session(server));
   server.keys = [SHOPIFY_API_SECRET_KEY];
   server.use(
@@ -72,7 +74,7 @@ app.prepare().then(() => {
   const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
   router
     .get("/api/data", getData)
-    .get("/api/update", update)
+    .post("/api/update", update)
     .post("/swpf/uninstall", webhook, uninstall)
     .post("/swpf/redact", webhook, redact);
 
