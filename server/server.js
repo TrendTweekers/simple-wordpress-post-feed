@@ -3,7 +3,7 @@ const { checkDevShop, checkCharge } = require("./lib/shopify/functions");
 const { checkShop } = require("./handlers/checkShop");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
 const { default: graphQLProxy } = require("@shopify/koa-shopify-graphql-proxy");
-const { getData, update, uninstall, redact } = require("./routes/");
+const { getData, update, uninstall, redact, install } = require("./routes/");
 const { getFs } = require("./lib/firebase/firebase");
 const { verifyRequest } = require("@shopify/koa-shopify-auth");
 const { receiveWebhook } = require("@shopify/koa-shopify-webhooks");
@@ -53,19 +53,8 @@ app.prepare().then(() => {
         // Check if customer exist  and route according to it
         const isDev = await checkDevShop(shop, accessToken);
         const storeDB = await getFs(APP, shop);
-
-        if (storeDB) {
-          // store is active
-          if (storeDB.development === false) {
-            return ctx.redirect("/");
-          } else {
-            // confirm store is still in development
-            console.log(isDev);
-            if (isDev === true) {
-              return ctx.redirect("/");
-            }
-          }
-        } else if (isDev) {
+        console.log(accessToken);
+        if (isDev) {
           // if not active or development we run the install function
           await getSubscriptionUrlDEV(ctx, accessToken, shop);
         } else {
@@ -78,6 +67,7 @@ app.prepare().then(() => {
   const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
   router
     .get("/api/data", getData)
+    .get("/api/install", install)
     .post("/api/update", update)
     .post("/swpf/uninstall", webhook, uninstall)
     .post("/swpf/redact", webhook, redact);

@@ -1,8 +1,9 @@
-const { db, getFs, getSettings } = require("../lib/firebase/firebase");
+const { db, getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
+const { checkCharge } = require("../lib/shopify/functions");
 
-const { APP, PS_TOPIC } = config;
+const { APP, PS_TOPIC, PS_APP } = config;
 
 /** Getting all the data from DB
  * @param  {context} ctx
@@ -107,7 +108,42 @@ const update = async ctx => {
   }
 };
 
+/**Install route that run at first time, and each time somebody start the app
+ * @param  {string} shop
+ * @param {string} action
+ * @return {object} allowed:boolean and confirmationUrl:string
+ */
+const install = async ctx => {
+  const { shop, action } = await ctx.request.query;
+  console.log(`${action} section route ran`);
+  const shopData = await getFs(APP, shop);
+  const { token, chargeID, plan, confirmationUrl } = shopData;
+  const activeCharge = await checkCharge(shop, token, chargeID);
+  /**Runs only first time when someone log in and plan is active */
+  if (activeCharge && plan === "") {
+    pushTopic(
+      PS_TOPIC,
+      APP,
+      shop,
+      shopData.theme.toString(),
+      shopData.token,
+      action
+    );
+    ctx.status = 200;
+    const plan = { plan: "active" };
+    await writeFs(PS_APP, shop, plan);
+    ctx.body = { allowed: true };
+  } else if (activeCharge) {
+    ctx.body = { allowed: true };
+  } else {
+  /**Charge is not active so we send back to frontend the confirmationURL */
+    console.log(`Shop we have but not active charge ${shop}`);
+    ctx.body = { allowed: false, confirmationUrl: confirmationUrl };
+  }
+};
+
 module.exports.getData = getData;
 module.exports.redact = redact;
 module.exports.uninstall = uninstall;
 module.exports.update = update;
+module.exports.install = install;

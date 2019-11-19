@@ -6,9 +6,9 @@ import { Provider } from "@shopify/app-bridge-react";
 import Cookies from "js-cookie";
 import "@shopify/polaris/styles.css";
 import React from "react";
-import fetch from "cross-fetch/polyfill";
 import Header from "../components/Header";
 import { SHOPIFY_API_KEY } from "../server/config/config";
+import App2 from "./app2";
 
 const client = new ApolloClient({
   fetchOptions: {
@@ -19,22 +19,22 @@ const client = new ApolloClient({
 
 class MyApp extends App {
   render() {
-    const { Component, pageProps } = this.props;
     const shopOrigin = Cookies.get("shopOrigin");
     const config = {
       apiKey: SHOPIFY_API_KEY,
       shopOrigin,
       forceRedirect: true
     };
+    const { Component, pageProps } = this.props;
     return (
-      <AppProvider>
-        <Provider config={config}>
-          <ApolloProvider client={client}>
-            <Header />
-            <Component {...pageProps} />
-          </ApolloProvider>
-        </Provider>
-      </AppProvider>
+      <App2
+        config={config}
+        client={client}
+        Component={Component}
+        pageProps={pageProps}
+        shopOrigin={shopOrigin}
+        shopifyApiKey={SHOPIFY_API_KEY}
+      />
     );
   }
 }
