@@ -3,12 +3,13 @@ const { checkDevShop, checkCharge } = require("./lib/shopify/functions");
 const { checkShop } = require("./handlers/checkShop");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
 const { default: graphQLProxy } = require("@shopify/koa-shopify-graphql-proxy");
-const { getData, update, uninstall, redact } = require("./routes/");
+const { getData, update, uninstall, redact, install } = require("./routes/");
 const { getFs } = require("./lib/firebase/firebase");
 const { verifyRequest } = require("@shopify/koa-shopify-auth");
 const { receiveWebhook } = require("@shopify/koa-shopify-webhooks");
 const env = require("./config/config");
 const getSubscriptionUrl = require("./handlers/getSubscriptionUrl");
+const getSubscriptionUrlDEV = require("./handlers/getSubscriptionUrlDEV");
 const Koa = require("koa");
 const next = require("next");
 const Router = require("koa-router");
@@ -52,34 +53,13 @@ app.prepare().then(() => {
         // Check if customer exist  and route according to it
         const isDev = await checkDevShop(shop, accessToken);
         const storeDB = await getFs(APP, shop);
-
-        if (storeDB) {
-          if (isDev) {
-            console.log("shop exist dev");
-            return ctx.redirect("/");
-          } else {
-            const isChargeActive = await checkCharge(
-              shop,
-              accessToken,
-              storeDB.chargeID
-            );
-            if (isChargeActive) {
-              console.log("shop exist charge is active");
-              return ctx.redirect("/");
-            } else {
-              console.log("shop exist but charge is not active");
-              await getSubscriptionUrl(ctx, accessToken, shop);
-            }
-          }
-        } else if (!storeDB && isDev) {
-          console.log("shop not exist and its dev");
-          checkShop(shop, accessToken);
-          return ctx.redirect("/");
+        console.log(accessToken);
+        if (isDev) {
+          // if not active or development we run the install function
+          await getSubscriptionUrlDEV(ctx, accessToken, shop);
         } else {
-          console.log("shop not existing and not dev");
           await getSubscriptionUrl(ctx, accessToken, shop);
         }
-        // if not active or development we run the install function
       }
     })
   );
@@ -87,6 +67,7 @@ app.prepare().then(() => {
   const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
   router
     .get("/api/data", getData)
+    .get("/api/install", install)
     .post("/api/update", update)
     .post("/swpf/uninstall", webhook, uninstall)
     .post("/swpf/redact", webhook, redact);

@@ -10,15 +10,15 @@ const { createWebhook } = require("./createWebhook");
  * @param  {string} accessToken
  * @param  {string} shop
  */
-const getSubscriptionUrl = async (ctx, accessToken, shop) => {
+const getSubscriptionUrlDEV = async (ctx, accessToken, shop) => {
   const settings = await getFs("settings", APP);
 
   const query = JSON.stringify({
     query: `mutation {
       appSubscriptionCreate(
-          name: "Standard"
+          name: "Development Plan"
           returnUrl: "${TUNNEL_URL}"
-          test: false
+          test: true
           trialDays: ${settings.trial}
           lineItems: [
           {
@@ -59,10 +59,10 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
     responseJson.data.appSubscriptionCreate.confirmationUrl;
 
   /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall*/
-
-  const { id } = responseJson.data.appSubscriptionCreate.appSubscription;
+  console.log(confirmationUrl);
+  const { id } = await responseJson.data.appSubscriptionCreate.appSubscription;
   const chargeID = id.split("/")[4];
-  await initShop(shop, accessToken, chargeID);
+  await initShop(shop, accessToken, chargeID, confirmationUrl);
   createWebhook(
     `${TUNNEL_URL}/${APP}/uninstall`,
     "APP_UNINSTALLED",
@@ -72,4 +72,4 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   return ctx.redirect(confirmationUrl);
 };
 
-module.exports = getSubscriptionUrl;
+module.exports = getSubscriptionUrlDEV;

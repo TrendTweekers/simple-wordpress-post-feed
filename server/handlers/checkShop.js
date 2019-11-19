@@ -61,8 +61,12 @@ const checkShop = async (shop, token) => {
   );
   return shopData;
 };
-
-const initShop = async (shop, token, chargeID) => {
+/**Shop initialization with charge id
+ * @param  {} shop
+ * @param  {} token
+ * @param  {} chargeID
+ */
+const initShop = async (shop, token, chargeID, confirmationUrl) => {
   // init values
   const shopData = {
     theme: "",
@@ -70,7 +74,8 @@ const initShop = async (shop, token, chargeID) => {
     active: "",
     development: "",
     id: "",
-    chargeID: ""
+    chargeID: "",
+    plan: ""
   };
 
   shopData.theme = await checkTheme(shop, token);
@@ -81,7 +86,7 @@ const initShop = async (shop, token, chargeID) => {
   shopData.development = await checkDevShop(shop, token);
 
   // destructuring values
-  const { theme, email, development, id, name } = shopData;
+  const { theme, email, development, id, name, plan } = shopData;
 
   // construction values for DB
   const newData = {
@@ -95,7 +100,9 @@ const initShop = async (shop, token, chargeID) => {
     lastUpdate: new Date(),
     trial: 7,
     chargeID,
-    development
+    development,
+    confirmationUrl,
+    plan: plan
   };
   console.log("NEW DATA");
   console.log(newData);
