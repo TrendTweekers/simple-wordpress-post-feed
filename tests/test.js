@@ -85,4 +85,5 @@ const hello = async () => {
   // console.log(checkDevShop('brbp-theme-assets-development-store.myshopify.com', 'ae263f3ea78ff5b5a16fb3f00250a89f'));
 };
 
-hello();
+// hello();
+cat();
