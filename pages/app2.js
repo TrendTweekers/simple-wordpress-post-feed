@@ -6,7 +6,7 @@ import fetch from "isomorphic-unfetch";
 import Header from "../components/Header";
 import { Provider, Context } from "@shopify/app-bridge-react";
 import createApp from "@shopify/app-bridge";
-import { Redirect, Loading } from "@shopify/app-bridge/actions";
+import { Redirect } from "@shopify/app-bridge/actions";
 import { TUNNEL_URL } from "../server/config/config";
 
 const App2 = ({
@@ -52,14 +52,11 @@ const App2 = ({
     apiKey: shopifyApiKey,
     shopOrigin: shopOrigin
   });
-  const loadingAction = Loading.create(app);
 
   if (loading) {
-    loadingAction.dispatch(Loading.Action.START);
-    return <div>Loading</div>;
+    return <div></div>;
   } else {
     if (allowed) {
-      loadingAction.dispatch(Loading.Action.STOP);
       return (
         <AppProvider>
           <Provider config={config}>
@@ -71,7 +68,6 @@ const App2 = ({
         </AppProvider>
       );
     } else {
-      loadingAction.dispatch(Loading.Action.STOP);
       app.dispatch(
         Redirect.toRemote({
           url: confirmationUrl

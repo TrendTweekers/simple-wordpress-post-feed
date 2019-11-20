@@ -57,8 +57,8 @@ const update = props => {
 
   return (
     <section>
-      {bannerMessage}
       <Divider xl />
+      {bannerMessage}
       <Layout>
         <Layout.AnnotatedSection
           title="Update App"

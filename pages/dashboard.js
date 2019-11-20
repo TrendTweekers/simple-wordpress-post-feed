@@ -22,12 +22,6 @@ import "../styles.scss";
  */
 
 const Dashboard = ({ storeData, shop }) => {
-  const [banner, setBanner] = useState(false);
-
-  const bannerMessage = banner ? (
-    <Banner status="success">Reinstall &amp; Update was successful!</Banner>
-  ) : null;
-
   return (
     <Page title="Simple Wordpress Feed">
       <Card sectioned>

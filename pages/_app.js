@@ -26,6 +26,7 @@ class MyApp extends App {
       forceRedirect: true
     };
     const { Component, pageProps } = this.props;
+    console.log(shopOrigin);
     return (
       <App2
         config={config}
