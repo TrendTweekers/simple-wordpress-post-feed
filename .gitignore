@@ -21,3 +21,6 @@ config/tunnel.pid
 
 #shopify cli
 .shopify-cli.yml
+
+# Nyc output
+.nyc_output
