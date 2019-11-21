@@ -54,11 +54,15 @@ app.prepare().then(() => {
         const isDev = await checkDevShop(shop, accessToken);
         const storeDB = await getFs(APP, shop);
         console.log(accessToken);
-        if (isDev) {
-          // if not active or development we run the install function
-          await getSubscriptionUrlDEV(ctx, accessToken, shop);
+        if (storeDB) {
+          return ctx.redirect("/");
         } else {
-          await getSubscriptionUrl(ctx, accessToken, shop);
+          if (isDev) {
+            // if not active or development we run the install function
+            await getSubscriptionUrlDEV(ctx, accessToken, shop);
+          } else {
+            await getSubscriptionUrl(ctx, accessToken, shop);
+          }
         }
       }
     })

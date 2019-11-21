@@ -1,7 +1,8 @@
 const { db, getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
-const { checkCharge } = require("../lib/shopify/functions");
+const { checkCharge, checkDevShop } = require("../lib/shopify/functions");
+const reSubscriptionUrl = require("../handlers/reSubscriptionUrl");
 
 const { APP, PS_TOPIC, PS_APP } = config;
 
@@ -119,8 +120,15 @@ const install = async ctx => {
   const shopData = await getFs(APP, shop);
   const { token, chargeID, plan, confirmationUrl } = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
+  const development = await checkDevShop(shop, token);
+
   /**Runs only first time when someone log in and plan is active */
   if (activeCharge && plan === "") {
+    if (development) {
+      shopData.plan = "developer";
+    } else {
+      shopData.plan = "basic";
+    }
     pushTopic(
       PS_TOPIC,
       APP,
@@ -130,14 +138,19 @@ const install = async ctx => {
       action
     );
     ctx.status = 200;
-    const plan = { plan: "active" };
+    const plan = { plan: shopData.plan };
     await writeFs(PS_APP, shop, plan);
     ctx.body = { allowed: true };
   } else if (activeCharge) {
     ctx.body = { allowed: true };
+  } else if (!activeCharge && plan === "") {
+    /**Charge is not active so we send back to frontend the confirmationURL */
+    console.log(`Shop we have but no active charge ${shop} first install`);
+
+    ctx.body = { allowed: false, confirmationUrl: confirmationUrl };
   } else {
-  /**Charge is not active so we send back to frontend the confirmationURL */
-    console.log(`Shop we have but not active charge ${shop}`);
+    console.log(`Shop we have but cancelled charge ${shop} `);
+    const confirmationUrl = await reSubscriptionUrl(token, shop, development);
     ctx.body = { allowed: false, confirmationUrl: confirmationUrl };
   }
 };

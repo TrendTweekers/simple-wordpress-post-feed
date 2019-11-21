@@ -8,7 +8,7 @@ import "@shopify/polaris/styles.css";
 import React from "react";
 import Header from "../components/Header";
 import { SHOPIFY_API_KEY } from "../server/config/config";
-import App2 from "./app2";
+import AuthStep from "./authStep";
 
 const client = new ApolloClient({
   fetchOptions: {
@@ -26,8 +26,9 @@ class MyApp extends App {
       forceRedirect: true
     };
     const { Component, pageProps } = this.props;
+    // console.log(shopOrigin);
     return (
-      <App2
+      <AuthStep
         config={config}
         client={client}
         Component={Component}

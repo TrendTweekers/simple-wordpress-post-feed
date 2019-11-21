@@ -71,8 +71,6 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
   const shopData = {
     theme: "",
     email: "",
-    active: "",
-    development: "",
     id: "",
     chargeID: "",
     plan: ""
@@ -83,10 +81,9 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
   shopData.email = emailId.email;
   shopData.id = emailId.id;
   shopData.name = emailId.name;
-  shopData.development = await checkDevShop(shop, token);
 
   // destructuring values
-  const { theme, email, development, id, name, plan } = shopData;
+  const { theme, email, id, name, plan } = shopData;
 
   // construction values for DB
   const newData = {
@@ -100,7 +97,6 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
     lastUpdate: new Date(),
     trial: 7,
     chargeID,
-    development,
     confirmationUrl,
     plan: plan
   };

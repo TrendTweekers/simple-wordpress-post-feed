@@ -10,6 +10,7 @@ import Divider from "./Divider";
 import React, { useState, useEffect } from "react";
 import fetch from "isomorphic-unfetch";
 import { TUNNEL_URL } from "../server/config/config";
+import ReactCSSTransitionGroup from "react-addons-css-transition-group";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -40,7 +41,7 @@ const DeleteApp = ({ shop, data }) => {
     setBanner(true);
     setTimeout(() => {
       setBanner(false);
-    }, 12000);
+    }, 6000);
     fetch(`${TUNNEL_URL}/api/update`, {
       method: "POST",
       headers: {
@@ -61,7 +62,11 @@ const DeleteApp = ({ shop, data }) => {
     "Delete was successful! Now you can uninstall the application normally from the Apps";
   const restoreBannerMessage = "Reinstall was successful!";
 
-  const bannerMessage = <Banner status="success">{bannertext}</Banner>;
+  const bannerMessage = (
+    <Banner key="banner" status="success">
+      {bannertext}
+    </Banner>
+  );
 
   const deleteButton = (
     <Layout.AnnotatedSection
@@ -108,7 +113,13 @@ const DeleteApp = ({ shop, data }) => {
   return (
     <section>
       <Divider xl />
-      {banner ? bannerMessage : null}
+      <ReactCSSTransitionGroup
+        transitionName="example"
+        transitionEnterTimeout={500}
+        transitionLeaveTimeout={500}
+      >
+        {banner ? bannerMessage : null}
+      </ReactCSSTransitionGroup>
       <Layout>{deleteFiles}</Layout>
     </section>
   );

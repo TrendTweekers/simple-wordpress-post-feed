@@ -1,16 +1,14 @@
 const env = require("../config/config");
 const { getFs } = require("../lib/firebase/firebase");
 const { initShop } = require("./checkShop");
-const { checkDevShop } = require("./../lib/shopify/functions");
 const { TUNNEL_URL, TEST, API_VERSION, APP, HOOK_URL } = env;
-const { createWebhook } = require("./createWebhook");
 
 /** Creating subscription URL
  * @param  {object} ctx context object
  * @param  {string} accessToken
  * @param  {string} shop
  */
-const getSubscriptionUrlDEV = async (ctx, accessToken, shop) => {
+const reSubscriptionUrl = async (accessToken, shop, dev) => {
   const settings = await getFs("settings", APP);
 
   const query = JSON.stringify({
@@ -18,7 +16,7 @@ const getSubscriptionUrlDEV = async (ctx, accessToken, shop) => {
       appSubscriptionCreate(
           name: "Development Plan"
           returnUrl: "${TUNNEL_URL}"
-          test: true
+          test: ${dev}
           trialDays: ${settings.trial}
           lineItems: [
           {
@@ -65,14 +63,7 @@ const getSubscriptionUrlDEV = async (ctx, accessToken, shop) => {
   /**Initialization of the shop without saving the charging plan */
   await initShop(shop, accessToken, chargeID, confirmationUrl);
 
-  /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall*/
-  createWebhook(
-    `${TUNNEL_URL}/${APP}/uninstall`,
-    "APP_UNINSTALLED",
-    accessToken,
-    shop
-  );
-  return ctx.redirect(confirmationUrl);
+  return confirmationUrl;
 };
 
-module.exports = getSubscriptionUrlDEV;
+module.exports = reSubscriptionUrl;

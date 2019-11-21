@@ -7,11 +7,9 @@ import {
   Banner
 } from "@shopify/polaris";
 import Divider from "./Divider";
-import React, { useState, useEffect } from "react";
-
+import React, { useState } from "react";
+import ReactCSSTransitionGroup from "react-addons-css-transition-group";
 import fetch from "isomorphic-unfetch";
-
-import Link from "next/link";
 import { TUNNEL_URL } from "../server/config/config";
 
 /**
@@ -52,13 +50,22 @@ const update = props => {
   // console.log(getSettings());
 
   const bannerMessage = banner ? (
-    <Banner status="success">Reinstall &amp; Update was successful!</Banner>
+    <Banner key="update_banner" status="success">
+      Reinstall &amp; Update was successful!
+    </Banner>
   ) : null;
 
   return (
     <section>
-      {bannerMessage}
       <Divider xl />
+      <ReactCSSTransitionGroup
+        transitionName="example"
+        transitionEnterTimeout={500}
+        transitionLeaveTimeout={500}
+      >
+        {bannerMessage}
+      </ReactCSSTransitionGroup>
+
       <Layout>
         <Layout.AnnotatedSection
           title="Update App"
