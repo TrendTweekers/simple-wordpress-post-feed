@@ -9,7 +9,8 @@ import createApp from "@shopify/app-bridge";
 import { Redirect } from "@shopify/app-bridge/actions";
 import { TUNNEL_URL } from "../server/config/config";
 
-const App2 = ({
+/**This component is checking if shop is existing in DB having active charge in shopify system... */
+const authStep = ({
   config,
   client,
   Component,
@@ -20,7 +21,9 @@ const App2 = ({
   const [allowed, setAllowed] = useState(false);
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
-
+  /**
+   * Make install route run and returning if the shop allowed to log in or not, if not, returning an existing confirmation url or a new one
+   */
   const makeInstall = () => {
     const action = "install";
     fetch(`${TUNNEL_URL}/api/install?shop=${shopOrigin}&action=${action}`, {
@@ -32,7 +35,6 @@ const App2 = ({
     })
       .then(res => res.json())
       .then(json => {
-        console.log(json);
         if (json.allowed) {
           setAllowed(true);
           setLoading(false);
@@ -68,14 +70,15 @@ const App2 = ({
         </AppProvider>
       );
     } else {
+      /**If charge is not active we redirect them to the confirmation URL */
       app.dispatch(
         Redirect.toRemote({
           url: confirmationUrl
         })
       );
-      return <div>not allowed</div>;
+      return <div>Something went wrong</div>;
     }
   }
 };
 
-export default App2;
+export default authStep;

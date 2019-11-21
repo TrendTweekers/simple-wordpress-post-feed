@@ -23,8 +23,8 @@ img {
   max-width: 100%;
   height: auto;
 }
-.Polaris-Banner.Polaris-Banner--statusSuccess.Polaris-Banner--withinPage{
-  margin-bottom:20px;
+.Polaris-Banner.Polaris-Banner--statusSuccess.Polaris-Banner--withinPage {
+  margin-bottom: 20px;
 }
 img.Polaris-Spinner.Polaris-Spinner--colorTeal.Polaris-Spinner--sizeLarge {
   position: absolute;
@@ -32,16 +32,34 @@ img.Polaris-Spinner.Polaris-Spinner--colorTeal.Polaris-Spinner--sizeLarge {
   left: 50%;
 }
 
+// Animation for banner
+.example-enter {
+  opacity: 0.01;
+}
 
+.example-enter.example-enter-active {
+  opacity: 1;
+  transition: opacity 500ms ease-in;
+}
 
+.example-leave {
+  opacity: 1;
+}
+
+.example-leave.example-leave-active {
+  opacity: 0.01;
+  transition: opacity 500ms ease-in;
+}
 
 //  Worpress styles
 
 .post {
   background-color: white;
   padding: 1.6rem;
-  -webkit-box-shadow: 0 0 0 1px rgba(63, 63, 68, 0.05), 0 1px 3px 0 rgba(63, 63, 68, 0.15);
-  box-shadow: 0 0 0 1px rgba(63, 63, 68, 0.05), 0 1px 3px 0 rgba(63, 63, 68, 0.15);
+  -webkit-box-shadow: 0 0 0 1px rgba(63, 63, 68, 0.05),
+    0 1px 3px 0 rgba(63, 63, 68, 0.15);
+  box-shadow: 0 0 0 1px rgba(63, 63, 68, 0.05),
+    0 1px 3px 0 rgba(63, 63, 68, 0.15);
 }
 
 .post p {
@@ -54,7 +72,8 @@ img.Polaris-Spinner.Polaris-Spinner--colorTeal.Polaris-Spinner--sizeLarge {
 }
 
 .post {
-  h1 {}
+  h1 {
+  }
 
   h2 {
     font-size: 2.5rem;
@@ -82,390 +101,391 @@ img.Polaris-Spinner.Polaris-Spinner--colorTeal.Polaris-Spinner--sizeLarge {
   margin: 2rem 0;
 }
 
-
-
-.wpforms-form button[type=submit].wpforms-submit.comment-meta,
-.wpforms-form button[type=submit].wpforms-submit.comment-reply-link,
-.wpforms-form button[type=submit].wpforms-submit.small {
+.wpforms-form button[type="submit"].wpforms-submit.comment-meta,
+.wpforms-form button[type="submit"].wpforms-submit.comment-reply-link,
+.wpforms-form button[type="submit"].wpforms-submit.small {
   min-width: 4rem;
-  font-weight: 400
+  font-weight: 400;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.big {
-  min-width: 10rem
+.wpforms-form button[type="submit"].wpforms-submit.big {
+  min-width: 10rem;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-white,
-.wpforms-form button[type=submit].wpforms-submit.color-white:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color-white,
+.wpforms-form button[type="submit"].wpforms-submit.color-white:hover {
   color: #313439;
   background-color: #fff;
-  border-color: #fff
+  border-color: #fff;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-white.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color-white:disabled {
-  color: rgba(49, 52, 57, .7);
-  background-color: rgba(255, 255, 255, .7);
-  border-color: rgba(255, 255, 255, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color-white.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color-white:disabled {
+  color: rgba(49, 52, 57, 0.7);
+  background-color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-white.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color-white.outline {
   background: 0 0;
   color: #fff;
-  border-color: #fff
+  border-color: #fff;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-white.outline:hover {
-  border-color: rgba(255, 255, 255, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color-white.outline:hover {
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-white.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color-white.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color-white.outline.disabled,
+.wpforms-form
+  button[type="submit"].wpforms-submit.color-white.outline:disabled {
   background: 0 0;
-  color: rgba(255, 255, 255, .7);
-  border-color: rgba(255, 255, 255, .5)
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-black {
+.wpforms-form button[type="submit"].wpforms-submit.color-black {
   color: #fff;
   background-color: #000;
-  border-color: #000
+  border-color: #000;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-black:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color-black:hover {
   color: #fff;
   background-color: #1a1a1a;
-  border-color: #1a1a1a
+  border-color: #1a1a1a;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-black.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color-black:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(0, 0, 0, .7);
-  border-color: rgba(0, 0, 0, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color-black.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color-black:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(0, 0, 0, 0.7);
+  border-color: rgba(0, 0, 0, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-black.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color-black.outline {
   background: 0 0;
   color: #000;
-  border-color: #000
+  border-color: #000;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-black.outline:hover {
-  border-color: rgba(0, 0, 0, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color-black.outline:hover {
+  border-color: rgba(0, 0, 0, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color-black.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color-black.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color-black.outline.disabled,
+.wpforms-form
+  button[type="submit"].wpforms-submit.color-black.outline:disabled {
   background: 0 0;
-  color: rgba(0, 0, 0, .7);
-  border-color: rgba(0, 0, 0, .5)
+  color: rgba(0, 0, 0, 0.7);
+  border-color: rgba(0, 0, 0, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.white,
-.wpforms-form button[type=submit].wpforms-submit.white:hover {
+.wpforms-form button[type="submit"].wpforms-submit.white,
+.wpforms-form button[type="submit"].wpforms-submit.white:hover {
   color: #313439;
   background-color: #fff;
-  border-color: #fff
+  border-color: #fff;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.white.disabled,
-.wpforms-form button[type=submit].wpforms-submit.white:disabled {
-  color: rgba(49, 52, 57, .7);
-  background-color: rgba(255, 255, 255, .7);
-  border-color: rgba(255, 255, 255, .7)
+.wpforms-form button[type="submit"].wpforms-submit.white.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.white:disabled {
+  color: rgba(49, 52, 57, 0.7);
+  background-color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.white.outline {
+.wpforms-form button[type="submit"].wpforms-submit.white.outline {
   background: 0 0;
   color: #fff;
-  border-color: #fff
+  border-color: #fff;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.white.outline:hover {
-  border-color: rgba(255, 255, 255, .7)
+.wpforms-form button[type="submit"].wpforms-submit.white.outline:hover {
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.white.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.white.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.white.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.white.outline:disabled {
   background: 0 0;
-  color: rgba(255, 255, 255, .7);
-  border-color: rgba(255, 255, 255, .5)
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.black {
+.wpforms-form button[type="submit"].wpforms-submit.black {
   color: #fff;
   background-color: #000;
-  border-color: #000
+  border-color: #000;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.black:hover {
+.wpforms-form button[type="submit"].wpforms-submit.black:hover {
   color: #fff;
   background-color: #1a1a1a;
-  border-color: #1a1a1a
+  border-color: #1a1a1a;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.black.disabled,
-.wpforms-form button[type=submit].wpforms-submit.black:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(0, 0, 0, .7);
-  border-color: rgba(0, 0, 0, .7)
+.wpforms-form button[type="submit"].wpforms-submit.black.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.black:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(0, 0, 0, 0.7);
+  border-color: rgba(0, 0, 0, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.black.outline {
+.wpforms-form button[type="submit"].wpforms-submit.black.outline {
   background: 0 0;
   color: #000;
-  border-color: #000
+  border-color: #000;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.black.outline:hover {
-  border-color: rgba(0, 0, 0, .7)
+.wpforms-form button[type="submit"].wpforms-submit.black.outline:hover {
+  border-color: rgba(0, 0, 0, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.black.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.black.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.black.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.black.outline:disabled {
   background: 0 0;
-  color: rgba(0, 0, 0, .7);
-  border-color: rgba(0, 0, 0, .5)
+  color: rgba(0, 0, 0, 0.7);
+  border-color: rgba(0, 0, 0, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color1 {
+.wpforms-form button[type="submit"].wpforms-submit.color1 {
   color: #fff;
   background-color: #03a9f4;
-  border-color: #03a9f4
+  border-color: #03a9f4;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color1:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color1:hover {
   color: #fff;
   background-color: #2ebcfc;
-  border-color: #2ebcfc
+  border-color: #2ebcfc;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color1.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color1:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(3, 169, 244, .7);
-  border-color: rgba(3, 169, 244, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color1.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color1:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(3, 169, 244, 0.7);
+  border-color: rgba(3, 169, 244, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color1.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color1.outline {
   background: 0 0;
   color: #03a9f4;
-  border-color: #03a9f4
+  border-color: #03a9f4;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color1.outline:hover {
-  border-color: rgba(3, 169, 244, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color1.outline:hover {
+  border-color: rgba(3, 169, 244, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color1.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color1.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color1.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color1.outline:disabled {
   background: 0 0;
-  color: rgba(3, 169, 244, .7);
-  border-color: rgba(3, 169, 244, .5)
+  color: rgba(3, 169, 244, 0.7);
+  border-color: rgba(3, 169, 244, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color2 {
+.wpforms-form button[type="submit"].wpforms-submit.color2 {
   color: #fff;
-  background-color: #FF9800;
-  border-color: #FF9800
+  background-color: #ff9800;
+  border-color: #ff9800;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color2:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color2:hover {
   color: #fff;
   background-color: #ffad33;
-  border-color: #ffad33
+  border-color: #ffad33;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color2.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color2:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(255, 152, 0, .7);
-  border-color: rgba(255, 152, 0, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color2.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color2:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 152, 0, 0.7);
+  border-color: rgba(255, 152, 0, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color2.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color2.outline {
   background: 0 0;
-  color: #FF9800;
-  border-color: #FF9800
+  color: #ff9800;
+  border-color: #ff9800;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color2.outline:hover {
-  border-color: rgba(255, 152, 0, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color2.outline:hover {
+  border-color: rgba(255, 152, 0, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color2.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color2.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color2.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color2.outline:disabled {
   background: 0 0;
-  color: rgba(255, 152, 0, .7);
-  border-color: rgba(255, 152, 0, .5)
+  color: rgba(255, 152, 0, 0.7);
+  border-color: rgba(255, 152, 0, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color3 {
+.wpforms-form button[type="submit"].wpforms-submit.color3 {
   color: #fff;
   background-color: #fbc02d;
-  border-color: #fbc02d
+  border-color: #fbc02d;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color3:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color3:hover {
   color: #fff;
   background-color: #fccf5f;
-  border-color: #fccf5f
+  border-color: #fccf5f;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color3.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color3:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(251, 192, 45, .7);
-  border-color: rgba(251, 192, 45, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color3.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color3:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(251, 192, 45, 0.7);
+  border-color: rgba(251, 192, 45, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color3.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color3.outline {
   background: 0 0;
   color: #fbc02d;
-  border-color: #fbc02d
+  border-color: #fbc02d;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color3.outline:hover {
-  border-color: rgba(251, 192, 45, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color3.outline:hover {
+  border-color: rgba(251, 192, 45, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color3.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color3.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color3.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color3.outline:disabled {
   background: 0 0;
-  color: rgba(251, 192, 45, .7);
-  border-color: rgba(251, 192, 45, .5)
+  color: rgba(251, 192, 45, 0.7);
+  border-color: rgba(251, 192, 45, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color4 {
+.wpforms-form button[type="submit"].wpforms-submit.color4 {
   color: #fff;
   background-color: #8c239f;
-  border-color: #8c239f
+  border-color: #8c239f;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color4:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color4:hover {
   color: #fff;
   background-color: #b12cc9;
-  border-color: #b12cc9
+  border-color: #b12cc9;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color4.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color4:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(140, 35, 159, .7);
-  border-color: rgba(140, 35, 159, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color4.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color4:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(140, 35, 159, 0.7);
+  border-color: rgba(140, 35, 159, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color4.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color4.outline {
   background: 0 0;
   color: #8c239f;
-  border-color: #8c239f
+  border-color: #8c239f;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color4.outline:hover {
-  border-color: rgba(140, 35, 159, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color4.outline:hover {
+  border-color: rgba(140, 35, 159, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color4.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color4.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color4.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color4.outline:disabled {
   background: 0 0;
-  color: rgba(140, 35, 159, .7);
-  border-color: rgba(140, 35, 159, .5)
+  color: rgba(140, 35, 159, 0.7);
+  border-color: rgba(140, 35, 159, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color5 {
+.wpforms-form button[type="submit"].wpforms-submit.color5 {
   color: #fff;
   background-color: #ff3369;
-  border-color: #ff3369
+  border-color: #ff3369;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color5:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color5:hover {
   color: #fff;
   background-color: #ff668f;
-  border-color: #ff668f
+  border-color: #ff668f;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color5.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color5:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(255, 51, 105, .7);
-  border-color: rgba(255, 51, 105, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color5.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color5:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(255, 51, 105, 0.7);
+  border-color: rgba(255, 51, 105, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color5.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color5.outline {
   background: 0 0;
   color: #ff3369;
-  border-color: #ff3369
+  border-color: #ff3369;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color5.outline:hover {
-  border-color: rgba(255, 51, 105, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color5.outline:hover {
+  border-color: rgba(255, 51, 105, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color5.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color5.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color5.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color5.outline:disabled {
   background: 0 0;
-  color: rgba(255, 51, 105, .7);
-  border-color: rgba(255, 51, 105, .5)
+  color: rgba(255, 51, 105, 0.7);
+  border-color: rgba(255, 51, 105, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color6 {
+.wpforms-form button[type="submit"].wpforms-submit.color6 {
   color: #fff;
   background-color: #343a40;
-  border-color: #343a40
+  border-color: #343a40;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color6:hover {
+.wpforms-form button[type="submit"].wpforms-submit.color6:hover {
   color: #fff;
   background-color: #4b545c;
-  border-color: #4b545c
+  border-color: #4b545c;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color6.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color6:disabled {
-  color: rgba(255, 255, 255, .7);
-  background-color: rgba(52, 58, 64, .7);
-  border-color: rgba(52, 58, 64, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color6.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color6:disabled {
+  color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(52, 58, 64, 0.7);
+  border-color: rgba(52, 58, 64, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color6.outline {
+.wpforms-form button[type="submit"].wpforms-submit.color6.outline {
   background: 0 0;
   color: #343a40;
-  border-color: #343a40
+  border-color: #343a40;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color6.outline:hover {
-  border-color: rgba(52, 58, 64, .7)
+.wpforms-form button[type="submit"].wpforms-submit.color6.outline:hover {
+  border-color: rgba(52, 58, 64, 0.7);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.color6.outline.disabled,
-.wpforms-form button[type=submit].wpforms-submit.color6.outline:disabled {
+.wpforms-form button[type="submit"].wpforms-submit.color6.outline.disabled,
+.wpforms-form button[type="submit"].wpforms-submit.color6.outline:disabled {
   background: 0 0;
-  color: rgba(52, 58, 64, .7);
-  border-color: rgba(52, 58, 64, .5)
+  color: rgba(52, 58, 64, 0.7);
+  border-color: rgba(52, 58, 64, 0.5);
 }
 
-.wpforms-form button[type=submit].wpforms-submit.square {
-  border-radius: 0
+.wpforms-form button[type="submit"].wpforms-submit.square {
+  border-radius: 0;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.white-text {
-  color: #fff !important
+.wpforms-form button[type="submit"].wpforms-submit.white-text {
+  color: #fff !important;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.dark-text {
-  color: #313439 !important
+.wpforms-form button[type="submit"].wpforms-submit.dark-text {
+  color: #313439 !important;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.y-move {
-  transition: all .2s
+.wpforms-form button[type="submit"].wpforms-submit.y-move {
+  transition: all 0.2s;
 }
 
-.wpforms-form button[type=submit].wpforms-submit.y-move:hover {
+.wpforms-form button[type="submit"].wpforms-submit.y-move:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(189, 189, 189, .19), 0 6px 6px rgba(189, 189, 189, .23)
+  box-shadow: 0 10px 20px rgba(189, 189, 189, 0.19),
+    0 6px 6px rgba(189, 189, 189, 0.23);
 }
 
 .content-section .wpforms-confirmation-container-full * {
-  color: inherit
+  color: inherit;
 }

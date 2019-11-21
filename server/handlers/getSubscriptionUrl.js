@@ -62,7 +62,7 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
 
   const { id } = responseJson.data.appSubscriptionCreate.appSubscription;
   const chargeID = id.split("/")[4];
-  await initShop(shop, accessToken, chargeID);
+  await initShop(shop, accessToken, chargeID, confirmationUrl);
   createWebhook(
     `${TUNNEL_URL}/${APP}/uninstall`,
     "APP_UNINSTALLED",
