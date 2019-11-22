@@ -3,7 +3,15 @@ const { checkDevShop, checkCharge } = require("./lib/shopify/functions");
 const { checkShop } = require("./handlers/checkShop");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
 const { default: graphQLProxy } = require("@shopify/koa-shopify-graphql-proxy");
-const { getData, update, uninstall, redact, install } = require("./routes/");
+const {
+  getData,
+  update,
+  uninstall,
+  redact,
+  install,
+  customerData,
+  customerRedact
+} = require("./routes/");
 const { getFs } = require("./lib/firebase/firebase");
 const { verifyRequest } = require("@shopify/koa-shopify-auth");
 const { receiveWebhook } = require("@shopify/koa-shopify-webhooks");
@@ -74,7 +82,9 @@ app.prepare().then(() => {
     .get("/api/install", install)
     .post("/api/update", update)
     .post("/swpf/uninstall", webhook, uninstall)
-    .post("/swpf/redact", webhook, redact);
+    .post("/swpf/shop/redact", webhook, redact)
+    .post("/swpf/customers/data_request", webhook, customerData)
+    .post("/swpf/customers/redact", webhook, customerRedact);
 
   router.get("*", verifyRequest(), async ctx => {
     await handle(ctx.req, ctx.res);

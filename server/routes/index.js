@@ -58,6 +58,37 @@ const redact = async ctx => {
   }
 };
 
+/** This is for shopify to redact customer GDPR mandatory webhook
+ * @param  {context} ctx
+ */
+const customerRedact = async ctx => {
+  console.log(`Redact  route ran by shopify GDPR`);
+  const { shop_domain, shop_id } = await ctx.request.body;
+  const shopData = await getFs(APP, shop_domain);
+  if (shopData) {
+    ctx.status = 200;
+  } else {
+    ctx.respond = false;
+    ctx.res.statusCode = 404;
+  }
+};
+
+/** This is for shopify to get customer DATA GDPR mandatory webhook
+ * @param  {context} ctx
+ */
+const customerData = async ctx => {
+  console.log(`Redact  route ran by shopify GDPR`);
+  const { shop_domain, shop_id } = await ctx.request.body;
+  const shopData = await getFs(APP, shop_domain);
+  if (shopData) {
+    ctx.body = { shopData };
+    ctx.status = 200;
+  } else {
+    ctx.respond = false;
+    ctx.res.statusCode = 404;
+  }
+};
+
 /** This is for our own webhook for uninstall, triggered after hitting uninstall from admin panel
  * @param  {context} ctx
  */
@@ -109,7 +140,7 @@ const update = async ctx => {
   }
 };
 
-/**Install route that run at first time, and each time somebody start the app
+/**Auth + Install route that run at first time, and each time somebody start the app
  * @param  {string} shop
  * @param {string} action
  * @return {object} allowed:boolean and confirmationUrl:string
@@ -143,11 +174,6 @@ const install = async ctx => {
     ctx.body = { allowed: true };
   } else if (activeCharge) {
     ctx.body = { allowed: true };
-  } else if (!activeCharge && plan === "") {
-    /**Charge is not active so we send back to frontend the confirmationURL */
-    console.log(`Shop we have but no active charge ${shop} first install`);
-
-    ctx.body = { allowed: false, confirmationUrl: confirmationUrl };
   } else {
     console.log(`Shop we have but cancelled charge ${shop} `);
     const confirmationUrl = await reSubscriptionUrl(token, shop, development);
@@ -160,3 +186,5 @@ module.exports.redact = redact;
 module.exports.uninstall = uninstall;
 module.exports.update = update;
 module.exports.install = install;
+module.exports.customerRedact = customerRedact;
+module.exports.customerData = customerData;
