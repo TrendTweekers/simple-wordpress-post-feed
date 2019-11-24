@@ -1,6 +1,5 @@
 require("isomorphic-unfetch");
 const { checkDevShop, checkCharge } = require("./lib/shopify/functions");
-const { checkShop } = require("./handlers/checkShop");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
 const { default: graphQLProxy } = require("@shopify/koa-shopify-graphql-proxy");
 const {

@@ -2,7 +2,8 @@ const { db, getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const { checkCharge, checkDevShop } = require("../lib/shopify/functions");
-const reSubscriptionUrl = require("../handlers/reSubscriptionUrl");
+const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
+const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
 const { APP, PS_TOPIC, PS_APP } = config;
 
@@ -149,7 +150,7 @@ const install = async ctx => {
   const { shop, action } = await ctx.request.query;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
-  const { token, chargeID, plan, confirmationUrl } = shopData;
+  const { token, chargeID, plan } = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
   const development = await checkDevShop(shop, token);
 
@@ -176,8 +177,25 @@ const install = async ctx => {
     ctx.body = { allowed: true };
   } else {
     console.log(`Shop we have but cancelled charge ${shop} `);
-    const confirmationUrl = await reSubscriptionUrl(token, shop, development);
-    ctx.body = { allowed: false, confirmationUrl: confirmationUrl };
+    if (development) {
+      const confirmationUrl = await getSubscriptionUrlDEV(
+        ctx,
+        token,
+        shop,
+        true,
+        false
+      );
+      ctx.body = { allowed: false, confirmationUrl };
+    } else {
+      const confirmationUrl = await getSubscriptionUrl(
+        ctx,
+        token,
+        shop,
+        true,
+        false
+      );
+      ctx.body = { allowed: false, confirmationUrl };
+    }
   }
 };
 
