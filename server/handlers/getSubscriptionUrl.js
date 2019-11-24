@@ -9,8 +9,16 @@ const { createWebhook } = require("./createWebhook");
  * @param  {object} ctx context object
  * @param  {string} accessToken
  * @param  {string} shop
+ * @param  {boolean} getUrl if we want to get back the URL and not redirect, set true
+ * @param {boolean} webhook if we want to make a webhook set true
  */
-const getSubscriptionUrl = async (ctx, accessToken, shop) => {
+const getSubscriptionUrl = async (
+  ctx,
+  accessToken,
+  shop,
+  getUrl = false,
+  webhook = true
+) => {
   const settings = await getFs("settings", APP);
 
   const query = JSON.stringify({
@@ -63,13 +71,19 @@ const getSubscriptionUrl = async (ctx, accessToken, shop) => {
   const { id } = responseJson.data.appSubscriptionCreate.appSubscription;
   const chargeID = id.split("/")[4];
   await initShop(shop, accessToken, chargeID, confirmationUrl);
-  createWebhook(
-    `${TUNNEL_URL}/${APP}/uninstall`,
-    "APP_UNINSTALLED",
-    accessToken,
-    shop
-  );
-  return ctx.redirect(confirmationUrl);
+  if (webhook) {
+    createWebhook(
+      `${TUNNEL_URL}/${APP}/uninstall`,
+      "APP_UNINSTALLED",
+      accessToken,
+      shop
+    );
+  }
+
+  if (!getUrl) {
+    return ctx.redirect(confirmationUrl);
+  }
+  return confirmationUrl;
 };
 
 module.exports = getSubscriptionUrl;

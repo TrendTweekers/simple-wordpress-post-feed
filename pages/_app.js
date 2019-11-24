@@ -1,12 +1,8 @@
 import ApolloClient from "apollo-boost";
-import { ApolloProvider } from "react-apollo";
 import App from "next/app";
-import { AppProvider } from "@shopify/polaris";
-import { Provider } from "@shopify/app-bridge-react";
 import Cookies from "js-cookie";
 import "@shopify/polaris/styles.css";
 import React from "react";
-import Header from "../components/Header";
 import { SHOPIFY_API_KEY } from "../server/config/config";
 import AuthStep from "./authStep";
 
@@ -26,7 +22,6 @@ class MyApp extends App {
       forceRedirect: true
     };
     const { Component, pageProps } = this.props;
-    // console.log(shopOrigin);
     return (
       <AuthStep
         config={config}
