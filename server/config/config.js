@@ -14,7 +14,7 @@ env.port = 3000;
 
 /** Pub/Sub */
 env.PS_TOPIC = "shopify";
-env.PS_APP = "swpf";
+env.APP = "swpf";
 env.HOOK_URL =
   "https://us-central1-pluginmaker.cloudfunctions.net/Shopify-Hooks";
 
@@ -24,7 +24,6 @@ if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_SECRET_KEY = "a1081d3ac38bfe4f8b8580dca0347ead";
   env.TUNNEL_URL = "https://ingrid.eu.ngrok.io";
   env.TEST = true;
-  env.APP = "swpf";
 
   /** Production Mode */
 } else if (process.env.NODE_ENV === "production") {
@@ -32,7 +31,6 @@ if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_SECRET_KEY = "53c84cfb4aa7d5dee3b12f677b19fbfb";
   env.TUNNEL_URL = "https://swpf.stackedboost.com";
   env.TEST = false;
-  env.APP = "swpf";
 }
 
 module.exports = env;
