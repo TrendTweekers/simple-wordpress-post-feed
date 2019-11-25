@@ -1,7 +1,7 @@
 const { checkTheme, checkEmailId } = require("../lib/shopify/functions");
 const { writeFs } = require("../lib/firebase/firebase");
 const config = require("../config/config");
-const { PS_APP } = config;
+const { APP } = config;
 
 /**Shop initialization with charge id
  * @param  {} shop
@@ -46,7 +46,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
   console.log(newData);
 
   // push to DB
-  await writeFs(PS_APP, shop, newData);
+  await writeFs(APP, shop, newData);
   // push to pub/sub
 
   return shopData;

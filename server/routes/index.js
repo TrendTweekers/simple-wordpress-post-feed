@@ -5,7 +5,7 @@ const { checkCharge, checkDevShop } = require("../lib/shopify/functions");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
-const { APP, PS_TOPIC, PS_APP } = config;
+const { APP } = config;
 
 /** Getting all the data from DB
  * @param  {context} ctx
@@ -44,14 +44,7 @@ const redact = async ctx => {
   const shopData = await getFs(APP, shop_domain);
   const action = "uninstall";
   if (shopData) {
-    pushTopic(
-      PS_TOPIC,
-      APP,
-      shop_domain,
-      shopData.theme.toString(),
-      shopData.token,
-      action
-    );
+    pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
     ctx.status = 200;
   } else {
     ctx.respond = false;
@@ -64,9 +57,16 @@ const redact = async ctx => {
  */
 const customerRedact = async ctx => {
   console.log(`Redact  route ran by shopify GDPR`);
+  const action = "data-erasure";
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
+    pushTopic(
+      myshopify_domain,
+      shopData.theme.toString(),
+      shopData.token,
+      action
+    );
     ctx.status = 200;
   } else {
     ctx.respond = false;
@@ -79,9 +79,16 @@ const customerRedact = async ctx => {
  */
 const customerData = async ctx => {
   console.log(`Redact  route ran by shopify GDPR`);
+  const action = "data-request";
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
+    pushTopic(
+      myshopify_domain,
+      shopData.theme.toString(),
+      shopData.token,
+      action
+    );
     ctx.body = { shopData };
     ctx.status = 200;
   } else {
@@ -100,8 +107,6 @@ const uninstall = async ctx => {
   const shopData = await getFs(APP, myshopify_domain);
   if (shopData) {
     pushTopic(
-      PS_TOPIC,
-      APP,
       myshopify_domain,
       shopData.theme.toString(),
       shopData.token,
@@ -125,14 +130,7 @@ const update = async ctx => {
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
   if (shopData) {
-    pushTopic(
-      PS_TOPIC,
-      APP,
-      shop,
-      shopData.theme.toString(),
-      shopData.token,
-      action
-    );
+    pushTopic(shop, shopData.theme.toString(), shopData.token, action);
     ctx.status = 200;
   } else {
     console.log(`shop is not in our db ${shop}`);
@@ -161,17 +159,10 @@ const install = async ctx => {
     } else {
       shopData.plan = "basic";
     }
-    pushTopic(
-      PS_TOPIC,
-      APP,
-      shop,
-      shopData.theme.toString(),
-      shopData.token,
-      action
-    );
+    pushTopic(shop, shopData.theme.toString(), shopData.token, action);
     ctx.status = 200;
     const plan = { plan: shopData.plan };
-    await writeFs(PS_APP, shop, plan);
+    await writeFs(APP, shop, plan);
     ctx.body = { allowed: true };
   } else if (activeCharge) {
     ctx.body = { allowed: true };
