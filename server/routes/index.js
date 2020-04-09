@@ -10,7 +10,7 @@ const { APP } = config;
 /** Getting all the data from DB
  * @param  {context} ctx
  */
-const getData = async ctx => {
+const getData = async (ctx) => {
   const { shop, action } = await ctx.request.query;
 
   console.log(`GET DATA LOG ${shop} and ${action}`);
@@ -23,13 +23,16 @@ const getData = async ctx => {
   if (fsData.version !== settings.version) {
     disableUpdate = false;
   }
-
   const data = {
     version: fsData.version,
     latestVersion: settings.version,
     clean: fsData.clean,
-    disableUpdate
+    disableUpdate,
   };
+  if (data.version === undefined) {
+    data.version = settings.version;
+  }
+
   console.log("LOGGING FS DATA FROM ROUTE");
   ctx.body = data;
   return data;
@@ -38,7 +41,7 @@ const getData = async ctx => {
 /** This is for shopify to redact everything GDPR mandatory webhook
  * @param  {context} ctx
  */
-const redact = async ctx => {
+const redact = async (ctx) => {
   console.log(`Redact  route ran by shopify GDPR`);
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
@@ -55,7 +58,7 @@ const redact = async ctx => {
 /** This is for shopify to redact customer GDPR mandatory webhook
  * @param  {context} ctx
  */
-const customerRedact = async ctx => {
+const customerRedact = async (ctx) => {
   console.log(`Redact  route ran by shopify GDPR`);
   const action = "data-erasure";
   const { shop_domain, shop_id } = await ctx.request.body;
@@ -77,7 +80,7 @@ const customerRedact = async ctx => {
 /** This is for shopify to get customer DATA GDPR mandatory webhook
  * @param  {context} ctx
  */
-const customerData = async ctx => {
+const customerData = async (ctx) => {
   console.log(`Redact  route ran by shopify GDPR`);
   const action = "data-request";
   const { shop_domain, shop_id } = await ctx.request.body;
@@ -100,7 +103,7 @@ const customerData = async ctx => {
 /** This is for our own webhook for uninstall, triggered after hitting uninstall from admin panel
  * @param  {context} ctx
  */
-const uninstall = async ctx => {
+const uninstall = async (ctx) => {
   console.log(`Uninstall webhook ran`);
   const action = "uninstall";
   const { myshopify_domain } = await ctx.request.body;
@@ -125,7 +128,7 @@ const uninstall = async ctx => {
  * @param {shop}
  * @param {action}
  */
-const update = async ctx => {
+const update = async (ctx) => {
   const { shop, action } = await ctx.request.body;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
@@ -144,7 +147,7 @@ const update = async ctx => {
  * @param {string} action
  * @return {object} allowed:boolean and confirmationUrl:string
  */
-const install = async ctx => {
+const install = async (ctx) => {
   const { shop, action } = await ctx.request.query;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
