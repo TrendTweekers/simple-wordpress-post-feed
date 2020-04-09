@@ -39,8 +39,9 @@ const handle = app.getRequestHandler();
 app.prepare().then(() => {
   const server = new Koa();
   const router = new Router();
+  server.proxy = true;
   server.use(bodyParser());
-  server.use(session(server));
+  server.use(session({ sameSite: "none", secure: true }, server));
   server.keys = [SHOPIFY_API_SECRET_KEY];
   server.use(
     createShopifyAuth({
@@ -54,7 +55,9 @@ app.prepare().then(() => {
         console.log("afterAuth");
         const { shop, accessToken } = ctx.session;
         ctx.cookies.set("shopOrigin", shop, {
-          httpOnly: false
+          httpOnly: false,
+          sameSite: "none",
+          secure: true
         });
 
         // Check if customer exist  and route according to it

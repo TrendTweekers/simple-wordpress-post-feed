@@ -6,7 +6,6 @@ FROM node:alpine
 RUN apk update
 RUN apk upgrade
 RUN apk add --update python make g++
-RUN npm install -g yarn
 
 RUN mkdir -p /usr/src/app
 # Set workdirr

@@ -15,7 +15,7 @@ class MyDocument extends Document {
           <NextScript />
           <script
             id="ze-snippet"
-            src="https://static.zdassets.com/ekr/snippet.js?key=d2688089-3283-453c-b69b-905bbef62f4d"
+            src="https://static.zdassets.com/ekr/snippet.js?key=ba9c8cbc-acee-42ec-9972-94a1bf355962"
           />
         </body>
       </Html>

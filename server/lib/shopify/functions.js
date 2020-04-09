@@ -83,7 +83,10 @@ const checkDevShop = async (shop, token) => {
   )
     .then(response => response.json())
     .then(json => {
-      if (json.shop.plan_name === "affiliate") {
+      if (
+        json.shop.plan_name === "affiliate" ||
+        json.shop.plan_name === "partner_test"
+      ) {
         return true;
       }
       return false;
