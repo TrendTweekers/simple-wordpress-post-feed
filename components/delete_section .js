@@ -4,7 +4,7 @@ import {
   Layout,
   Card,
   FormLayout,
-  Banner
+  Banner,
 } from "@shopify/polaris";
 import Divider from "./Divider";
 import React, { useState, useEffect } from "react";
@@ -26,7 +26,7 @@ const DeleteApp = ({ shop, data }) => {
   const [deleteButtonDisabled, setDeleteButtonDisabled] = useState(false);
   const [restoreButtonDisabled, setRestoreButtonDisabled] = useState(false);
   const [bannertext, setBannertext] = useState("");
-  const handleClick = action => {
+  const handleClick = (action) => {
     const data = { shop: shop, action: action };
     if (action === "restore") {
       setRestoreButtonDisabled(true);
@@ -45,17 +45,17 @@ const DeleteApp = ({ shop, data }) => {
     fetch(`${TUNNEL_URL}/api/update`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
         // 'Content-Type': 'application/x-www-form-urlencoded',
       },
       redirect: "follow", // manual, *follow, error
       referrer: "no-referrer", // no-referrer, *client
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     })
-      .then(res => {
+      .then((res) => {
         //
       })
-      .catch(err => console.log(err));
+      .catch((err) => console.log(err));
   };
 
   const deleteBannerMessage =
@@ -69,50 +69,42 @@ const DeleteApp = ({ shop, data }) => {
   );
 
   const deleteButton = (
-    <Layout.AnnotatedSection
-      title="Remove App Files"
-      description="Remove Liquid files added by the application"
-    >
-      <Card sectioned>
-        <Button
-          destructive
-          onClick={() => handleClick("clean")}
-          disabled={deleteButtonDisabled}
-        >
-          Uninstall
-        </Button>
-        <br />
-        <br />
-        This will delete all liquid files and it is recommended to do just
-        before removing the app from your shopify store.
-      </Card>
-    </Layout.AnnotatedSection>
+    <Card title="Remove App Files" sectioned>
+      Remove Liquid files added by the application
+      <br />
+      <br />
+      <Button
+        destructive
+        onClick={() => handleClick("clean")}
+        disabled={deleteButtonDisabled}
+      >
+        Uninstall
+      </Button>
+      <br />
+      <br />
+      This will delete all liquid files and it is recommended to do just before
+      removing the app from your shopify store.
+    </Card>
   );
 
   const restoreButton = (
-    <Layout.AnnotatedSection
-      title="Reinstall App Files"
-      description="Reinstall Liquid files"
-    >
-      <Card sectioned>
-        <Button
-          primary
-          onClick={() => handleClick("restore")}
-          disabled={restoreButtonDisabled}
-        >
-          Reinstall
-        </Button>
-        <br />
-        <br />
-        This will reinstall all liquid files.
-      </Card>
-    </Layout.AnnotatedSection>
+    <Card title="Reinstall App Files" sectioned>
+      This will reinstall all liquid files.
+      <br />
+      <br />
+      <Button
+        primary
+        onClick={() => handleClick("restore")}
+        disabled={restoreButtonDisabled}
+      >
+        Reinstall
+      </Button>
+    </Card>
   );
   const deleteFiles = showDelete ? deleteButton : restoreButton;
 
   return (
-    <section>
-      <Divider xl />
+    <React.Fragment>
       <ReactCSSTransitionGroup
         transitionName="example"
         transitionEnterTimeout={500}
@@ -120,14 +112,14 @@ const DeleteApp = ({ shop, data }) => {
       >
         {banner ? bannerMessage : null}
       </ReactCSSTransitionGroup>
-      <Layout>{deleteFiles}</Layout>
-    </section>
+      {deleteFiles}
+    </React.Fragment>
   );
 };
 
 DeleteApp.defaultProps = {
   shop: "shop",
-  data: { clean: false }
+  data: { clean: false },
 };
 
 export default DeleteApp;

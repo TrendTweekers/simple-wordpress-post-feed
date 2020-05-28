@@ -4,11 +4,13 @@ import {
   Layout,
   Card,
   FormLayout,
-  Banner
+  Banner,
 } from "@shopify/polaris";
+import Divider from "../components/Divider";
 import Update from "../components/update_section";
 import DeleteApp from "../components/delete_section ";
 import React, { useState, useEffect } from "react";
+import lscache from "lscache";
 
 import Link from "next/link";
 import { TUNNEL_URL } from "../server/config/config";
@@ -21,7 +23,30 @@ import "../styles.scss";
  * has to be set
  */
 
-const Dashboard = ({ storeData, shop }) => {
+const Dashboard = ({ storeData, shop, banner }) => {
+  const [showBanner, setShowBanner] = useState(banner === "true");
+  const bannerMessage = (
+    <Banner
+      className="infobanner"
+      title="Troubleshooting"
+      onDismiss={() => {
+        lscache.set("message", "false", 300000);
+        setShowBanner(false);
+      }}
+      status="info"
+    >
+      <p>
+        If you have problem displaying your wordpress posts please check our
+        troubleshooting guide for instructions how to solve common issues{" "}
+        <a
+          href="https://stackedboost.com/apps/simple-wordpress-post-feed/faq/"
+          target="blank"
+        >
+          open troubleshooting
+        </a>
+      </p>
+    </Banner>
+  );
   return (
     <Page title="Simple Wordpress Feed">
       <Card sectioned>
@@ -39,7 +64,11 @@ const Dashboard = ({ storeData, shop }) => {
           </i>
         </p>
       </Card>
+      <br />
+      {showBanner ? bannerMessage : null}
+      <br />
       <Update data={storeData} shop={shop} />
+      <Divider xl />
       <DeleteApp data={storeData} shop={shop} />
     </Page>
   );

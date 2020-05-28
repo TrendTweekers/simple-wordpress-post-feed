@@ -15,7 +15,7 @@ const About = () => {
 
   const fetchDataAction = () => {
     const wordpress = new ApolloClient({
-      uri: "https://stackedboost.com/graphql"
+      uri: "https://stackedboost.com/graphql",
     });
 
     wordpress
@@ -36,13 +36,13 @@ const About = () => {
         `,
         variables: {
           id: 387,
-          format: "RENDERED"
-        }
+          format: "RENDERED",
+        },
       })
-      .then(result => {
+      .then((result) => {
         setContent({ __html: result.data.apps.edges[0].node.content });
       })
-      .catch(err => console.log(err));
+      .catch((err) => console.log(err));
   };
 
   const MyComponent = () => (
@@ -53,7 +53,7 @@ const About = () => {
     fetchDataAction();
   }, [pageURI]);
 
-  return <Page title="Documentaion">{MyComponent()}</Page>;
+  return <Page title="Documentation">{MyComponent()}</Page>;
 };
 
 export default About;
