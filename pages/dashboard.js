@@ -39,7 +39,7 @@ const Dashboard = ({ storeData, shop, banner }) => {
         If you have problem displaying your wordpress posts please check our
         troubleshooting guide for instructions how to solve common issues{" "}
         <a
-          href="https://stackedboost.com/apps/simple-wordpress-post-feed/faq/"
+          href="https://stackedboost.com/apps/simple-wordpress-post-feed/#faq"
           target="blank"
         >
           open troubleshooting
@@ -47,13 +47,19 @@ const Dashboard = ({ storeData, shop, banner }) => {
       </p>
     </Banner>
   );
+  /**Link to the shop theme customizer */
+  const customizerlink = `https://${shop}/admin/themes/${storeData.theme}/editor`;
   return (
     <Page title="Simple Wordpress Feed">
       <Card sectioned>
         <p>
           <b>Thank you for installing Simple Wordpress Post Feed!</b>
-          <br /> To get started go to theme section editor and add the Simple
-          Wordpress Post Feed section. For more detailed instructions see the{" "}
+          <br /> To get started go to{" "}
+          <a href={customizerlink} target="_blank">
+            theme section editor
+          </a>{" "}
+          and add the Simple Wordpress Post Feed section. For more detailed
+          instructions see the{" "}
           <Link href="/about">
             <a>documentation</a>
           </Link>

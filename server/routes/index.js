@@ -27,6 +27,7 @@ const getData = async (ctx) => {
     version: fsData.version,
     latestVersion: settings.version,
     clean: fsData.clean,
+    theme: fsData.theme,
     disableUpdate,
   };
   if (data.version === undefined) {
