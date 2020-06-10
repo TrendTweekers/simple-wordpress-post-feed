@@ -9,7 +9,7 @@ const {
   redact,
   install,
   customerData,
-  customerRedact
+  customerRedact,
 } = require("./routes/");
 const { getFs } = require("./lib/firebase/firebase");
 const { verifyRequest } = require("@shopify/koa-shopify-auth");
@@ -19,7 +19,7 @@ const getSubscriptionUrl = require("./handlers/getSubscriptionUrl");
 const getSubscriptionUrlDEV = require("./handlers/getSubscriptionUrlDEV");
 const Koa = require("koa");
 const next = require("next");
-const Router = require("koa-router");
+const Router = require("@koa/router");
 const session = require("koa-session");
 var bodyParser = require("koa-bodyparser");
 
@@ -28,7 +28,7 @@ const {
   SHOPIFY_API_KEY,
   SCOPES,
   GRAPHQL_VERSION,
-  APP
+  APP,
 } = env;
 
 const port = parseInt(process.env.PORT, 10) || 3000;
@@ -57,7 +57,7 @@ app.prepare().then(() => {
         ctx.cookies.set("shopOrigin", shop, {
           httpOnly: false,
           sameSite: "none",
-          secure: true
+          secure: true,
         });
 
         // Check if customer exist  and route according to it
@@ -74,7 +74,7 @@ app.prepare().then(() => {
             await getSubscriptionUrl(ctx, accessToken, shop);
           }
         }
-      }
+      },
     })
   );
   server.use(graphQLProxy({ version: GRAPHQL_VERSION }));
@@ -88,7 +88,7 @@ app.prepare().then(() => {
     .post("/swpf/customers/data_request", webhook, customerData)
     .post("/swpf/customers/redact", webhook, customerRedact);
 
-  router.get("*", verifyRequest(), async ctx => {
+  router.all("/(.*)", verifyRequest(), async (ctx, next) => {
     await handle(ctx.req, ctx.res);
     ctx.respond = false;
     ctx.res.statusCode = 200;
