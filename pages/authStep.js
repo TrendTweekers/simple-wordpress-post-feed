@@ -1,6 +1,6 @@
 import { ApolloProvider } from "react-apollo";
 import { AppProvider } from "@shopify/polaris";
-import "@shopify/polaris/styles.css";
+import "@shopify/polaris/dist/styles.css";
 import React, { useState, useEffect } from "react";
 import fetch from "isomorphic-unfetch";
 import Header from "../components/Header";
@@ -16,7 +16,7 @@ const authStep = ({
   Component,
   pageProps,
   shopOrigin,
-  shopifyApiKey
+  shopifyApiKey,
 }) => {
   const [allowed, setAllowed] = useState(false);
   const [confirmationUrl, setConfirmationUrl] = useState("");
@@ -28,13 +28,13 @@ const authStep = ({
     const action = "install";
     fetch(`${TUNNEL_URL}/api/install?shop=${shopOrigin}&action=${action}`, {
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
       redirect: "follow", // manual, *follow, error
-      referrer: "no-referrer" // no-referrer, *client
+      referrer: "no-referrer", // no-referrer, *client
     })
-      .then(res => res.json())
-      .then(json => {
+      .then((res) => res.json())
+      .then((json) => {
         if (json.allowed) {
           setAllowed(true);
           setLoading(false);
@@ -52,7 +52,7 @@ const authStep = ({
 
   const app = createApp({
     apiKey: shopifyApiKey,
-    shopOrigin: shopOrigin
+    shopOrigin: shopOrigin,
   });
 
   if (loading) {
@@ -73,7 +73,7 @@ const authStep = ({
       /**If charge is not active we redirect them to the confirmation URL */
       app.dispatch(
         Redirect.toRemote({
-          url: confirmationUrl
+          url: confirmationUrl,
         })
       );
       return <div>Something went wrong</div>;

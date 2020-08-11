@@ -88,7 +88,7 @@ app.prepare().then(() => {
     .post("/swpf/customers/data_request", webhook, customerData)
     .post("/swpf/customers/redact", webhook, customerRedact);
 
-  router.all("/(.*)", verifyRequest(), async (ctx, next) => {
+  router.all("/(.*)", verifyRequest(), async (ctx) => {
     await handle(ctx.req, ctx.res);
     ctx.respond = false;
     ctx.res.statusCode = 200;

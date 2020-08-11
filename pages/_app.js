@@ -1,7 +1,7 @@
 import ApolloClient from "apollo-boost";
 import App from "next/app";
 import Cookies from "js-cookie";
-import "@shopify/polaris/styles.css";
+import "@shopify/polaris/dist/styles.css";
 import React from "react";
 import { SHOPIFY_API_KEY } from "../server/config/config";
 import AuthStep from "./authStep";
@@ -9,8 +9,8 @@ import AuthStep from "./authStep";
 const client = new ApolloClient({
   fetchOptions: {
     credentials: "include",
-    fetch
-  }
+    fetch,
+  },
 });
 
 class MyApp extends App {
@@ -19,7 +19,7 @@ class MyApp extends App {
     const config = {
       apiKey: SHOPIFY_API_KEY,
       shopOrigin,
-      forceRedirect: true
+      forceRedirect: true,
     };
     const { Component, pageProps } = this.props;
     return (
