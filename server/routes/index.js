@@ -52,7 +52,7 @@ const redact = async (ctx) => {
     ctx.status = 200;
   } else {
     ctx.respond = false;
-    ctx.res.statusCode = 404;
+    ctx.status = 200;
   }
 };
 
@@ -74,7 +74,7 @@ const customerRedact = async (ctx) => {
     ctx.status = 200;
   } else {
     ctx.respond = false;
-    ctx.res.statusCode = 404;
+    ctx.status = 200;
   }
 };
 
@@ -82,7 +82,7 @@ const customerRedact = async (ctx) => {
  * @param  {context} ctx
  */
 const customerData = async (ctx) => {
-  console.log(`Redact  route ran by shopify GDPR`);
+  console.log(`customer data  route ran by shopify GDPR`);
   const action = "data-request";
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
@@ -97,7 +97,7 @@ const customerData = async (ctx) => {
     ctx.status = 200;
   } else {
     ctx.respond = false;
-    ctx.res.statusCode = 404;
+    ctx.status = 200;
   }
 };
 
