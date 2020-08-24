@@ -43,16 +43,17 @@ const getData = async (ctx) => {
  * @param  {context} ctx
  */
 const redact = async (ctx) => {
-  console.log(`Redact  route ran by shopify GDPR`);
   const { shop_domain, shop_id } = await ctx.request.body;
+  console.log(`Redact  route ran by shopify GDPR for ${shop_domain}`);
   const shopData = await getFs(APP, shop_domain);
   const action = "uninstall";
   if (shopData) {
     pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
-    ctx.status = 200;
+    ctx.response.status = 200;
   } else {
+    console.log(`Shop is not in DB ${shop_domain}`);
     ctx.respond = false;
-    ctx.status = 200;
+    ctx.response.status = 404;
   }
 };
 
@@ -60,7 +61,7 @@ const redact = async (ctx) => {
  * @param  {context} ctx
  */
 const customerRedact = async (ctx) => {
-  console.log(`Redact  route ran by shopify GDPR`);
+  console.log(`Customer Redact  route ran by shopify GDPR`);
   const action = "data-erasure";
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
@@ -71,10 +72,10 @@ const customerRedact = async (ctx) => {
       shopData.token,
       action
     );
-    ctx.status = 200;
+    ctx.response.status = 200;
   } else {
     ctx.respond = false;
-    ctx.status = 200;
+    ctx.response.status = 404;
   }
 };
 
@@ -94,10 +95,10 @@ const customerData = async (ctx) => {
       action
     );
     ctx.body = { shopData };
-    ctx.status = 200;
+    ctx.response.status = 200;
   } else {
     ctx.respond = false;
-    ctx.status = 200;
+    ctx.response.status = 404;
   }
 };
 
@@ -116,11 +117,11 @@ const uninstall = async (ctx) => {
       shopData.token,
       action
     );
-    ctx.status = 200;
+    ctx.response.status = 200;
   } else {
     console.log(`shop is not in our db ${myshopify_domain}`);
     ctx.respond = false;
-    ctx.res.statusCode = 200;
+    ctx.res.statusCode = 404;
   }
 };
 
