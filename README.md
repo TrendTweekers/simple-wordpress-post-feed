@@ -40,3 +40,5 @@ https://ingrid.eu.ngrok.io/auth?shop=stacked-demo-1.myshopify.com
 https://shopify-wordpress-post-feed-app-rga4phvsoq-uc.a.run.app>
 
 https://ingrid.eu.ngrok.io/auth?shop=brbp-theme-assets-development-store.myshopify.com
+
+If longTrial = true in db then charge is cancelled and new charge made with longer trial setted in DB.

@@ -8,9 +8,10 @@ import {
 } from "@shopify/polaris";
 import Divider from "./Divider";
 import React, { useState } from "react";
-import ReactCSSTransitionGroup from "react-addons-css-transition-group";
 import fetch from "isomorphic-unfetch";
 import { TUNNEL_URL } from "../server/config/config";
+import { withTranslation } from "../i18n";
+import PropTypes from "prop-types";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -18,13 +19,10 @@ import { TUNNEL_URL } from "../server/config/config";
  * has to be set
  */
 
-const update = (props) => {
-  const [buttonDisabled, setButtonDisabled] = useState(
-    props.data.disableUpdate
-  );
+const update = ({ data, shop, t }) => {
+  const [buttonDisabled, setButtonDisabled] = useState(data.disableUpdate);
   const [banner, setBanner] = useState(false);
   const action = "update";
-  const { shop } = props;
 
   const update = () => {
     const data = { shop: shop, action: action };
@@ -50,32 +48,24 @@ const update = (props) => {
   // console.log(getSettings());
 
   const bannerMessage = banner ? (
-    <Banner key="update_banner" status="success">
-      Reinstall &amp; Update was successful!
-    </Banner>
+    <Banner key="update_banner" status="success" title={t("ubanner")}></Banner>
   ) : null;
 
   return (
     <section>
-      <ReactCSSTransitionGroup
-        transitionName="example"
-        transitionEnterTimeout={500}
-        transitionLeaveTimeout={500}
-      >
-        {bannerMessage}
-      </ReactCSSTransitionGroup>
-      <Card title="Update App" sectioned>
-        Keep your app up to date when new version is released
+      {bannerMessage}
+      <Card title={t("utitle")} sectioned>
+        {t("u1")}
         <br />
         <br />
         <Button onClick={update} disabled={buttonDisabled}>
-          Update now
+          {t("ubutton")}
         </Button>
         <br />
         <br />
         {buttonDisabled
-          ? `Store version: ${props.data.latestVersion} is up to date`
-          : `update: ${props.data.version} => ${props.data.latestVersion}`}
+          ? `${t("u2")} ${data.latestVersion} ${t("u3")}`
+          : `${t("u4")} ${data.version} => ${data.latestVersion}`}
       </Card>
     </section>
   );
@@ -86,4 +76,8 @@ update.defaultProps = {
   data: { version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true },
 };
 
-export default update;
+update.propTypes = {
+  t: PropTypes.func.isRequired,
+};
+
+export default withTranslation("dashboard")(update);

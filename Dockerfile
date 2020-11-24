@@ -1,5 +1,5 @@
 
-FROM node:alpine
+FROM node:lts-alpine
 # FROM node:11.14.0-alpine
 # Create app directory
 

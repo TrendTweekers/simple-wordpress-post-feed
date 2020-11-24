@@ -5,6 +5,7 @@ import "@shopify/polaris/dist/styles.css";
 import React from "react";
 import { SHOPIFY_API_KEY } from "../server/config/config";
 import AuthStep from "./authStep";
+import { appWithTranslation } from "../i18n";
 
 const client = new ApolloClient({
   fetchOptions: {
@@ -35,4 +36,4 @@ class MyApp extends App {
   }
 }
 
-export default MyApp;
+export default appWithTranslation(MyApp);
