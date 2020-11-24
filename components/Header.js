@@ -1,16 +1,27 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
 import React from "react";
 import Link from "next/link";
+import { i18n, withTranslation } from "../i18n";
+import PropTypes from "prop-types";
+import LanguageSelector from "./LanguageSelector";
 
-const Header = () => (
+const Header = ({ t }) => (
   <div className="header">
     <Link href="/">
-      <a>Settings</a>
+      <a>{t("settings")}</a>
     </Link>
     <Link href="/about">
-      <a>Documentation</a>
+      <a>{t("documentation")}</a>
     </Link>
+    <LanguageSelector />
   </div>
 );
 
-export default Header;
+// Header.getInitialProps = async () => ({
+//   namespacesRequired: ['common'],
+// })
+
+Header.propTypes = {
+  t: PropTypes.func.isRequired,
+};
+
+export default withTranslation("common")(Header);

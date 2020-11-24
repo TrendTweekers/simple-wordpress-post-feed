@@ -8,13 +8,12 @@ import {
 } from "@shopify/polaris";
 import Divider from "../components/Divider";
 import Update from "../components/update_section";
-import DeleteApp from "../components/delete_section ";
+import DeleteApp from "../components/delete_section";
 import React, { useState, useEffect } from "react";
 import lscache from "lscache";
-
+import { i18n, withTranslation } from "../i18n";
+import PropTypes from "prop-types";
 import Link from "next/link";
-import { TUNNEL_URL } from "../server/config/config";
-
 import "../styles.scss";
 
 /**
@@ -23,12 +22,13 @@ import "../styles.scss";
  * has to be set
  */
 
-const Dashboard = ({ storeData, shop, banner }) => {
+const Dashboard = ({ storeData, shop, banner, t }) => {
+  console.log(i18n.language);
   const [showBanner, setShowBanner] = useState(banner === "true");
   const bannerMessage = (
     <Banner
       className="infobanner"
-      title="Troubleshooting"
+      title={t("infobanner")}
       onDismiss={() => {
         lscache.set("message", "false", 300000);
         setShowBanner(false);
@@ -36,13 +36,12 @@ const Dashboard = ({ storeData, shop, banner }) => {
       status="info"
     >
       <p>
-        If you have problem displaying your wordpress posts please check our
-        troubleshooting guide for instructions how to solve common issues{" "}
+        {t("infomessage")}{" "}
         <a
           href="https://stackedboost.com/apps/simple-wordpress-post-feed/#faq"
           target="blank"
         >
-          open troubleshooting
+          {t("linkmessage")}
         </a>
       </p>
     </Banner>
@@ -50,24 +49,22 @@ const Dashboard = ({ storeData, shop, banner }) => {
   /**Link to the shop theme customizer */
   const customizerlink = `https://${shop}/admin/themes/${storeData.theme}/editor`;
   return (
-    <Page title="Simple Wordpress Feed">
+    <Page title="Simple Wordpress Post Feed">
       <Card sectioned>
         <p>
-          <b>Thank you for installing Simple Wordpress Post Feed!</b>
-          <br /> To get started go to{" "}
+          <b>{t("header")}</b>
+          <br />
+          {t("p1")}{" "}
           <a href={customizerlink} target="_blank">
-            theme section editor
+            {t("p2")}
           </a>{" "}
-          and add the Simple Wordpress Post Feed section. For more detailed
-          instructions see the{" "}
+          {t("p3")}{" "}
           <Link href="/about">
-            <a>documentation</a>
+            <a>{t("documentation")}</a>
           </Link>
           .<br />
           <br />
-          <i>
-            Hope you enjoy the app and please don't forget to leave a review 😘
-          </i>
+          <i>{t("p4")}</i>
         </p>
       </Card>
       <br />
@@ -80,4 +77,8 @@ const Dashboard = ({ storeData, shop, banner }) => {
   );
 };
 
-export default Dashboard;
+Dashboard.propTypes = {
+  t: PropTypes.func.isRequired,
+};
+
+export default withTranslation("dashboard")(Dashboard);

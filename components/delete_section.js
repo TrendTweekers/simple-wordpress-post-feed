@@ -10,7 +10,8 @@ import Divider from "./Divider";
 import React, { useState, useEffect } from "react";
 import fetch from "isomorphic-unfetch";
 import { TUNNEL_URL } from "../server/config/config";
-import ReactCSSTransitionGroup from "react-addons-css-transition-group";
+import { withTranslation } from "../i18n";
+import PropTypes from "prop-types";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -18,7 +19,7 @@ import ReactCSSTransitionGroup from "react-addons-css-transition-group";
  * has to be set
  */
 
-const DeleteApp = ({ shop, data }) => {
+const DeleteApp = ({ shop, data, t }) => {
   const { clean } = data;
 
   const [banner, setBanner] = useState(false);
@@ -58,19 +59,16 @@ const DeleteApp = ({ shop, data }) => {
       .catch((err) => console.log(err));
   };
 
-  const deleteBannerMessage =
-    "Delete was successful! Now you can uninstall the application normally from the Apps";
-  const restoreBannerMessage = "Reinstall was successful!";
+  const deleteBannerMessage = t("dmessage1");
+  const restoreBannerMessage = t("dmessage2");
 
   const bannerMessage = (
-    <Banner key="banner" status="success">
-      {bannertext}
-    </Banner>
+    <Banner key="banner" status="success" title={bannertext}></Banner>
   );
 
   const deleteButton = (
-    <Card title="Remove App Files" sectioned>
-      Remove Liquid files added by the application
+    <Card title={t("dtitle")} sectioned>
+      {t("dp1")}
       <br />
       <br />
       <Button
@@ -78,18 +76,17 @@ const DeleteApp = ({ shop, data }) => {
         onClick={() => handleClick("clean")}
         disabled={deleteButtonDisabled}
       >
-        Uninstall
+        {t("dbutton")}
       </Button>
       <br />
       <br />
-      This will delete all liquid files and it is recommended to do just before
-      removing the app from your shopify store.
+      {t("dp2")}
     </Card>
   );
 
   const restoreButton = (
     <Card title="Reinstall App Files" sectioned>
-      This will reinstall all liquid files.
+      {t("rtitle")}
       <br />
       <br />
       <Button
@@ -97,7 +94,7 @@ const DeleteApp = ({ shop, data }) => {
         onClick={() => handleClick("restore")}
         disabled={restoreButtonDisabled}
       >
-        Reinstall
+        {t("rbutton")}
       </Button>
     </Card>
   );
@@ -105,13 +102,7 @@ const DeleteApp = ({ shop, data }) => {
 
   return (
     <React.Fragment>
-      <ReactCSSTransitionGroup
-        transitionName="example"
-        transitionEnterTimeout={500}
-        transitionLeaveTimeout={500}
-      >
-        {banner ? bannerMessage : null}
-      </ReactCSSTransitionGroup>
+      {banner ? bannerMessage : null}
       {deleteFiles}
     </React.Fragment>
   );
@@ -122,4 +113,8 @@ DeleteApp.defaultProps = {
   data: { clean: false },
 };
 
-export default DeleteApp;
+DeleteApp.propTypes = {
+  t: PropTypes.func.isRequired,
+};
+
+export default withTranslation("dashboard")(DeleteApp);
