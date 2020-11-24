@@ -1,8 +1,13 @@
 const { db, getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
-const { checkCharge, checkDevShop } = require("../lib/shopify/functions");
+const {
+  checkCharge,
+  checkDevShop,
+  deleteCharge,
+} = require("../lib/shopify/functions");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
+const getSubscriptionUrl_LongTrial = require("../handlers/getSubscriptionUrl_LongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
 const { APP } = config;
@@ -169,11 +174,26 @@ const install = async (ctx) => {
     const plan = { plan: shopData.plan };
     await writeFs(APP, shop, plan);
     ctx.body = { allowed: true };
+  } else if (shopData.longTrial) {
+    /** Longer trial for winners */
+
+    deleteCharge(shop, token, chargeID);
+    const confirmationUrl = await getSubscriptionUrl_LongTrial(
+      ctx,
+      token,
+      shop,
+      true,
+      false
+    );
+    const longTrial = { longTrial: false };
+
+    await writeFs(APP, shop, longTrial);
+    ctx.body = { allowed: false, confirmationUrl };
   } else if (activeCharge) {
     ctx.body = { allowed: true };
   } else {
-    console.log(`Shop we have but cancelled charge ${shop} `);
     if (development) {
+      /**Runs when its dev store */
       const confirmationUrl = await getSubscriptionUrlDEV(
         ctx,
         token,
@@ -183,6 +203,7 @@ const install = async (ctx) => {
       );
       ctx.body = { allowed: false, confirmationUrl };
     } else {
+      /** Runs when its normal store */
       const confirmationUrl = await getSubscriptionUrl(
         ctx,
         token,

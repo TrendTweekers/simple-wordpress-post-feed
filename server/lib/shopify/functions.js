@@ -20,13 +20,13 @@ const checkTheme = async (shop, token) => {
       `https://${shop}/admin/api/${API_VERSION}/themes.json`,
       {
         headers: {
-          "X-Shopify-Access-Token": token
-        }
+          "X-Shopify-Access-Token": token,
+        },
       }
     )
-      .then(response => response.json())
-      .then(json => {
-        const mainTheme = json.themes.filter(theme => theme.role === "main");
+      .then((response) => response.json())
+      .then((json) => {
+        const mainTheme = json.themes.filter((theme) => theme.role === "main");
         return mainTheme[0].id;
       });
     return results;
@@ -48,16 +48,16 @@ const checkEmailId = async (shop, token) => {
       `https://${shop}/admin/api/${API_VERSION}/shop.json`,
       {
         headers: {
-          "X-Shopify-Access-Token": token
-        }
+          "X-Shopify-Access-Token": token,
+        },
       }
     )
-      .then(response => response.json())
-      .then(json => {
+      .then((response) => response.json())
+      .then((json) => {
         return {
           email: json.shop.email,
           id: json.shop.id,
-          name: json.shop.shop_owner
+          name: json.shop.shop_owner,
         };
       });
     return results;
@@ -77,12 +77,12 @@ const checkDevShop = async (shop, token) => {
     `https://${shop}/admin/api/${API_VERSION}/shop.json`,
     {
       headers: {
-        "X-Shopify-Access-Token": token
-      }
+        "X-Shopify-Access-Token": token,
+      },
     }
   )
-    .then(response => response.json())
-    .then(json => {
+    .then((response) => response.json())
+    .then((json) => {
       if (
         json.shop.plan_name === "affiliate" ||
         json.shop.plan_name === "partner_test"
@@ -104,12 +104,12 @@ const checkCharge = async (shop, token, chargeID) => {
     `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
     {
       headers: {
-        "X-Shopify-Access-Token": token
-      }
+        "X-Shopify-Access-Token": token,
+      },
     }
   )
-    .then(response => response.json())
-    .then(json => {
+    .then((response) => response.json())
+    .then((json) => {
       if (json.recurring_application_charge.status === "active") {
         return true;
       }
@@ -118,8 +118,26 @@ const checkCharge = async (shop, token, chargeID) => {
   return active;
 };
 
+/** Cancelling existing  recurringcharge
+ * @param  {string} shop
+ * @param  {string} token
+ * @param  {string} chargeID
+ */
+const deleteCharge = async (shop, token, chargeID) => {
+  const active = await fetch(
+    `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
+    {
+      method: "delete",
+      headers: {
+        "X-Shopify-Access-Token": token,
+      },
+    }
+  );
+};
+
 // exports
 module.exports.checkTheme = checkTheme;
 module.exports.checkEmailId = checkEmailId;
 module.exports.checkDevShop = checkDevShop;
 module.exports.checkCharge = checkCharge;
+module.exports.deleteCharge = deleteCharge;
