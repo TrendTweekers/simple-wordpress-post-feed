@@ -2,6 +2,7 @@ import React, { useCallback, useState } from "react";
 import { Select } from "@shopify/polaris";
 import { i18n, withTranslation } from "../i18n";
 import PropTypes from "prop-types";
+import Image from "next/image";
 
 const LanguageSelector = ({ t }) => {
   const [selected, setSelected] = useState(i18n.language);
@@ -12,19 +13,25 @@ const LanguageSelector = ({ t }) => {
   }, []);
 
   const options = [
-    { label: t("english"), value: "en" },
-    { label: t("polish"), value: "pl" },
+    { label: "english", value: "en" },
+    { label: "polski", value: "pl" },
   ];
 
   return (
-    <Select
-      label={t("change-locale")}
-      options={options}
-      onChange={handleSelectChange}
-      value={selected}
-      labelHidden={true}
-    />
+    <div id="languageselector">
+      <Select
+        label={t("change-locale")}
+        options={options}
+        onChange={handleSelectChange}
+        value={selected}
+        labelHidden={true}
+      />
+    </div>
   );
+};
+
+LanguageSelector.propTypes = {
+  t: PropTypes.func.isRequired,
 };
 
 export default withTranslation("common")(LanguageSelector);

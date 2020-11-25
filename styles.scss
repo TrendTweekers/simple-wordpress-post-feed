@@ -7,7 +7,6 @@
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  // border-top: 1px solid #dfe3e7;
   border-bottom: 1px solid #dfe3e7;
 }
 
@@ -16,7 +15,9 @@
   text-decoration: none;
   padding: 0 1.6rem;
 }
-
+#languageselector{
+  margin-left: auto;
+}
 // General styles
 
 img {
