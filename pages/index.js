@@ -19,6 +19,7 @@ const Index = () => {
   const [msg, setMsg] = useState();
   const action = "init";
   const shop = Cookies.get("shopOrigin");
+  console.log(shop);
 
   const getSettings = () => {
     fetch(`${TUNNEL_URL}/api/data?shop=${shop}&action=${action}`, {
