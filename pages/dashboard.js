@@ -71,7 +71,7 @@ const Dashboard = ({ storeData, shop, banner, t }) => {
       {showBanner ? bannerMessage : null}
       <br />
       <Update data={storeData} shop={shop} />
-      <Divider xl />
+      <br />
       <DeleteApp data={storeData} shop={shop} />
     </Page>
   );

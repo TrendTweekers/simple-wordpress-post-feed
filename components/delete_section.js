@@ -42,7 +42,7 @@ const DeleteApp = ({ shop, data, t }) => {
     setBanner(true);
     setTimeout(() => {
       setBanner(false);
-    }, 6000);
+    }, 9000);
     fetch(`${TUNNEL_URL}/api/update`, {
       method: "POST",
       headers: {
@@ -62,9 +62,11 @@ const DeleteApp = ({ shop, data, t }) => {
   const deleteBannerMessage = t("dmessage1");
   const restoreBannerMessage = t("dmessage2");
 
-  const bannerMessage = (
-    <Banner key="banner" status="success" title={bannertext}></Banner>
-  );
+  const bannerMessage = banner ? (
+    <div className="banner_animation">
+      <Banner key="banner" status="success" title={bannertext}></Banner>
+    </div>
+  ) : null;
 
   const deleteButton = (
     <Card title={t("dtitle")} sectioned>
@@ -102,7 +104,8 @@ const DeleteApp = ({ shop, data, t }) => {
 
   return (
     <React.Fragment>
-      {banner ? bannerMessage : null}
+      <div style={{ height: "60px" }}>{bannerMessage}</div>
+      <br />
       {deleteFiles}
     </React.Fragment>
   );
