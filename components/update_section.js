@@ -30,7 +30,7 @@ const update = ({ data, shop, t }) => {
     setBanner(true);
     setTimeout(() => {
       setBanner(false);
-    }, 8000);
+    }, 9000);
     fetch(`${TUNNEL_URL}/api/update`, {
       method: "POST",
       headers: {
@@ -48,12 +48,19 @@ const update = ({ data, shop, t }) => {
   // console.log(getSettings());
 
   const bannerMessage = banner ? (
-    <Banner key="update_banner" status="success" title={t("ubanner")}></Banner>
+    <div className="banner_animation">
+      <Banner
+        key="update_banner"
+        status="success"
+        title={t("ubanner")}
+      ></Banner>
+    </div>
   ) : null;
 
   return (
     <section>
-      {bannerMessage}
+      <div style={{ height: "60px" }}>{bannerMessage}</div>
+      <br />
       <Card title={t("utitle")} sectioned>
         {t("u1")}
         <br />

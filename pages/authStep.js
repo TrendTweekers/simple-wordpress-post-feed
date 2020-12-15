@@ -12,7 +12,6 @@ import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
 import es from "@shopify/polaris/locales/es.json";
-import { useI18n } from "@shopify/react-i18n";
 
 /**This component is checking if shop is existing in DB having active charge in shopify system... */
 const authStep = ({
@@ -64,15 +63,6 @@ const authStep = ({
     return <div></div>;
   } else {
     if (allowed) {
-      // const [i18n] = useI18n({
-      //   id: 'Polaris',
-      //   fallback: translations,
-      //   async translations(locale) {
-      //     return import(
-      //       /* webpackChunkName: "Polaris-i18n", webpackMode: "lazy-once" */ `@shopify/polaris/locales/${locale}.json`
-      //     ).then((dictionary) => dictionary && dictionary.default);
-      //   },
-      // });
       return (
         <AppProvider i18n={[en, pl, sv, es]}>
           <Provider config={config}>
