@@ -4,6 +4,7 @@ import {
   Layout,
   Card,
   FormLayout,
+  TextContainer,
   Banner,
 } from "@shopify/polaris";
 import Divider from "./Divider";
@@ -19,7 +20,7 @@ import PropTypes from "prop-types";
  * has to be set
  */
 
-const update = ({ data, shop, t }) => {
+const UpdateSection = ({ data, shop, t }) => {
   const [buttonDisabled, setButtonDisabled] = useState(data.disableUpdate);
   const [banner, setBanner] = useState(false);
   const action = "update";
@@ -59,32 +60,32 @@ const update = ({ data, shop, t }) => {
 
   return (
     <section>
-      <div style={{ height: "60px" }}>{bannerMessage}</div>
+      {bannerMessage}
       <br />
       <Card title={t("utitle")} sectioned>
-        {t("u1")}
-        <br />
-        <br />
-        <Button onClick={update} disabled={buttonDisabled}>
-          {t("ubutton")}
-        </Button>
-        <br />
-        <br />
-        {buttonDisabled
-          ? `${t("u2")} ${data.latestVersion} ${t("u3")}`
-          : `${t("u4")} ${data.version} => ${data.latestVersion}`}
+        <TextContainer>
+          <p>{t("u1")}</p>
+          <Button onClick={update} disabled={buttonDisabled}>
+            {t("ubutton")}
+          </Button>
+          <p>
+            {buttonDisabled
+              ? `${t("u2")} ${data.latestVersion} ${t("u3")}`
+              : `${t("u4")} ${data.version} => ${data.latestVersion}`}
+          </p>
+        </TextContainer>
       </Card>
     </section>
   );
 };
 
 // Specifies the default values for props:
-update.defaultProps = {
+UpdateSection.defaultProps = {
   data: { version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true },
 };
 
-update.propTypes = {
+UpdateSection.propTypes = {
   t: PropTypes.func.isRequired,
 };
 
-export default withTranslation("dashboard")(update);
+export default withTranslation("dashboard")(UpdateSection);

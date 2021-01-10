@@ -1,14 +1,13 @@
 import {
   Page,
-  Button,
-  Layout,
   Card,
-  FormLayout,
   Banner,
+  TextContainer,
+  Heading,
+  Button,
 } from "@shopify/polaris";
-import Divider from "../components/Divider";
-import Update from "../components/update_section";
-import DeleteApp from "../components/delete_section";
+import EnableSection from "./EnableSection";
+import UpdateSection from "./UpdateSection";
 import React, { useState, useEffect } from "react";
 import lscache from "lscache";
 import { i18n, withTranslation } from "../i18n";
@@ -23,7 +22,7 @@ import "../styles.scss";
  */
 
 const Dashboard = ({ storeData, shop, banner, t }) => {
-  console.log(i18n.language);
+  // console.log(i18n.language);
   const [showBanner, setShowBanner] = useState(banner === "true");
   const bannerMessage = (
     <Banner
@@ -47,32 +46,40 @@ const Dashboard = ({ storeData, shop, banner, t }) => {
     </Banner>
   );
   /**Link to the shop theme customizer */
-  const customizerlink = `https://${shop}/admin/themes/${storeData.theme}/editor`;
+  const themeSectionEditor = (
+    <Button
+      primary={true}
+      onClick={() =>
+        window.open(
+          `https://${shop}/admin/themes/${storeData.theme}/editor`,
+          "_blank"
+        )
+      }
+    >
+      {t("p2")}
+    </Button>
+  );
   return (
     <Page title="Simple Wordpress Post Feed">
+      <EnableSection data={storeData} shop={shop} />
       <Card sectioned>
-        <p>
-          <b>{t("header")}</b>
-          <br />
-          {t("p1")}{" "}
-          <a href={customizerlink} target="_blank">
-            {t("p2")}
-          </a>{" "}
-          {t("p3")}{" "}
-          <Link href="/about">
-            <a>{t("documentation")}</a>
-          </Link>
-          .<br />
-          <br />
-          <i>{t("p4")}</i>
-        </p>
+        <TextContainer>
+          <Heading>{t("header")}</Heading>
+          <p>
+            {t("p1")} {t("p2")} {t("p3")}{" "}
+            <Link href="/about">
+              <a>{t("documentation")}</a>
+            </Link>
+          </p>
+          {themeSectionEditor}
+          <p>
+            <i>{t("p4")}</i>
+          </p>
+        </TextContainer>
       </Card>
       <br />
       {showBanner ? bannerMessage : null}
-      <br />
-      <Update data={storeData} shop={shop} />
-      <br />
-      <DeleteApp data={storeData} shop={shop} />
+      <UpdateSection data={storeData} shop={shop} />
     </Page>
   );
 };

@@ -4,7 +4,7 @@
   "linkmessage": "open troubleshooting",
   "header": "Thank you for installing Simple Wordpress Post Feed!",
   "p1": " To get started go to",
-  "p2": "theme section editor",
+  "p2": "Theme section editor",
   "p3": "and add the Wordpress Post Feed section. For more detailed instructions see the",
   "documentation": "documentation",
   "p4": "Hope you enjoy the app and please don't forget to leave a review 😘",
@@ -19,8 +19,13 @@
   "dmessage2": "Reinstall was successful!",
   "dtitle": "Remove App Files",
   "dp1": "Remove Liquid files added by the application",
-  "dbutton": "Uninstall",
   "dp2": "This will delete all liquid files and it is recommended to do just before removing the app from your shopify store.",
   "rtitle": "This will reinstall all liquid files.",
-  "rbutton": "Reinstall"
+  "dbutton": "Uninstall",
+  "rbutton": "Reinstall",
+  "Section_is": "Section is",
+  "Enable": "Enable",
+  "Disable": "Disable",
+  "enabled": "enabled",
+  "disabled": "disabled"
 }
