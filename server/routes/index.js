@@ -25,7 +25,7 @@ const getData = async (ctx) => {
   const fsData = await getFs(APP, shop);
 
   let disableUpdate = true;
-  if (fsData.version !== settings.version) {
+  if (fsData.version !== settings.version && fsData.version !== undefined) {
     disableUpdate = false;
   }
   const data = {
@@ -54,11 +54,10 @@ const redact = async (ctx) => {
   const action = "uninstall";
   if (shopData) {
     pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
-    ctx.response.status = 200;
+    ctx.body = {};
   } else {
-    console.log(`Shop is not in DB ${shop_domain}`);
-    ctx.respond = false;
-    ctx.response.status = 404;
+    console.log(`Shop is already not in DB ${shop_domain}`);
+    ctx.body = {};
   }
 };
 
@@ -71,16 +70,12 @@ const customerRedact = async (ctx) => {
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
-    pushTopic(
-      myshopify_domain,
-      shopData.theme.toString(),
-      shopData.token,
-      action
-    );
-    ctx.response.status = 200;
+    console.log(`Shop is in DB`);
+    pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
+    ctx.body = {};
   } else {
-    ctx.respond = false;
-    ctx.response.status = 404;
+    console.log(`Shop is NOT in DB`);
+    ctx.body = {};
   }
 };
 
@@ -93,17 +88,12 @@ const customerData = async (ctx) => {
   const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
-    pushTopic(
-      myshopify_domain,
-      shopData.theme.toString(),
-      shopData.token,
-      action
-    );
+    console.log(`shop is in DB`);
+    pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
     ctx.body = { shopData };
-    ctx.response.status = 200;
   } else {
-    ctx.respond = false;
-    ctx.response.status = 404;
+    console.log(`shop is NOT in DB`);
+    ctx.body = {};
   }
 };
 
@@ -125,8 +115,6 @@ const uninstall = async (ctx) => {
     ctx.response.status = 200;
   } else {
     console.log(`shop is not in our db ${myshopify_domain}`);
-    ctx.respond = false;
-    ctx.res.statusCode = 404;
   }
 };
 
@@ -143,9 +131,7 @@ const update = async (ctx) => {
     pushTopic(shop, shopData.theme.toString(), shopData.token, action);
     ctx.status = 200;
   } else {
-    console.log(`shop is not in our db ${shop}`);
-    ctx.respond = false;
-    ctx.status = 404;
+    console.log(`update but shop is not in our db ${shop}`);
   }
 };
 
