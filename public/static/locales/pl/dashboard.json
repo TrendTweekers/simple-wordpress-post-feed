@@ -4,7 +4,7 @@
   "linkmessage": "otwórz rozwiązywanie problemów",
   "header": "Dziękujemy za zainstalowanie Simple Wordpress Post Feed App!",
   "p1": "Aby rozpocząć, przejdź do",
-  "p2": "theme section editor",
+  "p2": "Theme section editor",
   "p3": "i dodaj sekcję aplikacji Wordpress Post Feed. Aby uzyskać bardziej szczegółowe instrukcje, zobacz",
   "documentation": "dokumentacja",
   "p4": "Mam nadzieję, że aplikacja Ci się spodoba i nie zapomnisz zostawić recenzji 😘",
@@ -22,5 +22,10 @@
   "dbutton": "Odinstaluj",
   "dp2": "Spowoduje to usunięcie wszystkich liquid plików i zaleca się to zrobić tuż przed usunięciem aplikacji ze sklepu Shopify.",
   "rtitle": "Spowoduje to ponowne zainstalowanie wszystkich płynnych plików.",
-  "rbutton": "Zainstaluj ponownie"
+  "rbutton": "Zainstaluj ponownie",
+  "Section_is": "Sekcja jest",
+  "Enable": "Włączyć",
+  "Disable": "Wyłączyć",
+  "enabled": "włączone",
+  "disabled": "wyłączone"
 }
