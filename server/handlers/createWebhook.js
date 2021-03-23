@@ -1,23 +1,23 @@
-const { registerWebhook } = require("@shopify/koa-shopify-webhooks");
-
-const env = require("../config/config");
-
-const { GRAPHQL_VERSION } = env;
+const { default: Shopify, ApiVersion } = require("@shopify/shopify-api");
 
 /** Create webhook for the shop
- * @param  {string} address
- * @param  {string} topic
- * @param  {string} token
  * @param  {string} shop
+ * @param  {string} token
+ * @param  {string} topic
+ * @param  {string} address
  */
 
 exports.createWebhook = async (address, topic, accessToken, shop) => {
-  const registration = await registerWebhook({
-    address,
-    topic,
-    accessToken,
+  const registration = await Shopify.Webhooks.Registry.register({
     shop,
-    apiVersion: GRAPHQL_VERSION
+    accessToken,
+    path: address,
+    topic: topic,
+    apiVersion: ApiVersion.October20,
+    webhookHandler: (_topic, shop, _body) => {
+      console.log("App uninstalled");
+      delete ACTIVE_SHOPIFY_SHOPS[shop];
+    },
   });
   if (registration.success) {
     console.log(`Successfully registered webhook for #${topic} --- ${shop}`);

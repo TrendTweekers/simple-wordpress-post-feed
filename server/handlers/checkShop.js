@@ -7,6 +7,7 @@ const { APP } = config;
  * @param  {} shop
  * @param  {} token
  * @param  {} chargeID
+ * @param  {} confirmationUrl
  */
 const initShop = async (shop, token, chargeID, confirmationUrl) => {
   // init values
@@ -15,7 +16,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
     email: "",
     id: "",
     chargeID: "",
-    plan: ""
+    plan: "",
   };
 
   shopData.theme = await checkTheme(shop, token);
@@ -40,7 +41,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
     trial: 7,
     chargeID,
     confirmationUrl,
-    plan: plan
+    plan: plan,
   };
   console.log("NEW DATA");
   console.log(newData);

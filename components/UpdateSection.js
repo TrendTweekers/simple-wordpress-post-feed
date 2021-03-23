@@ -11,7 +11,7 @@ import Divider from "./Divider";
 import React, { useState } from "react";
 import fetch from "isomorphic-unfetch";
 import { TUNNEL_URL } from "../server/config/config";
-import { withTranslation } from "../i18n";
+import { useTranslation } from "next-i18next";
 import PropTypes from "prop-types";
 
 /**
@@ -20,7 +20,8 @@ import PropTypes from "prop-types";
  * has to be set
  */
 
-const UpdateSection = ({ data, shop, t }) => {
+const UpdateSection = ({ data, shop }) => {
+  const { t } = useTranslation("dashboard");
   const [buttonDisabled, setButtonDisabled] = useState(data.disableUpdate);
   const [banner, setBanner] = useState(false);
   const action = "update";
@@ -84,8 +85,4 @@ UpdateSection.defaultProps = {
   data: { version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true },
 };
 
-UpdateSection.propTypes = {
-  t: PropTypes.func.isRequired,
-};
-
-export default withTranslation("dashboard")(UpdateSection);
+export default UpdateSection;

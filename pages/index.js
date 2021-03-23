@@ -5,8 +5,8 @@ import Dashboard from "../components/Dashboard";
 import Cookies from "js-cookie";
 import fetch from "isomorphic-unfetch";
 import { TUNNEL_URL } from "./../server/config/config";
-import "../styles.scss";
 import lscache from "lscache";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -61,8 +61,10 @@ const Index = () => {
   }
 };
 
-Index.getInitialProps = async () => ({
-  namespacesRequired: ["common", "dashboard"],
+export const getServerSideProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale, ["dashboard"])),
+  },
 });
 
 export default Index;

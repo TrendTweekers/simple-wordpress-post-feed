@@ -24,3 +24,5 @@ config/tunnel.pid
 
 # Nyc output
 .nyc_output
+
+.history

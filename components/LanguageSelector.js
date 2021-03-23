@@ -1,11 +1,14 @@
 import React, { useCallback, useState } from "react";
 import { Select } from "@shopify/polaris";
-import { i18n, withTranslation } from "../i18n";
-import PropTypes from "prop-types";
+import { useTranslation } from "next-i18next";
+import Link from "next/link";
+import { useRouter } from "next/router";
 import Image from "next/image";
 
-const LanguageSelector = ({ t }) => {
-  const [selected, setSelected] = useState(i18n.language);
+const LanguageSelector = ({ shopOrigin }) => {
+  const { t } = useTranslation("common");
+  const router = useRouter();
+  const [selected, setSelected] = useState(router.locale);
 
   const handleSelectChange = useCallback((lang) => {
     i18n.changeLanguage(lang);
@@ -19,19 +22,23 @@ const LanguageSelector = ({ t }) => {
 
   return (
     <div id="languageselector">
-      <Select
+      {/* <Select
         label={t("change-locale")}
         options={options}
-        onChange={handleSelectChange}
+        onChange={() => (
+          <Link href="/" locale={router.locale === "en" ? "pl" : "en"} />
+        )}
         value={selected}
         labelHidden={true}
-      />
+      /> */}
+      <Link
+        href={`/?shop=${shopOrigin}`}
+        locale={router.locale === "en" ? "pl" : "en"}
+      >
+        <button>{t("change-locale")}</button>
+      </Link>
     </div>
   );
 };
 
-LanguageSelector.propTypes = {
-  t: PropTypes.func.isRequired,
-};
-
-export default withTranslation("common")(LanguageSelector);
+export default LanguageSelector;

@@ -10,10 +10,9 @@ import EnableSection from "./EnableSection";
 import UpdateSection from "./UpdateSection";
 import React, { useState, useEffect } from "react";
 import lscache from "lscache";
-import { i18n, withTranslation } from "../i18n";
+import { useTranslation } from "next-i18next";
 import PropTypes from "prop-types";
 import Link from "next/link";
-import "../styles.scss";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -21,8 +20,8 @@ import "../styles.scss";
  * has to be set
  */
 
-const Dashboard = ({ storeData, shop, banner, t }) => {
-  // console.log(i18n.language);
+const Dashboard = ({ storeData, shop, banner }) => {
+  const { t } = useTranslation("dashboard");
   const [showBanner, setShowBanner] = useState(banner === "true");
   const bannerMessage = (
     <Banner
@@ -84,8 +83,4 @@ const Dashboard = ({ storeData, shop, banner, t }) => {
   );
 };
 
-Dashboard.propTypes = {
-  t: PropTypes.func.isRequired,
-};
-
-export default withTranslation("dashboard")(Dashboard);
+export default Dashboard;
