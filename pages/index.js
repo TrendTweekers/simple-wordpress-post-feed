@@ -2,7 +2,6 @@ import Spinner from "../components/SpinnerComponent";
 // import deleteSection from './../components/delete_section';
 import React, { useState, useEffect } from "react";
 import Dashboard from "../components/Dashboard";
-import Cookies from "js-cookie";
 import fetch from "isomorphic-unfetch";
 import { TUNNEL_URL } from "./../server/config/config";
 import lscache from "lscache";
@@ -14,12 +13,11 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
  * has to be set
  */
 
-const Index = () => {
+const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const [storeData, setStoreData] = useState();
   const [msg, setMsg] = useState();
   const action = "init";
-  const shop = Cookies.get("shopOrigin");
 
   const getSettings = () => {
     fetch(`${TUNNEL_URL}/api/data?shop=${shop}&action=${action}`, {
