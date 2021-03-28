@@ -1,4 +1,4 @@
-import { Loading, Frame, Spinner } from "@shopify/polaris";
+import Spinner from "../components/SpinnerComponent";
 // import deleteSection from './../components/delete_section';
 import React, { useState, useEffect } from "react";
 import Dashboard from "../components/Dashboard";
@@ -15,6 +15,7 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
  */
 
 const Index = () => {
+  const abortController = new AbortController();
   const [storeData, setStoreData] = useState();
   const [msg, setMsg] = useState();
   const action = "init";
@@ -30,7 +31,6 @@ const Index = () => {
       .then((json) => {
         setStoreData(json);
       });
-    // lscache.set('greeting', 'Hello World!', 300000);
     const message = lscache.get("message");
     if (message) {
       setMsg(message);
@@ -41,23 +41,15 @@ const Index = () => {
   };
   useEffect(() => {
     getSettings();
+    return () => {
+      abortController.abort();
+    };
   }, [shop]);
 
   if (storeData && msg) {
     return <Dashboard storeData={storeData} shop={shop} banner={msg} />;
   } else {
-    return (
-      <div style={{ height: "100px" }}>
-        <Frame>
-          <Loading />
-          <Spinner
-            accessibilityLabel="Spinner example"
-            size="large"
-            color="teal"
-          />
-        </Frame>
-      </div>
-    );
+    return <Spinner />;
   }
 };
 

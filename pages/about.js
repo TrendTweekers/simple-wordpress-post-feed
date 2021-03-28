@@ -1,6 +1,7 @@
 import { Page, Heading, DisplayText } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
 import ApolloClient, { gql } from "apollo-boost";
+import Spinner from "../components/SpinnerComponent";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -51,7 +52,11 @@ const About = () => {
     fetchDataAction();
   }, [pageURI]);
 
-  return <Page title="Documentation">{MyComponent()}</Page>;
+  if (!content) {
+    return <Spinner />;
+  } else {
+    return <Page title="Documentation">{MyComponent()}</Page>;
+  }
 };
 
 export default About;

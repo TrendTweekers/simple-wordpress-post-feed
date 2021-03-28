@@ -2,6 +2,7 @@ import { ApolloProvider } from "react-apollo";
 import ApolloClient from "apollo-boost";
 import { AppProvider, Topbar } from "@shopify/polaris";
 import "@shopify/polaris/dist/styles.css";
+import Spinner from "../components/SpinnerComponent";
 import React, { useState, useEffect } from "react";
 import fetch from "isomorphic-unfetch";
 import Header from "../components/Header";
@@ -77,7 +78,11 @@ const authStep = ({ config, Component, pageProps }) => {
   });
 
   if (loading) {
-    return <div></div>;
+    return (
+      <AppProvider>
+        <Spinner />
+      </AppProvider>
+    );
   } else {
     if (allowed) {
       return (
