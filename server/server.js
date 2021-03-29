@@ -113,7 +113,7 @@ app
       .get("/api/data", getData)
       .get("/api/install", install)
       .post("/api/update", update)
-      .post("/uninstall", webhook, uninstall)
+      .post("/swpf/uninstall", webhook, uninstall)
       .post("/swpf/shop/redact", webhook, redact)
       .post("/swpf/customers/data_request", webhook, customerData)
       .post("/swpf/customers/redact", webhook, customerRedact);

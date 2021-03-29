@@ -17,7 +17,7 @@ class MyApp extends App {
       <Provider config={config}>
         <ClientRouter />
         <Head>
-          <title>Better Related Blog Posts</title>
+          <title>Simple Wordpress Post Feed</title>
           <meta charSet="utf-8" />
         </Head>
         <AuthStep config={config} Component={Component} {...pageProps} />
