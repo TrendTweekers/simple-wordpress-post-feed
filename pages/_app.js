@@ -1,39 +1,35 @@
-import ApolloClient from "apollo-boost";
 import App from "next/app";
-import Cookies from "js-cookie";
+import Head from "next/head";
 import "@shopify/polaris/dist/styles.css";
+import "../styles.scss";
 import React from "react";
 import { SHOPIFY_API_KEY } from "../server/config/config";
 import AuthStep from "./authStep";
-import { appWithTranslation } from "../i18n";
-
-const client = new ApolloClient({
-  fetchOptions: {
-    credentials: "include",
-    fetch,
-  },
-});
+import { appWithTranslation } from "next-i18next";
+import { Provider } from "@shopify/app-bridge-react";
+import ClientRouter from "../components/ClientRouter";
 
 class MyApp extends App {
   render() {
-    const shopOrigin = Cookies.get("shopOrigin");
-    const config = {
-      apiKey: SHOPIFY_API_KEY,
-      shopOrigin,
-      forceRedirect: true,
-    };
-    const { Component, pageProps } = this.props;
+    const { Component, pageProps, shopOrigin } = this.props;
+    const config = { apiKey: API_KEY, shopOrigin, forceRedirect: true };
     return (
-      <AuthStep
-        config={config}
-        client={client}
-        Component={Component}
-        pageProps={pageProps}
-        shopOrigin={shopOrigin}
-        shopifyApiKey={SHOPIFY_API_KEY}
-      />
+      <Provider config={config}>
+        <ClientRouter />
+        <Head>
+          <title>Simple Wordpress Post Feed</title>
+          <meta charSet="utf-8" />
+        </Head>
+        <AuthStep config={config} Component={Component} {...pageProps} />
+      </Provider>
     );
   }
 }
+
+MyApp.getInitialProps = async ({ ctx }) => {
+  return {
+    shopOrigin: ctx.query.shop,
+  };
+};
 
 export default appWithTranslation(MyApp);

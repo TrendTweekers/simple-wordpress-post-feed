@@ -1,4 +1,5 @@
 const { db, getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
+const { checkTheme } = require("../lib/shopify/functions");
 const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const {
@@ -10,7 +11,7 @@ const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrl_LongTrial = require("../handlers/getSubscriptionUrl_LongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
-const { APP } = config;
+const { APP, TUNNEL_URL } = config;
 
 /** Getting all the data from DB
  * @param  {context} ctx
@@ -144,9 +145,15 @@ const install = async (ctx) => {
   const { shop, action } = await ctx.request.query;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
-  const { token, chargeID, plan } = shopData;
+  const { token, chargeID, plan, theme } = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
   const development = await checkDevShop(shop, token);
+  const currentTheme = await checkTheme(shop, token);
+  const returnUrl = `${TUNNEL_URL}?shop=${shop}`;
+  /**Always checking if the current theme is the same as in the DB */
+  if (theme !== currentTheme) {
+    writeFs(APP, shop, { theme: currentTheme });
+  }
 
   /**Runs only first time when someone log in and plan is active */
   if (activeCharge && plan === "") {
@@ -168,6 +175,7 @@ const install = async (ctx) => {
       ctx,
       token,
       shop,
+      returnUrl,
       true,
       false
     );
@@ -184,6 +192,7 @@ const install = async (ctx) => {
         ctx,
         token,
         shop,
+        returnUrl,
         true,
         false
       );
@@ -194,6 +203,7 @@ const install = async (ctx) => {
         ctx,
         token,
         shop,
+        returnUrl,
         true,
         false
       );

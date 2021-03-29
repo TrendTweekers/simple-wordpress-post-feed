@@ -14,7 +14,7 @@ import Divider from "./Divider";
 import React, { useState, useEffect } from "react";
 import fetch from "isomorphic-unfetch";
 import { TUNNEL_URL } from "../server/config/config";
-import { withTranslation } from "../i18n";
+import { useTranslation } from "next-i18next";
 import PropTypes from "prop-types";
 
 /**
@@ -23,7 +23,8 @@ import PropTypes from "prop-types";
  * has to be set
  */
 
-const EnableSection = ({ shop, data, t }) => {
+const EnableSection = ({ shop, data }) => {
+  const { t } = useTranslation("dashboard");
   const { clean } = data;
 
   const [disabled, setDisabled] = useState(clean);
@@ -77,8 +78,4 @@ EnableSection.defaultProps = {
   data: { clean: false },
 };
 
-EnableSection.propTypes = {
-  t: PropTypes.func.isRequired,
-};
-
-export default withTranslation("dashboard")(EnableSection);
+export default EnableSection;

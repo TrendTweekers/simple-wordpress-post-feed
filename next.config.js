@@ -1,24 +1,24 @@
-const withSass = require("@zeit/next-sass");
+const webpack = require("webpack");
 const APIconfig = require("./server/config/config");
-const withCSS = require("@zeit/next-css");
-const { nextI18NextRewrites } = require("next-i18next/rewrites");
+const { i18n } = require("./next-i18next.config");
+const { default: Shopify } = require("@shopify/shopify-api");
 
 const localeSubpaths = {};
-
-const webpack = require("webpack");
 const { SHOPIFY_API_KEY } = APIconfig;
+
 const apiKey = JSON.stringify(SHOPIFY_API_KEY);
 
-module.exports = withSass(
-  withCSS({
-    rewrites: async () => nextI18NextRewrites(localeSubpaths),
-    publicRuntimeConfig: {
-      localeSubpaths,
-    },
-    webpack: (config) => {
-      const env = { API_KEY: apiKey };
-      config.plugins.push(new webpack.DefinePlugin(env));
-      return config;
-    },
-  })
-);
+module.exports = {
+  i18n,
+  webpack: (config) => {
+    const env = { API_KEY: apiKey };
+    config.plugins.push(new webpack.DefinePlugin(env));
+    // Add ESM support for .mjs files in webpack 4
+    config.module.rules.push({
+      test: /\.mjs$/,
+      include: /node_modules/,
+      type: "javascript/auto",
+    });
+    return config;
+  },
+};
