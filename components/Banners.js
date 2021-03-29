@@ -60,8 +60,13 @@ export const ReviewBanner = ({ showBanner, setShowBanner }) => {
           </li>
           <li>{t("Make a screenshot")}</li>
           <li>
-            <a href="mailto: support@stackedboosthelp.zendesk.com">
-              {t("Send it to us!")}
+            {t("Send it to us! ")}
+            <a
+              href="mailto: support@stackedboosthelp.zendesk.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t("support@stackedboosthelp.zendesk.com")}
             </a>
           </li>
         </ol>

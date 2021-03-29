@@ -30,16 +30,18 @@ const Index = ({ shopOrigin: shop }) => {
       .then((json) => {
         setStoreData(json);
       });
-    if (lscache.get("message")) {
-      setMsg(lscache.get("message"));
+    const message = `${TUNNEL_URL}${shop}message`;
+    const review = `${TUNNEL_URL}${shop}review`;
+    if (lscache.get(message)) {
+      setMsg(lscache.get(message));
     } else {
-      lscache.set("message", "true", 300000);
+      lscache.set(message, "true", 300000);
     }
-    if (lscache.get("review")) {
-      setReview(lscache.get("review"));
+    if (lscache.get(review)) {
+      setReview(lscache.get(review));
       return;
     } else {
-      lscache.set("review", "true", 300000);
+      lscache.set(review, "true", 300000);
     }
   };
 
