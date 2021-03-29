@@ -124,9 +124,13 @@ app
 
     server.use(router.allowedMethods());
     server.use(router.routes());
-    router.post("/graphql", verifyRequest(), async (ctx, next) => {
-      await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
-    });
+    router.post(
+      "/graphql",
+      verifyRequest({ returnHeader: true }),
+      async (ctx, next) => {
+        await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
+      }
+    );
 
     server.use(router.routes());
 

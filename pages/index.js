@@ -54,12 +54,14 @@ const Index = ({ shopOrigin: shop }) => {
 
   if (storeData && msg) {
     return (
-      <Dashboard
-        storeData={storeData}
-        shop={shop}
-        banner={msg}
-        reviewBanner={review}
-      />
+      <>
+        <Dashboard
+          storeData={storeData}
+          shop={shop}
+          banner={msg}
+          reviewBanner={review}
+        />
+      </>
     );
   } else {
     return <Spinner />;
