@@ -63,11 +63,6 @@ app
         async afterAuth(ctx) {
           console.log(`after auth ran`);
           const { shop, scope, accessToken } = ctx.state.shopify;
-          ctx.cookies.set("shopOrigin", shop, {
-            httpOnly: false,
-            sameSite: "none",
-            secure: true,
-          });
 
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);

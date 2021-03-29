@@ -16,7 +16,8 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const [storeData, setStoreData] = useState();
-  const [msg, setMsg] = useState();
+  const [msg, setMsg] = useState(false);
+  const [review, setReview] = useState(false);
   const action = "init";
 
   const getSettings = () => {
@@ -29,14 +30,19 @@ const Index = ({ shopOrigin: shop }) => {
       .then((json) => {
         setStoreData(json);
       });
-    const message = lscache.get("message");
-    if (message) {
-      setMsg(message);
-      return;
+    if (lscache.get("message")) {
+      setMsg(lscache.get("message"));
     } else {
       lscache.set("message", "true", 300000);
     }
+    if (lscache.get("review")) {
+      setReview(lscache.get("review"));
+      return;
+    } else {
+      lscache.set("review", "true", 300000);
+    }
   };
+
   useEffect(() => {
     getSettings();
     return () => {
@@ -45,7 +51,14 @@ const Index = ({ shopOrigin: shop }) => {
   }, [shop]);
 
   if (storeData && msg) {
-    return <Dashboard storeData={storeData} shop={shop} banner={msg} />;
+    return (
+      <Dashboard
+        storeData={storeData}
+        shop={shop}
+        banner={msg}
+        reviewBanner={review}
+      />
+    );
   } else {
     return <Spinner />;
   }
@@ -53,7 +66,7 @@ const Index = ({ shopOrigin: shop }) => {
 
 export const getServerSideProps = async ({ locale }) => ({
   props: {
-    ...(await serverSideTranslations(locale, ["dashboard"])),
+    ...(await serverSideTranslations(locale, ["dashboard", "banner"])),
   },
 });
 

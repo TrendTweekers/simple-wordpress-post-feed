@@ -13,6 +13,7 @@ import lscache from "lscache";
 import { useTranslation } from "next-i18next";
 import PropTypes from "prop-types";
 import Link from "next/link";
+import { TroubleShootBanner, ReviewBanner } from "./Banners";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -20,30 +21,13 @@ import Link from "next/link";
  * has to be set
  */
 
-const Dashboard = ({ storeData, shop, banner }) => {
+const Dashboard = ({ storeData, shop, banner, reviewBanner }) => {
   const { t } = useTranslation("dashboard");
   const [showBanner, setShowBanner] = useState(banner === "true");
-  const bannerMessage = (
-    <Banner
-      className="infobanner"
-      title={t("infobanner")}
-      onDismiss={() => {
-        lscache.set("message", "false", 300000);
-        setShowBanner(false);
-      }}
-      status="info"
-    >
-      <p>
-        {t("infomessage")}{" "}
-        <a
-          href="https://stackedboost.com/apps/simple-wordpress-post-feed/#faq"
-          target="blank"
-        >
-          {t("linkmessage")}
-        </a>
-      </p>
-    </Banner>
+  const [showReviewBanner, setShowReviewBanner] = useState(
+    reviewBanner === "true"
   );
+
   /**Link to the shop theme customizer */
   const themeSectionEditor = (
     <Button
@@ -77,7 +61,15 @@ const Dashboard = ({ storeData, shop, banner }) => {
         </TextContainer>
       </Card>
       <br />
-      {showBanner ? bannerMessage : null}
+      <ReviewBanner
+        showBanner={showReviewBanner}
+        setShowBanner={setShowReviewBanner}
+      />
+      <br />
+      <TroubleShootBanner
+        showBanner={showBanner}
+        setShowBanner={setShowBanner}
+      />
       <UpdateSection data={storeData} shop={shop} />
     </Page>
   );
