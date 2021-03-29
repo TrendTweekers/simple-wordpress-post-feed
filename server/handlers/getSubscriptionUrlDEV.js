@@ -66,7 +66,7 @@ const getSubscriptionUrlDEV = async (
 
   /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall */
   if (webhook) {
-    createWebhook(`/uninstall`, "APP_UNINSTALLED", accessToken, shop);
+    createWebhook(`/${APP}/uninstall`, "APP_UNINSTALLED", accessToken, shop);
   }
 
   if (!getUrl) {

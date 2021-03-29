@@ -66,7 +66,7 @@ const getSubscriptionUrl = async (
   initShop(shop, accessToken, chargeID, confirmationUrl);
 
   if (webhook) {
-    createWebhook(`/uninstall`, "APP_UNINSTALLED", accessToken, shop);
+    createWebhook(`/${APP}/uninstall`, "APP_UNINSTALLED", accessToken, shop);
   }
 
   if (!getUrl) {
