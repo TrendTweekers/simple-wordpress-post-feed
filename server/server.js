@@ -87,35 +87,31 @@ app
       ctx.res.statusCode = 200;
     };
 
-    router
-      .get("/", async (ctx) => {
-        const shop = ctx.query.shop;
-        console.log(`Shop from query! ${shop}`);
-        if (shop) {
-          const storeDB = await getFs(APP, shop);
-          if (!storeDB) {
-            ctx.redirect(`/auth?shop=${shop}`);
-          } else {
-            await handleRequest(ctx);
-          }
-        } else {
+    router.get("/", async (ctx) => {
+      const shop = ctx.query.shop;
+      if (shop) {
+        console.log(`Shop from query main page! ${shop}`);
+        const storeDB = await getFs(APP, shop);
+        if (!storeDB) {
           ctx.redirect(`/auth?shop=${shop}`);
-        }
-      })
-      .get("/about", async (ctx) => {
-        const shop = ctx.query.shop;
-        console.log(`Shop from query! ${shop}`);
-        if (shop) {
-          const storeDB = await getFs(APP, shop);
-          if (!storeDB) {
-            ctx.redirect(`/auth?shop=${shop}`);
-          } else {
-            await handleRequest(ctx);
-          }
         } else {
-          ctx.redirect(`/auth?shop=${shop}`);
+          await handleRequest(ctx);
         }
-      });
+      }
+    });
+    router.get("/about", async (ctx) => {
+      const shop = ctx.query.shop;
+
+      if (shop) {
+        console.log(`Shop from query about page! ${shop}`);
+        const storeDB = await getFs(APP, shop);
+        if (!storeDB) {
+          ctx.redirect(`/auth?shop=${shop}`);
+        } else {
+          await handleRequest(ctx);
+        }
+      }
+    });
 
     const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
     router
