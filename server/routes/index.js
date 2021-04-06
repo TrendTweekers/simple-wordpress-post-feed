@@ -10,6 +10,7 @@ const {
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrl_LongTrial = require("../handlers/getSubscriptionUrl_LongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
+const { default: Shopify, ApiVersion } = require("@shopify/shopify-api");
 
 const { APP, TUNNEL_URL } = config;
 
@@ -102,20 +103,24 @@ const customerData = async (ctx) => {
  * @param  {context} ctx
  */
 const uninstall = async (ctx) => {
-  console.log(`Uninstall webhook ran`);
-  const action = "uninstall";
-  const { myshopify_domain } = await ctx.request.body;
-  const shopData = await getFs(APP, myshopify_domain);
-  if (shopData) {
-    pushTopic(
-      myshopify_domain,
-      shopData.theme.toString(),
-      shopData.token,
-      action
-    );
-    ctx.response.status = 200;
-  } else {
-    console.log(`shop is not in our db ${myshopify_domain}`);
+  try {
+    const { myshopify_domain } = await ctx.request.body;
+    console.log(`Uninstall webhook ran ${myshopify_domain}`);
+    const shopData = await getFs(APP, myshopify_domain);
+    const action = "uninstall";
+    if (shopData) {
+      pushTopic(
+        myshopify_domain,
+        shopData.theme.toString(),
+        shopData.token,
+        action
+      );
+      ctx.response.status = 200;
+    } else {
+      console.log(`shop is not in our db ${myshopify_domain}`);
+    }
+  } catch (error) {
+    console.log(`Failed to process webhook: ${error}`);
   }
 };
 

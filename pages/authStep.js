@@ -6,34 +6,55 @@ import Spinner from "../components/SpinnerComponent";
 import React, { useState, useEffect } from "react";
 import fetch from "isomorphic-unfetch";
 import Header from "../components/Header";
-import { Provider, Context } from "@shopify/app-bridge-react";
+import { useAppBridge, Provider } from "@shopify/app-bridge-react";
 import { authenticatedFetch } from "@shopify/app-bridge-utils";
-import createApp from "@shopify/app-bridge";
 import { Redirect } from "@shopify/app-bridge/actions";
+import createApp from "@shopify/app-bridge";
 import { TUNNEL_URL } from "../server/config/config";
 import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
 import es from "@shopify/polaris/locales/es.json";
 
-class MyProvider extends React.Component {
-  static contextType = Context;
+const userLoggedInFetch = (app) => {
+  const fetchFunction = authenticatedFetch(app);
 
-  render() {
-    const app = this.context;
+  return async (uri, options) => {
+    const response = await fetchFunction(uri, options);
 
-    const client = new ApolloClient({
-      fetch: authenticatedFetch(app),
-      fetchOptions: {
-        credentials: "include",
-      },
-    });
+    if (
+      response.headers.get("X-Shopify-API-Request-Failure-Reauthorize") === "1"
+    ) {
+      const authUrlHeader = response.headers.get(
+        "X-Shopify-API-Request-Failure-Reauthorize-Url"
+      );
 
-    return (
-      <ApolloProvider client={client}>{this.props.children}</ApolloProvider>
-    );
-  }
-}
+      const redirect = Redirect.create(app);
+      redirect.dispatch(Redirect.Action.APP, authUrlHeader || `/auth`);
+      return null;
+    }
+
+    return response;
+  };
+};
+
+const MyProvider = (props) => {
+  const app = useAppBridge();
+
+  const client = new ApolloClient({
+    fetch: userLoggedInFetch(app),
+    fetchOptions: {
+      credentials: "include",
+    },
+  });
+  const Component = props.Component;
+
+  return (
+    <ApolloProvider client={client}>
+      <Component {...props} />
+    </ApolloProvider>
+  );
+};
 
 /**This component is checking if shop is existing in DB having active charge in shopify system... */
 const authStep = ({ config, Component, pageProps }) => {
@@ -87,10 +108,14 @@ const authStep = ({ config, Component, pageProps }) => {
     if (allowed) {
       return (
         <AppProvider i18n={[en, pl, sv, es]}>
-          <MyProvider>
+          <Provider config={config}>
             <Header shop={shopOrigin} />
-            <Component {...pageProps} shopOrigin={shopOrigin} />
-          </MyProvider>
+            <MyProvider
+              Component={Component}
+              {...pageProps}
+              shopOrigin={shopOrigin}
+            />
+          </Provider>
         </AppProvider>
       );
     } else {

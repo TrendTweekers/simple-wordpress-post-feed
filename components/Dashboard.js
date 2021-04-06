@@ -4,7 +4,7 @@ import {
   Banner,
   TextContainer,
   Heading,
-  Button,
+  Button
 } from "@shopify/polaris";
 import EnableSection from "./EnableSection";
 import UpdateSection from "./UpdateSection";
@@ -27,6 +27,14 @@ const Dashboard = ({ storeData, shop, banner, reviewBanner }) => {
   const [showReviewBanner, setShowReviewBanner] = useState(
     reviewBanner === "true"
   );
+
+  useEffect(()=>{
+    if(banner === undefined){
+      setShowBanner(true);
+      setShowReviewBanner(true);
+    }
+  },[banner,reviewBanner])
+
 
   /**Link to the shop theme customizer */
   const themeSectionEditor = (

@@ -16,15 +16,15 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const [storeData, setStoreData] = useState();
-  const [msg, setMsg] = useState(false);
-  const [review, setReview] = useState(false);
+  const [msg, setMsg] = useState();
+  const [review, setReview] = useState();
   const action = "init";
 
   const getSettings = () => {
     fetch(`${TUNNEL_URL}/api/data?shop=${shop}&action=${action}`, {
       headers: {
-        "Content-Type": "application/json",
-      },
+        "Content-Type": "application/json"
+      }
     })
       .then((res) => res.json())
       .then((json) => {
@@ -32,16 +32,19 @@ const Index = ({ shopOrigin: shop }) => {
       });
     const message = `${TUNNEL_URL}${shop}message`;
     const review = `${TUNNEL_URL}${shop}review`;
-    if (lscache.get(message)) {
-      setMsg(lscache.get(message));
-    } else {
-      lscache.set(message, "true", 300000);
-    }
-    if (lscache.get(review)) {
-      setReview(lscache.get(review));
-      return;
-    } else {
-      lscache.set(review, "true", 300000);
+
+    if (lscache.supported()) {
+      if (lscache.get(message)) {
+        setMsg(lscache.get(message));
+      } else {
+        lscache.set(message, "true", 300000);
+      }
+      if (lscache.get(review)) {
+        setReview(lscache.get(review));
+        return;
+      } else {
+        lscache.set(review, "true", 300000);
+      }
     }
   };
 
@@ -52,14 +55,16 @@ const Index = ({ shopOrigin: shop }) => {
     };
   }, [shop]);
 
-  if (storeData && msg) {
+  if (storeData) {
     return (
-      <Dashboard
-        storeData={storeData}
-        shop={shop}
-        banner={msg}
-        reviewBanner={review}
-      />
+      <>
+        <Dashboard
+          storeData={storeData}
+          shop={shop}
+          banner={msg}
+          reviewBanner={review}
+        />
+      </>
     );
   } else {
     return <Spinner />;
@@ -68,8 +73,8 @@ const Index = ({ shopOrigin: shop }) => {
 
 export const getServerSideProps = async ({ locale }) => ({
   props: {
-    ...(await serverSideTranslations(locale, ["dashboard", "banner"])),
-  },
+    ...(await serverSideTranslations(locale, ["dashboard", "banner"]))
+  }
 });
 
 export default Index;

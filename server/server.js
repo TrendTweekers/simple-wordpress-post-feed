@@ -8,7 +8,7 @@ const {
   redact,
   install,
   customerData,
-  customerRedact,
+  customerRedact
 } = require("./routes/");
 const { getFs } = require("./lib/firebase/firebase");
 const { verifyRequest } = require("@shopify/koa-shopify-auth");
@@ -18,10 +18,10 @@ const getSubscriptionUrl = require("./handlers/getSubscriptionUrl");
 const getSubscriptionUrlDEV = require("./handlers/getSubscriptionUrlDEV");
 const Koa = require("koa");
 const next = require("next");
+const bodyParser = require("koa-bodyparser");
 const Router = require("@koa/router");
 const session = require("koa-session");
 const { default: Shopify, ApiVersion } = require("@shopify/shopify-api");
-const bodyParser = require("koa-bodyparser");
 const { default: createShopifyAuth } = require("@shopify/koa-shopify-auth");
 
 const {
@@ -30,7 +30,7 @@ const {
   SCOPES,
   GRAPHQL_VERSION,
   APP,
-  TUNNEL_URL,
+  TUNNEL_URL
 } = env;
 
 Shopify.Context.initialize({
@@ -38,9 +38,9 @@ Shopify.Context.initialize({
   API_SECRET_KEY: SHOPIFY_API_SECRET_KEY,
   SCOPES: SCOPES,
   HOST_NAME: TUNNEL_URL.replace(/https:\/\//, ""),
-  API_VERSION: ApiVersion.October20,
+  API_VERSION: ApiVersion.April21,
   IS_EMBEDDED_APP: true,
-  SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
+  SESSION_STORAGE: new Shopify.Session.MemorySessionStorage()
 });
 
 const port = parseInt(process.env.PORT, 10) || 3000;
@@ -73,10 +73,11 @@ app
           } else {
             await getSubscriptionUrl(ctx, accessToken, shop, returnUrl);
           }
-        },
+        }
       })
     );
     const handleRequest = async (ctx) => {
+      console.log(`handle request ran ${JSON.stringify(ctx.request.url)}`)
       await handle(ctx.req, ctx.res);
       ctx.respond = false;
       ctx.res.statusCode = 200;
@@ -113,20 +114,24 @@ app
       .get("/api/data", getData)
       .get("/api/install", install)
       .post("/api/update", update)
-      .post("/swpf/uninstall", webhook, uninstall)
       .post("/swpf/shop/redact", webhook, redact)
       .post("/swpf/customers/data_request", webhook, customerData)
-      .post("/swpf/customers/redact", webhook, customerRedact);
+      .post("/swpf/customers/redact", webhook, customerRedact)
+      .post("/swpf/uninstall", webhook,uninstall);
 
-    router.get("(/_next/static/.*)", handleRequest);
-    router.get("/_next/webpack-hmr", handleRequest);
-    router.get("(.*)", verifyRequest(), handleRequest);
+    router.get("(/_next/static/.*)", handleRequest);  // Static content is clear
+    router.get("/_next/webpack-hmr", handleRequest); // Webpack content is clear
+    router.get("(.*)", verifyRequest(), handleRequest); // Everything else must have sessions
 
     server.use(router.allowedMethods());
     server.use(router.routes());
-    router.post("/graphql", verifyRequest(), async (ctx, next) => {
-      await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
-    });
+    router.post(
+      "/graphql",
+      verifyRequest({ returnHeader: true }),
+      async (ctx, next) => {
+        await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
+      }
+    );
 
     server.use(router.routes());
 
