@@ -1,18 +1,15 @@
 import {
-  Page,
   Button,
-  Layout,
   Card,
-  FormLayout,
   TextContainer,
   Banner,
 } from "@shopify/polaris";
-import Divider from "./Divider";
-import React, { useState } from "react";
+import React, {useState} from "react";
 import fetch from "isomorphic-unfetch";
-import { TUNNEL_URL } from "../server/config/config";
-import { useTranslation } from "next-i18next";
+import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
+
+import {TUNNEL_URL} from "../server/config/config";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -20,14 +17,14 @@ import PropTypes from "prop-types";
  * has to be set
  */
 
-const UpdateSection = ({ data, shop }) => {
-  const { t } = useTranslation("dashboard");
+const UpdateSection = ({data, shop}) => {
+  const {t} = useTranslation("dashboard");
   const [buttonDisabled, setButtonDisabled] = useState(data.disableUpdate);
   const [banner, setBanner] = useState(false);
   const action = "update";
 
   const update = () => {
-    const data = { shop: shop, action: action };
+    const data = {shop, action};
     setButtonDisabled(true);
     setBanner(true);
     setTimeout(() => {
@@ -55,9 +52,13 @@ const UpdateSection = ({ data, shop }) => {
         key="update_banner"
         status="success"
         title={t("ubanner")}
-      ></Banner>
+      />
     </div>
   ) : null;
+
+  const version = buttonDisabled
+  ? `${t("u2")} ${data.latestVersion} ${t("u3")}`
+  : `${t("u4")} ${data.version} => ${data.latestVersion}`;
 
   return (
     <section>
@@ -70,9 +71,7 @@ const UpdateSection = ({ data, shop }) => {
             {t("ubutton")}
           </Button>
           <p>
-            {buttonDisabled
-              ? `${t("u2")} ${data.latestVersion} ${t("u3")}`
-              : `${t("u4")} ${data.version} => ${data.latestVersion}`}
+            {version}
           </p>
         </TextContainer>
       </Card>
@@ -82,7 +81,7 @@ const UpdateSection = ({ data, shop }) => {
 
 // Specifies the default values for props:
 UpdateSection.defaultProps = {
-  data: { version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true },
+  data: {version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true},
 };
 
 export default UpdateSection;

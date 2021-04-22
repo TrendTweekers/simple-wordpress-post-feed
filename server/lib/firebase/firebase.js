@@ -1,9 +1,10 @@
 const admin = require("firebase-admin");
+
 const serviceAccount = require("./../../../ServiceAccountKey.json");
 
-//Initialize Firestore.
+// Initialize Firestore.
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
   // credential: admin.credential.applicationDefault()
 });
 const db = admin.firestore();
@@ -18,13 +19,13 @@ const getFs = (app, shop) => {
   const docRef = db.collection(app).doc(shop);
   const getDoc = docRef
     .get()
-    .then(doc => {
+    .then((doc) => {
       if (!doc.exists) {
         return console.log("No such document!");
       }
       return doc.data();
     })
-    .catch(err => {
+    .catch((err) => {
       console.log("Error getting document", err);
     });
 
@@ -36,11 +37,11 @@ const getFs = (app, shop) => {
  * @param {*} app name of app
  */
 
-const getSettings = app => {
+const getSettings = (app) => {
   const docRef = db.collection("settings").doc(app);
   const getDoc = docRef
     .get()
-    .then(doc => {
+    .then((doc) => {
       if (!doc.exists) {
         return console.log("No such document!");
       }
@@ -48,7 +49,7 @@ const getSettings = app => {
       // return document data
       return doc.data();
     })
-    .catch(err => {
+    .catch((err) => {
       console.log("Error getting document", err);
     });
 
@@ -80,7 +81,7 @@ const deleteFs = (app, shop) => {
  */
 const writeFs = (app, shop, data) => {
   const docRef = db.collection(app).doc(shop);
-  const writeData = docRef.update(data, { merge: false });
+  const writeData = docRef.update(data, {merge: false});
 
   return writeData;
 };

@@ -1,11 +1,14 @@
-import Spinner from "../components/SpinnerComponent";
 // import deleteSection from './../components/delete_section';
-import React, { useState, useEffect } from "react";
-import Dashboard from "../components/Dashboard";
+import React, {useState, useEffect} from "react";
 import fetch from "isomorphic-unfetch";
-import { TUNNEL_URL } from "./../server/config/config";
 import lscache from "lscache";
-import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import {serverSideTranslations} from "next-i18next/serverSideTranslations";
+
+import About from "../components/About";
+import Dashboard from "../components/Dashboard";
+import Header from "../components/Header";
+import Spinner from "../components/SpinnerComponent";
+import {TUNNEL_URL} from "../server/config/config";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -13,23 +16,25 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
  * has to be set
  */
 
-const Index = ({ shopOrigin: shop }) => {
+const Index = ({shopOrigin: shop}) => {
   const abortController = new AbortController();
   const [storeData, setStoreData] = useState();
   const [msg, setMsg] = useState();
+  const [page, setPage] = useState('main');
   const [review, setReview] = useState();
   const action = "init";
 
   const getSettings = () => {
     fetch(`${TUNNEL_URL}/api/data?shop=${shop}&action=${action}`, {
       headers: {
-        "Content-Type": "application/json"
-      }
+        "Content-Type": "application/json",
+      },
     })
       .then((res) => res.json())
       .then((json) => {
         setStoreData(json);
-      });
+      })
+      .catch((err) => console.log(err));
     const message = `${TUNNEL_URL}${shop}message`;
     const review = `${TUNNEL_URL}${shop}review`;
 
@@ -41,7 +46,7 @@ const Index = ({ shopOrigin: shop }) => {
       }
       if (lscache.get(review)) {
         setReview(lscache.get(review));
-        return;
+
       } else {
         lscache.set(review, "true", 300000);
       }
@@ -53,17 +58,16 @@ const Index = ({ shopOrigin: shop }) => {
     return () => {
       abortController.abort();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shop]);
+
+  const activePage = page === 'main' ? <Dashboard storeData={storeData} shop={shop} reviewBanner={review} /> : <About />;
 
   if (storeData) {
     return (
       <>
-        <Dashboard
-          storeData={storeData}
-          shop={shop}
-          banner={msg}
-          reviewBanner={review}
-        />
+        <Header shop={shop} handleClick={setPage} />
+        {activePage}
       </>
     );
   } else {
@@ -71,10 +75,10 @@ const Index = ({ shopOrigin: shop }) => {
   }
 };
 
-export const getServerSideProps = async ({ locale }) => ({
+export const getServerSideProps = async ({locale}) => ({
   props: {
-    ...(await serverSideTranslations(locale, ["dashboard", "banner"]))
-  }
+    ...(await serverSideTranslations(locale, ["dashboard", "banner"])),
+  },
 });
 
 export default Index;

@@ -1,8 +1,10 @@
-const { PubSub } = require("@google-cloud/pubsub");
+const {PubSub} = require("@google-cloud/pubsub");
 
 const env = require("../../config/config");
-const { PS_TOPIC, APP } = env;
+
+const {PS_TOPIC, APP} = env;
 const pubsub = new PubSub();
+
 /**
  * Push message to pub/sub topic
  * @param {string} shop - Shop url
@@ -14,10 +16,10 @@ const pushTopic = async (shop, theme, token, action) => {
   console.log(`Pushed topic by >>> ${shop}`);
   const attributes = {
     app: APP,
-    shop: shop,
-    theme: theme,
-    token: token,
-    action: action
+    shop,
+    theme,
+    token,
+    action,
   };
   const data = Buffer.from("shopify");
   console.log(attributes);

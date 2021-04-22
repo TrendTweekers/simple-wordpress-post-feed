@@ -1,12 +1,12 @@
-import React, { useCallback, useState } from "react";
-import { Select } from "@shopify/polaris";
-import { useTranslation } from "next-i18next";
+import React, {useCallback, useState} from "react";
+import {Select} from "@shopify/polaris";
+import {useTranslation} from "next-i18next";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import {useRouter} from "next/router";
 import Image from "next/image";
 
-const LanguageSelector = ({ shopOrigin }) => {
-  const { t } = useTranslation("common");
+const LanguageSelector = ({shopOrigin}) => {
+  const {t} = useTranslation("common");
   const router = useRouter();
   const [selected, setSelected] = useState(router.locale);
 
@@ -16,8 +16,8 @@ const LanguageSelector = ({ shopOrigin }) => {
   }, []);
 
   const options = [
-    { label: "english", value: "en" },
-    { label: "polski", value: "pl" },
+    {label: "english", value: "en"},
+    {label: "polski", value: "pl"},
   ];
 
   return (

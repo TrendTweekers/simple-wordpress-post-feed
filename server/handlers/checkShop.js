@@ -1,9 +1,10 @@
-const { checkTheme, checkEmailId } = require("../lib/shopify/functions");
-const { writeFs } = require("../lib/firebase/firebase");
+const {checkTheme, checkEmailId} = require("../lib/shopify/functions");
+const {writeFs} = require("../lib/firebase/firebase");
 const config = require("../config/config");
-const { APP } = config;
 
-/**Shop initialization with charge id
+const {APP} = config;
+
+/** Shop initialization with charge id
  * @param  {} shop
  * @param  {} token
  * @param  {} chargeID
@@ -26,14 +27,14 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
   shopData.name = emailId.name;
 
   // destructuring values
-  const { theme, email, id, name, plan } = shopData;
+  const {theme, email, id, name, plan} = shopData;
 
   // construction values for DB
   const newData = {
     shop,
     id,
     token,
-    theme: theme,
+    theme,
     email,
     name,
     installDate: new Date(),
@@ -41,7 +42,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
     trial: 7,
     chargeID,
     confirmationUrl,
-    plan: plan,
+    plan,
   };
   console.log("NEW DATA");
   console.log(newData);
