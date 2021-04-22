@@ -2,7 +2,7 @@ import {Page} from "@shopify/polaris";
 import React, {useState, useEffect} from "react";
 import ApolloClient, {gql} from "apollo-boost";
 
-import Spinner from "../components/SpinnerComponent";
+import Spinner from "./SpinnerComponent";
 
 /**
  * Index is fetching data with graphql from wordpress.

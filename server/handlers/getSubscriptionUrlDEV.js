@@ -4,7 +4,7 @@ const env = require("../config/config");
 const {getFs} = require("../lib/firebase/firebase");
 
 const {initShop} = require("./checkShop");
-const {createWebhook} = require("./createWebhook");
+const createWebhook = require("./createWebhook");
 
 const {APP} = env;
 

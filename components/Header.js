@@ -1,19 +1,18 @@
 import React from "react";
-import Link from "next/link";
 import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
 
 import LanguageSelector from "./LanguageSelector";
 
-const Header = ({shop}) => {
+const Header = ({shop, handleClick}) => {
   return (
     <div className="header">
-      <Link href={`/?shop=${shop}`}>
-        <a>Settings</a>
-      </Link>
-      <Link href={`/about?shop=${shop}`}>
-        <a>Documentation</a>
-      </Link>
+      <div onClick={() => handleClick('main')} className="nav-button">
+        <div>Settings</div>
+      </div>
+      <div onClick={() => handleClick('documentation')} className="nav-button">
+        <div>Documentation</div>
+      </div>
       {/* <LanguageSelector shopOrigin={shop} /> */}
     </div>
   );

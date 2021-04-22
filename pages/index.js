@@ -4,7 +4,9 @@ import fetch from "isomorphic-unfetch";
 import lscache from "lscache";
 import {serverSideTranslations} from "next-i18next/serverSideTranslations";
 
+import About from "../components/About";
 import Dashboard from "../components/Dashboard";
+import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
 import {TUNNEL_URL} from "../server/config/config";
 
@@ -18,6 +20,7 @@ const Index = ({shopOrigin: shop}) => {
   const abortController = new AbortController();
   const [storeData, setStoreData] = useState();
   const [msg, setMsg] = useState();
+  const [page, setPage] = useState('main');
   const [review, setReview] = useState();
   const action = "init";
 
@@ -58,15 +61,13 @@ const Index = ({shopOrigin: shop}) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shop]);
 
+  const activePage = page === 'main' ? <Dashboard storeData={storeData} shop={shop} reviewBanner={review} /> : <About />;
+
   if (storeData) {
     return (
       <>
-        <Dashboard
-          storeData={storeData}
-          shop={shop}
-          banner={msg}
-          reviewBanner={review}
-        />
+        <Header shop={shop} handleClick={setPage} />
+        {activePage}
       </>
     );
   } else {

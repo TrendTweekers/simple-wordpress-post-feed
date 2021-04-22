@@ -112,7 +112,6 @@ const authStep = ({config, Component, pageProps}) => {
     return (
       <AppProvider i18n={[en, pl, sv, es]}>
         <Provider config={config}>
-          <Header shop={shopOrigin} />
           <MyProvider
             Component={Component}
             {...pageProps}
