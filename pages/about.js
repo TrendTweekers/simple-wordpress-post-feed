@@ -1,6 +1,7 @@
-import { Page, Heading, DisplayText } from "@shopify/polaris";
-import React, { useState, useEffect } from "react";
-import ApolloClient, { gql } from "apollo-boost";
+import {Page} from "@shopify/polaris";
+import React, {useState, useEffect} from "react";
+import ApolloClient, {gql} from "apollo-boost";
+
 import Spinner from "../components/SpinnerComponent";
 
 /**
@@ -39,23 +40,25 @@ const About = () => {
         },
       })
       .then((result) => {
-        setContent({ __html: result.data.apps.edges[0].node.content });
+        setContent({__html: result.data.apps.edges[0].node.content});
       })
       .catch((err) => console.log(err));
   };
 
-  const MyComponent = () => (
-    <div className="post" dangerouslySetInnerHTML={content} />
-  );
+  const MyComponent = () => (<div
+    className="post"
+    dangerouslySetInnerHTML={content}
+                             />
+    );
 
   useEffect(() => {
     fetchDataAction();
   }, [pageURI]);
 
-  if (!content) {
-    return <Spinner />;
+  if (content) {
+    return <Page title="Documentation" > { MyComponent() } </Page>;
   } else {
-    return <Page title="Documentation">{MyComponent()}</Page>;
+    return <Spinner />;
   }
 };
 

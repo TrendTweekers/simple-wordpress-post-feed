@@ -1,13 +1,13 @@
-const { getFs } = require("../lib/firebase/firebase");
+const {default: Shopify} = require("@shopify/shopify-api");
 
+const {getFs} = require("../lib/firebase/firebase");
 const config = require("../config/config");
 
-const { APP, TUNNEL_URL } = config;
+const {APP} = config;
 
-const { createWebhook } = require("./createWebhook");
+const {createWebhook} = require("./createWebhook");
+const {initShop} = require("./checkShop");
 
-const { initShop } = require("./checkShop");
-const { default: Shopify } = require("@shopify/shopify-api");
 
 /** Creating subscription URL
  * @param  {object} ctx context object
@@ -23,9 +23,9 @@ const getSubscriptionUrl = async (
   shop,
   returnUrl,
   getUrl = false,
-  webhook = true
+  webhook = true,
 ) => {
-  const { trial, price } = await getFs("settings", APP);
+  const {trial, price} = await getFs("settings", APP);
 
   const query = `mutation {
       appSubscriptionCreate(
@@ -59,11 +59,11 @@ const getSubscriptionUrl = async (
   const response = await client.query({
     data: query,
   });
-  const { confirmationUrl } = response.body.data.appSubscriptionCreate;
+  const {confirmationUrl} = response.body.data.appSubscriptionCreate;
 
   /** Getting the charge ID */
   const chargeID = response.body.data.appSubscriptionCreate.appSubscription.id.split(
-    "/"
+    "/",
   )[4];
 
   initShop(shop, accessToken, chargeID, confirmationUrl);

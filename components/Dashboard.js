@@ -1,19 +1,18 @@
 import {
   Page,
   Card,
-  Banner,
   TextContainer,
   Heading,
-  Button
+  Button,
 } from "@shopify/polaris";
-import EnableSection from "./EnableSection";
-import UpdateSection from "./UpdateSection";
-import React, { useState, useEffect } from "react";
-import lscache from "lscache";
-import { useTranslation } from "next-i18next";
+import React, {useState, useEffect} from "react";
+import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
 import Link from "next/link";
-import { TroubleShootBanner, ReviewBanner } from "./Banners";
+
+import UpdateSection from "./UpdateSection";
+import EnableSection from "./EnableSection";
+import {TroubleShootBanner, ReviewBanner} from "./Banners";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -21,29 +20,29 @@ import { TroubleShootBanner, ReviewBanner } from "./Banners";
  * has to be set
  */
 
-const Dashboard = ({ storeData, shop, banner, reviewBanner }) => {
-  const { t } = useTranslation("dashboard");
+const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
+  const {t} = useTranslation("dashboard");
   const [showBanner, setShowBanner] = useState(banner === "true");
   const [showReviewBanner, setShowReviewBanner] = useState(
-    reviewBanner === "true"
+    reviewBanner === "true",
   );
 
-  useEffect(()=>{
-    if(banner === undefined){
+  useEffect(() => {
+    if (banner === undefined) {
       setShowBanner(true);
       setShowReviewBanner(true);
     }
-  },[banner,reviewBanner])
+  }, [banner, reviewBanner]);
 
 
-  /**Link to the shop theme customizer */
+  /** Link to the shop theme customizer */
   const themeSectionEditor = (
     <Button
-      primary={true}
+      primary
       onClick={() =>
         window.open(
           `https://${shop}/admin/themes/${storeData.theme}/editor`,
-          "_blank"
+          "_blank",
         )
       }
     >

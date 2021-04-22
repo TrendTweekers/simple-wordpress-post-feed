@@ -3,16 +3,18 @@ import Head from "next/head";
 import "@shopify/polaris/dist/styles.css";
 import "../styles.scss";
 import React from "react";
-import { SHOPIFY_API_KEY } from "../server/config/config";
-import AuthStep from "./authStep";
-import { appWithTranslation } from "next-i18next";
-import { Provider } from "@shopify/app-bridge-react";
+import {appWithTranslation} from "next-i18next";
+import {Provider} from "@shopify/app-bridge-react";
+
+import {SHOPIFY_API_KEY} from "../server/config/config";
 import ClientRouter from "../components/ClientRouter";
+
+import AuthStep from "./authStep";
 
 class MyApp extends App {
   render() {
-    const { Component, pageProps, shopOrigin } = this.props;
-    const config = { apiKey: API_KEY, shopOrigin, forceRedirect: true };
+    const {Component, pageProps, shopOrigin} = this.props;
+    const config = {apiKey: SHOPIFY_API_KEY, shopOrigin, forceRedirect: true};
     return (
       <Provider config={config}>
         <ClientRouter />
@@ -26,7 +28,7 @@ class MyApp extends App {
   }
 }
 
-MyApp.getInitialProps = async ({ ctx }) => {
+MyApp.getInitialProps = async ({ctx}) => {
   return {
     shopOrigin: ctx.query.shop,
   };

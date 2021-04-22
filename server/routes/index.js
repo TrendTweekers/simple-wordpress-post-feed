@@ -1,7 +1,10 @@
-const { db, getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
-const { checkTheme } = require("../lib/shopify/functions");
+/* eslint-disable babel/camelcase */
+const {default: Shopify, ApiVersion} = require("@shopify/shopify-api");
+
+const {getFs, getSettings, writeFs} = require("../lib/firebase/firebase");
+const {checkTheme} = require("../lib/shopify/functions");
 const config = require("../config/config");
-const { pushTopic } = require("../lib/pubsub/pubsub");
+const {pushTopic} = require("../lib/pubsub/pubsub");
 const {
   checkCharge,
   checkDevShop,
@@ -10,15 +13,14 @@ const {
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrl_LongTrial = require("../handlers/getSubscriptionUrl_LongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
-const { default: Shopify, ApiVersion } = require("@shopify/shopify-api");
 
-const { APP, TUNNEL_URL } = config;
+const {APP, TUNNEL_URL} = config;
 
 /** Getting all the data from DB
  * @param  {context} ctx
  */
 const getData = async (ctx) => {
-  const { shop, action } = await ctx.request.query;
+  const {shop, action} = await ctx.request.query;
 
   console.log(`GET DATA LOG ${shop} and ${action}`);
 
@@ -50,7 +52,7 @@ const getData = async (ctx) => {
  * @param  {context} ctx
  */
 const redact = async (ctx) => {
-  const { shop_domain, shop_id } = await ctx.request.body;
+  const {shop_domain, shop_id} = await ctx.request.body;
   console.log(`Redact  route ran by shopify GDPR for ${shop_domain}`);
   const shopData = await getFs(APP, shop_domain);
   const action = "uninstall";
@@ -69,7 +71,7 @@ const redact = async (ctx) => {
 const customerRedact = async (ctx) => {
   console.log(`Customer Redact  route ran by shopify GDPR`);
   const action = "data-erasure";
-  const { shop_domain, shop_id } = await ctx.request.body;
+  const {shop_domain, shop_id} = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
     console.log(`Shop is in DB`);
@@ -87,12 +89,12 @@ const customerRedact = async (ctx) => {
 const customerData = async (ctx) => {
   console.log(`customer data  route ran by shopify GDPR`);
   const action = "data-request";
-  const { shop_domain, shop_id } = await ctx.request.body;
+  const {shop_domain, shop_id} = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
     console.log(`shop is in DB`);
     pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
-    ctx.body = { shopData };
+    ctx.body = {shopData};
   } else {
     console.log(`shop is NOT in DB`);
     ctx.body = {};
@@ -104,7 +106,7 @@ const customerData = async (ctx) => {
  */
 const uninstall = async (ctx) => {
   try {
-    const { myshopify_domain } = await ctx.request.body;
+    const {myshopify_domain} = await ctx.request.body;
     console.log(`Uninstall webhook ran ${myshopify_domain}`);
     const shopData = await getFs(APP, myshopify_domain);
     const action = "uninstall";
@@ -113,7 +115,7 @@ const uninstall = async (ctx) => {
         myshopify_domain,
         shopData.theme.toString(),
         shopData.token,
-        action
+        action,
       );
       ctx.response.status = 200;
     } else {
@@ -130,7 +132,7 @@ const uninstall = async (ctx) => {
  * @param {action}
  */
 const update = async (ctx) => {
-  const { shop, action } = await ctx.request.body;
+  const {shop, action} = await ctx.request.body;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
   if (shopData) {
@@ -141,26 +143,27 @@ const update = async (ctx) => {
   }
 };
 
-/**Auth + Install route that run at first time, and each time somebody start the app
+/** Auth + Install route that run at first time, and each time somebody start the app
  * @param  {string} shop
  * @param {string} action
  * @return {object} allowed:boolean and confirmationUrl:string
  */
 const install = async (ctx) => {
-  const { shop, action } = await ctx.request.query;
+  const {shop, action} = await ctx.request.query;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
-  const { token, chargeID, plan, theme } = shopData;
+  const {token, chargeID, plan, theme} = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
   const development = await checkDevShop(shop, token);
   const currentTheme = await checkTheme(shop, token);
   const returnUrl = `${TUNNEL_URL}?shop=${shop}`;
-  /**Always checking if the current theme is the same as in the DB */
+
+  /** Always checking if the current theme is the same as in the DB */
   if (theme !== currentTheme) {
-    writeFs(APP, shop, { theme: currentTheme });
+    writeFs(APP, shop, {theme: currentTheme});
   }
 
-  /**Runs only first time when someone log in and plan is active */
+  /** Runs only first time when someone log in and plan is active */
   if (activeCharge && plan === "") {
     if (development) {
       shopData.plan = "developer";
@@ -169,10 +172,11 @@ const install = async (ctx) => {
     }
     pushTopic(shop, shopData.theme.toString(), shopData.token, action);
     ctx.status = 200;
-    const plan = { plan: shopData.plan };
+    const plan = {plan: shopData.plan};
     await writeFs(APP, shop, plan);
-    ctx.body = { allowed: true };
+    ctx.body = {allowed: true};
   } else if (shopData.longTrial) {
+
     /** Longer trial for winners */
 
     deleteCharge(shop, token, chargeID);
@@ -182,38 +186,38 @@ const install = async (ctx) => {
       shop,
       returnUrl,
       true,
-      false
+      false,
     );
-    const longTrial = { longTrial: false };
+    const longTrial = {longTrial: false};
 
     await writeFs(APP, shop, longTrial);
-    ctx.body = { allowed: false, confirmationUrl };
+    ctx.body = {allowed: false, confirmationUrl};
   } else if (activeCharge) {
-    ctx.body = { allowed: true };
+    ctx.body = {allowed: true};
+  } else if (development) {
+
+      /** Runs when its dev store */
+    const confirmationUrl = await getSubscriptionUrlDEV(
+        ctx,
+        token,
+        shop,
+        returnUrl,
+        true,
+        false,
+      );
+    ctx.body = {allowed: false, confirmationUrl};
   } else {
-    if (development) {
-      /**Runs when its dev store */
-      const confirmationUrl = await getSubscriptionUrlDEV(
-        ctx,
-        token,
-        shop,
-        returnUrl,
-        true,
-        false
-      );
-      ctx.body = { allowed: false, confirmationUrl };
-    } else {
+
       /** Runs when its normal store */
-      const confirmationUrl = await getSubscriptionUrl(
+    const confirmationUrl = await getSubscriptionUrl(
         ctx,
         token,
         shop,
         returnUrl,
         true,
-        false
+        false,
       );
-      ctx.body = { allowed: false, confirmationUrl };
-    }
+    ctx.body = {allowed: false, confirmationUrl};
   }
 };
 

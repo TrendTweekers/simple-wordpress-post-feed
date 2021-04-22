@@ -1,6 +1,7 @@
 const config = require("../../config/config");
 require("isomorphic-unfetch");
-const { API_VERSION } = config;
+
+const {API_VERSION} = config;
 
 /**
  * Containing functions used to retrive and work data from Shopify
@@ -22,7 +23,7 @@ const checkTheme = async (shop, token) => {
         headers: {
           "X-Shopify-Access-Token": token,
         },
-      }
+      },
     )
       .then((response) => response.json())
       .then((json) => {
@@ -50,7 +51,7 @@ const checkEmailId = async (shop, token) => {
         headers: {
           "X-Shopify-Access-Token": token,
         },
-      }
+      },
     )
       .then((response) => response.json())
       .then((json) => {
@@ -67,7 +68,7 @@ const checkEmailId = async (shop, token) => {
   return console.log("check email,id");
 };
 
-/**Check if shop is on affiliate plan
+/** Check if shop is on affiliate plan
  * @param  {string} shop
  * @param  {string} token
  * @return {boolean}
@@ -79,7 +80,7 @@ const checkDevShop = async (shop, token) => {
       headers: {
         "X-Shopify-Access-Token": token,
       },
-    }
+    },
   )
     .then((response) => response.json())
     .then((json) => {
@@ -93,6 +94,7 @@ const checkDevShop = async (shop, token) => {
     });
   return devShop;
 };
+
 /** This function checking if the charge is active or not
  * @param  {string} shop
  * @param  {string} token
@@ -106,7 +108,7 @@ const checkCharge = async (shop, token, chargeID) => {
       headers: {
         "X-Shopify-Access-Token": token,
       },
-    }
+    },
   )
     .then((response) => response.json())
     .then((json) => {
@@ -123,15 +125,15 @@ const checkCharge = async (shop, token, chargeID) => {
  * @param  {string} token
  * @param  {string} chargeID
  */
-const deleteCharge = async (shop, token, chargeID) => {
-  const active = await fetch(
+const deleteCharge = (shop, token, chargeID) => {
+  fetch(
     `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
     {
       method: "delete",
       headers: {
         "X-Shopify-Access-Token": token,
       },
-    }
+    },
   );
 };
 

@@ -1,21 +1,15 @@
 import {
-  Page,
-  Button,
-  Layout,
-  Card,
-  FormLayout,
-  Banner,
-  TextContainer,
+
   TextStyle,
   SettingToggle,
-  Stack,
+
 } from "@shopify/polaris";
-import Divider from "./Divider";
-import React, { useState, useEffect } from "react";
+import React, {useState} from "react";
 import fetch from "isomorphic-unfetch";
-import { TUNNEL_URL } from "../server/config/config";
-import { useTranslation } from "next-i18next";
+import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
+
+import {TUNNEL_URL} from "../server/config/config";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -23,9 +17,9 @@ import PropTypes from "prop-types";
  * has to be set
  */
 
-const EnableSection = ({ shop, data }) => {
-  const { t } = useTranslation("dashboard");
-  const { clean } = data;
+const EnableSection = ({shop, data}) => {
+  const {t} = useTranslation("dashboard");
+  const {clean} = data;
 
   const [disabled, setDisabled] = useState(clean);
 
@@ -36,7 +30,7 @@ const EnableSection = ({ shop, data }) => {
   const textStatus = disabled ? t("disabled") : t("enabled");
 
   const handleClick = () => {
-    const data = { shop: shop, action: null };
+    const data = {shop, action: null};
     if (disabled) {
       data.action = "enable";
       setDisabled(false);
@@ -75,7 +69,7 @@ const EnableSection = ({ shop, data }) => {
 
 EnableSection.defaultProps = {
   shop: "shop",
-  data: { clean: false },
+  data: {clean: false},
 };
 
 export default EnableSection;

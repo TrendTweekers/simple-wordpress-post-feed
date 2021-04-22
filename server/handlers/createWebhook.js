@@ -1,4 +1,4 @@
-const { default: Shopify, ApiVersion } = require("@shopify/shopify-api");
+const {default: Shopify, ApiVersion} = require("@shopify/shopify-api");
 
 /** Create webhook for the shop
  * @param  {string} shop
@@ -7,17 +7,13 @@ const { default: Shopify, ApiVersion } = require("@shopify/shopify-api");
  * @param  {string} address
  */
 
-exports.createWebhook = async (address, topic, accessToken, shop) => {
+const createWebhook = async (address, topic, accessToken, shop) => {
   const registration = await Shopify.Webhooks.Registry.register({
     shop,
     accessToken,
     path: address,
-    topic: topic,
+    topic,
     apiVersion: ApiVersion.October20,
-    webhookHandler: (_topic, shop, _body) => {
-      console.log("App uninstalled");
-      delete ACTIVE_SHOPIFY_SHOPS[shop];
-    },
   });
   if (registration.success) {
     console.log(`Successfully registered webhook for #${topic} --- ${shop}`);
@@ -25,3 +21,5 @@ exports.createWebhook = async (address, topic, accessToken, shop) => {
     console.log("Failed to register webhook", registration.result);
   }
 };
+
+module.exports = createWebhook;

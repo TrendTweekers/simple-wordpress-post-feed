@@ -1,6 +1,7 @@
 {
-  "deepcode.review.results.hideInformationIssues": true,
   "files.associations": {
     "cstddef": "cpp"
-  }
+  },
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "editor.formatOnSave": true
 }

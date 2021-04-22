@@ -1,20 +1,22 @@
-import { ApolloProvider } from "react-apollo";
+import {ApolloProvider} from "react-apollo";
 import ApolloClient from "apollo-boost";
-import { AppProvider, Topbar } from "@shopify/polaris";
+import {AppProvider} from "@shopify/polaris";
+
 import "@shopify/polaris/dist/styles.css";
-import Spinner from "../components/SpinnerComponent";
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from "react";
 import fetch from "isomorphic-unfetch";
-import Header from "../components/Header";
-import { useAppBridge, Provider } from "@shopify/app-bridge-react";
-import { authenticatedFetch } from "@shopify/app-bridge-utils";
-import { Redirect } from "@shopify/app-bridge/actions";
+import {useAppBridge, Provider} from "@shopify/app-bridge-react";
+import {authenticatedFetch} from "@shopify/app-bridge-utils";
+import {Redirect} from "@shopify/app-bridge/actions";
 import createApp from "@shopify/app-bridge";
-import { TUNNEL_URL } from "../server/config/config";
 import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
 import es from "@shopify/polaris/locales/es.json";
+
+import {TUNNEL_URL} from "../server/config/config";
+import Header from "../components/Header";
+import Spinner from "../components/SpinnerComponent";
 
 const userLoggedInFetch = (app) => {
   const fetchFunction = authenticatedFetch(app);
@@ -26,7 +28,7 @@ const userLoggedInFetch = (app) => {
       response.headers.get("X-Shopify-API-Request-Failure-Reauthorize") === "1"
     ) {
       const authUrlHeader = response.headers.get(
-        "X-Shopify-API-Request-Failure-Reauthorize-Url"
+        "X-Shopify-API-Request-Failure-Reauthorize-Url",
       );
 
       const redirect = Redirect.create(app);
@@ -56,12 +58,13 @@ const MyProvider = (props) => {
   );
 };
 
-/**This component is checking if shop is existing in DB having active charge in shopify system... */
-const authStep = ({ config, Component, pageProps }) => {
-  const { apiKey, shopOrigin } = config;
+/** This component is checking if shop is existing in DB having active charge in shopify system... */
+const authStep = ({config, Component, pageProps}) => {
+  const {apiKey, shopOrigin} = config;
   const [allowed, setAllowed] = useState(false);
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
+
   /**
    * Make install route run and returning if the shop allowed to log in or not, if not, returning an existing confirmation url or a new one
    */
@@ -91,10 +94,11 @@ const authStep = ({ config, Component, pageProps }) => {
 
   useEffect(() => {
     makeInstall();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin]);
 
   const app = createApp({
-    apiKey: apiKey,
+    apiKey,
     shopOrigin,
   });
 
@@ -104,29 +108,28 @@ const authStep = ({ config, Component, pageProps }) => {
         <Spinner />
       </AppProvider>
     );
+  } else if (allowed) {
+    return (
+      <AppProvider i18n={[en, pl, sv, es]}>
+        <Provider config={config}>
+          <Header shop={shopOrigin} />
+          <MyProvider
+            Component={Component}
+            {...pageProps}
+            shopOrigin={shopOrigin}
+          />
+        </Provider>
+      </AppProvider>
+    );
   } else {
-    if (allowed) {
-      return (
-        <AppProvider i18n={[en, pl, sv, es]}>
-          <Provider config={config}>
-            <Header shop={shopOrigin} />
-            <MyProvider
-              Component={Component}
-              {...pageProps}
-              shopOrigin={shopOrigin}
-            />
-          </Provider>
-        </AppProvider>
-      );
-    } else {
-      /**If charge is not active we redirect them to the confirmation URL */
-      app.dispatch(
+
+      /** If charge is not active we redirect them to the confirmation URL */
+    app.dispatch(
         Redirect.toRemote({
           url: confirmationUrl,
-        })
+        }),
       );
-      return <div>Something went wrong</div>;
-    }
+    return <div>Something went wrong</div>;
   }
 };
 

@@ -1,9 +1,13 @@
+const {default: Shopify} = require("@shopify/shopify-api");
+
 const env = require("../config/config");
-const { getFs } = require("../lib/firebase/firebase");
-const { initShop } = require("./checkShop");
-const { default: Shopify } = require("@shopify/shopify-api");
-const { APP, TUNNEL_URL } = env;
-const { createWebhook } = require("./createWebhook");
+const {getFs} = require("../lib/firebase/firebase");
+
+const {initShop} = require("./checkShop");
+const {createWebhook} = require("./createWebhook");
+
+const {APP} = env;
+
 
 /** Creating subscription URL
  * @param  {object} ctx context object
@@ -14,14 +18,14 @@ const { createWebhook } = require("./createWebhook");
  * @param {boolean} webhook if we want to make a webhook set true
  */
 const getSubscriptionUrlDEV = async (
-  ctx,
-  accessToken,
-  shop,
-  returnUrl,
-  getUrl = false,
-  webhook = true
+    ctx,
+    accessToken,
+    shop,
+    returnUrl,
+    getUrl = false,
+    webhook = true,
 ) => {
-  const { trial, price } = await getFs("settings", APP);
+  const {trial, price} = await getFs("settings", APP);
 
   const query = `mutation {
     appSubscriptionCreate(
@@ -54,17 +58,17 @@ const getSubscriptionUrlDEV = async (
   const response = await client.query({
     data: query,
   });
-  const { confirmationUrl } = response.body.data.appSubscriptionCreate;
+  const {confirmationUrl} = response.body.data.appSubscriptionCreate;
 
-  /** Getting the charge ID */
+    /** Getting the charge ID */
   const chargeID = response.body.data.appSubscriptionCreate.appSubscription.id.split(
-    "/"
-  )[4];
+        "/",
+    )[4];
 
-  /** Initialization of the shop without saving the charging plan */
+    /** Initialization of the shop without saving the charging plan */
   await initShop(shop, accessToken, chargeID, confirmationUrl);
 
-  /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall */
+    /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall */
   if (webhook) {
     createWebhook(`/${APP}/uninstall`, "APP_UNINSTALLED", accessToken, shop);
   }
