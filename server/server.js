@@ -95,19 +95,6 @@ app
         }
       }
     });
-    router.get("/about", async (ctx) => {
-      const shop = ctx.query.shop;
-
-      if (shop) {
-        console.log(`Shop from query about page! ${shop}`);
-        const storeDB = await getFs(APP, shop);
-        if (storeDB) {
-          await handleRequest(ctx);
-        } else {
-          ctx.redirect(`/auth?shop=${shop}`);
-        }
-      }
-    });
 
     const webhook = receiveWebhook({secret: SHOPIFY_API_SECRET_KEY});
     router
