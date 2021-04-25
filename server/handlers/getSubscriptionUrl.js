@@ -5,7 +5,7 @@ const config = require("../config/config");
 
 const {APP} = config;
 
-const {createWebhook} = require("./createWebhook");
+const createWebhook = require("./createWebhook");
 const {initShop} = require("./checkShop");
 
 
