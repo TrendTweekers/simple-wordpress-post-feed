@@ -33,6 +33,11 @@ const {
   TUNNEL_URL,
 } = env;
 
+function extractHostParameter(ctx) {
+  const parts = new URL(`https://${ctx.request.header.host}${ctx.request.url}`);
+  return parts.searchParams.get('host');
+}
+
 Shopify.Context.initialize({
   API_KEY: SHOPIFY_API_KEY,
   API_SECRET_KEY: SHOPIFY_API_SECRET_KEY,
@@ -44,7 +49,7 @@ Shopify.Context.initialize({
 });
 
 const port = parseInt(process.env.PORT, 10) || 3000;
-const dev = process.env.NODE_ENV !== "production";
+const dev = (process.env.NODE_ENV !== "production");
 const app = next({dev});
 const handle = app.getRequestHandler();
 
@@ -62,11 +67,12 @@ app
         accessMode: "offline",
         async afterAuth(ctx) {
           console.log(`after auth ran`);
-          const {shop, scope, accessToken} = ctx.state.shopify;
+          const {shop, accessToken} = ctx.state.shopify;
+          const host = extractHostParameter(ctx);
 
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
-          const returnUrl = `https://${Shopify.Context.HOST_NAME}?shop=${shop}`;
+          const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${host}&shop=${shop}`;
           if (isDev) {
             // if not active or development we run the install function
             await getSubscriptionUrlDEV(ctx, accessToken, shop, returnUrl);
@@ -106,9 +112,12 @@ app
       .post("/swpf/customers/redact", webhook, customerRedact)
       .post("/swpf/uninstall", webhook, uninstall);
 
-    router.get("(/_next/static/.*)", handleRequest); // Static content is clear
-    router.get("/_next/webpack-hmr", handleRequest); // Webpack content is clear
-    router.get("(.*)", verifyRequest(), handleRequest); // Everything else must have sessions
+    // Static content is clear
+    router.get("(/_next/static/.*)", handleRequest);
+     // Webpack content is clear
+    router.get("/_next/webpack-hmr", handleRequest);
+    // Everything else must have sessions
+    router.get("(.*)", verifyRequest(), handleRequest);
 
     server.use(router.allowedMethods());
     server.use(router.routes());

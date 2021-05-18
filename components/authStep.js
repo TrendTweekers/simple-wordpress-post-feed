@@ -1,7 +1,6 @@
 import {ApolloProvider} from "react-apollo";
 import ApolloClient from "apollo-boost";
 import {AppProvider} from "@shopify/polaris";
-
 import "@shopify/polaris/dist/styles.css";
 import React, {useState, useEffect} from "react";
 import fetch from "isomorphic-unfetch";
@@ -15,8 +14,8 @@ import sv from "@shopify/polaris/locales/sv.json";
 import es from "@shopify/polaris/locales/es.json";
 
 import {TUNNEL_URL} from "../server/config/config";
-import Header from "../components/Header";
-import Spinner from "../components/SpinnerComponent";
+
+import Spinner from "./SpinnerComponent";
 
 const userLoggedInFetch = (app) => {
   const fetchFunction = authenticatedFetch(app);
@@ -60,7 +59,7 @@ const MyProvider = (props) => {
 
 /** This component is checking if shop is existing in DB having active charge in shopify system... */
 const authStep = ({config, Component, pageProps}) => {
-  const {apiKey, shopOrigin} = config;
+  const {apiKey, shopOrigin, host} = config;
   const [allowed, setAllowed] = useState(false);
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
@@ -89,7 +88,8 @@ const authStep = ({config, Component, pageProps}) => {
           setConfirmationUrl(json.confirmationUrl);
           setLoading(false);
         }
-      });
+      })
+      .catch((err) => console.log(err));
   };
 
   useEffect(() => {
@@ -100,8 +100,9 @@ const authStep = ({config, Component, pageProps}) => {
   const app = createApp({
     apiKey,
     shopOrigin,
+    host,
   });
-
+  // console.log(apiKey, shopOrigin, host);
   if (loading) {
     return (
       <AppProvider>
@@ -116,6 +117,7 @@ const authStep = ({config, Component, pageProps}) => {
             Component={Component}
             {...pageProps}
             shopOrigin={shopOrigin}
+            host={host}
           />
         </Provider>
       </AppProvider>
