@@ -8,13 +8,16 @@ import {Provider} from "@shopify/app-bridge-react";
 
 import {SHOPIFY_API_KEY} from "../server/config/config";
 import ClientRouter from "../components/ClientRouter";
-
-import AuthStep from "./authStep";
+import AuthStep from "../components/authStep";
 
 class MyApp extends App {
+
+
   render() {
-    const {Component, pageProps, shopOrigin} = this.props;
-    const config = {apiKey: SHOPIFY_API_KEY, shopOrigin, forceRedirect: true};
+    const {Component, pageProps, shopOrigin, host} = this.props;
+    const config = {apiKey: SHOPIFY_API_KEY, host, shopOrigin, forceRedirect: true};
+    // console.log(config);
+
     return (
       <Provider config={config}>
         <ClientRouter />
@@ -25,12 +28,16 @@ class MyApp extends App {
         <AuthStep config={config} Component={Component} {...pageProps} />
       </Provider>
     );
+
+
   }
 }
 
 MyApp.getInitialProps = async ({ctx}) => {
+
   return {
     shopOrigin: ctx.query.shop,
+    host: ctx.query.host,
   };
 };
 
