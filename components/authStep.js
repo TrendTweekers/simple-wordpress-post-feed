@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable react/prop-types */
 import {ApolloProvider} from "react-apollo";
 import ApolloClient from "apollo-boost";
 import {AppProvider} from "@shopify/polaris";
@@ -69,14 +71,14 @@ const authStep = ({config, Component, pageProps}) => {
    */
   const makeInstall = () => {
     const action = "install";
-    fetch(`${TUNNEL_URL}/api/install?shop=${shopOrigin}&action=${action}`, {
+    fetch(`${TUNNEL_URL}/api/install?shop=${shopOrigin}&action=${action}&host=${host}`, {
       method: "GET",
-      mode: "cors", // no-cors, *cors, same-origin
+      mode: "cors",
       headers: {
         "Content-Type": "application/json",
       },
-      redirect: "follow", // manual, *follow, error
-      referrer: "no-referrer", // no-referrer, *client
+      redirect: "follow",
+      referrer: "no-referrer",
     })
       .then((res) => res.json())
       .then((json) => {
@@ -127,7 +129,7 @@ const authStep = ({config, Component, pageProps}) => {
       /** If charge is not active we redirect them to the confirmation URL */
     app.dispatch(
         Redirect.toRemote({
-          url: confirmationUrl,
+          url: `${confirmationUrl}`,
         }),
       );
     return <div>Something went wrong</div>;

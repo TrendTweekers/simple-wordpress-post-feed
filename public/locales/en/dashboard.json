@@ -2,7 +2,7 @@
   "header": "Thank you for installing Simple Wordpress Post Feed!",
   "p1": " To get started go to",
   "p2": "Theme section editor",
-  "p3": "and add the Wordpress Post Feed section. For more detailed instructions see the",
+  "p3": "and add the Wordpress Post Feed section. For more detailed instructions see the documentation",
   "documentation": "documentation",
   "p4": "Hope you enjoy the app and please don't forget to leave a review 😘",
   "ubanner": "Reinstall & Update was successful!",
@@ -24,5 +24,7 @@
   "Enable": "Enable",
   "Disable": "Disable",
   "enabled": "enabled",
-  "disabled": "disabled"
+  "disabled": "disabled",
+  "Redeem your one year!": "Redeem your one year!",
+  "Redeem":"Redeem"
 }

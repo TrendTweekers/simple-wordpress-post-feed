@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-closing-tag-location */
 import {Banner} from "@shopify/polaris";
 import lscache from "lscache";
 import {useTranslation} from "next-i18next";
@@ -23,7 +24,7 @@ export const TroubleShootBanner = ({showBanner, setShowBanner}) => {
         { t("linkmessage") }
       </a>
       </p>
-            </Banner>
+    </Banner>
     );
   } else {
     return null;
@@ -54,17 +55,17 @@ export const ReviewBanner = ({showBanner, setShowBanner}) => {
         target="blank"
                        >
         { t("Leave a review here") }
-                       </a>
-                 </li> <li > { t("Make a screenshot") } </li > <li > { t("Send it to us! ") } <a
+      </a>
+      </li> <li > { t("Make a screenshot") } </li > <li > { t("Send it to us! ") } <a
         href="mailto: support@stackedboosthelp.zendesk.com"
         target="_blank"
         rel="noopener noreferrer"
                                                                                    >
         { t("support@stackedboosthelp.zendesk.com") }
-                                                                                   </a>
-                                                    </li>
-           </ol>
-            </Banner>
+      </a>
+      </li>
+      </ol>
+    </Banner>
     );
   } else {
     return null;

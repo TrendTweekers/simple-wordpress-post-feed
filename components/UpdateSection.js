@@ -24,7 +24,7 @@ const UpdateSection = ({data, shop}) => {
   const action = "update";
 
   const update = () => {
-    const data = {shop, action};
+    const postData = {shop, action};
     setButtonDisabled(true);
     setBanner(true);
     setTimeout(() => {
@@ -36,11 +36,10 @@ const UpdateSection = ({data, shop}) => {
         "Content-Type": "application/json",
         // 'Content-Type': 'application/x-www-form-urlencoded',
       },
-      redirect: "follow", // manual, *follow, error
-      referrer: "no-referrer", // no-referrer, *client
-      body: JSON.stringify(data),
+      redirect: "follow",
+      referrer: "no-referrer",
+      body: JSON.stringify(postData),
     })
-      .then((res) => {})
       .catch((err) => console.log(err));
   };
 
@@ -79,6 +78,14 @@ const UpdateSection = ({data, shop}) => {
   );
 };
 
+UpdateSection.propTypes = {
+  shop: PropTypes.string,
+  data: PropTypes.shape({
+    disableUpdate: PropTypes.bool,
+    latestVersion: PropTypes.string,
+    version: PropTypes.string,
+  }),
+};
 // Specifies the default values for props:
 UpdateSection.defaultProps = {
   data: {version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true},

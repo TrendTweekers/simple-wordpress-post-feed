@@ -1,5 +1,6 @@
+/* eslint-disable require-atomic-updates */
 require("isomorphic-unfetch");
-const {default: graphQLProxy} = require("@shopify/koa-shopify-graphql-proxy");
+// const {default: graphQLProxy} = require("@shopify/koa-shopify-graphql-proxy");
 const {verifyRequest} = require("@shopify/koa-shopify-auth");
 const {receiveWebhook} = require("@shopify/koa-shopify-webhooks");
 const Koa = require("koa");
@@ -22,6 +23,7 @@ const {
   install,
   customerData,
   customerRedact,
+  cancelCharge,
 } = require("./routes/");
 const {checkDevShop} = require("./lib/shopify/functions");
 
@@ -110,7 +112,8 @@ app
       .post("/swpf/shop/redact", webhook, redact)
       .post("/swpf/customers/data_request", webhook, customerData)
       .post("/swpf/customers/redact", webhook, customerRedact)
-      .post("/swpf/uninstall", webhook, uninstall);
+      .post("/swpf/uninstall", webhook, uninstall)
+      .post("/api/cancel", cancelCharge);
 
     // Static content is clear
     router.get("(/_next/static/.*)", handleRequest);
@@ -124,7 +127,7 @@ app
     router.post(
       "/graphql",
       verifyRequest({returnHeader: true}),
-      async (ctx, next) => {
+      async (ctx) => {
         await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
       },
     );
