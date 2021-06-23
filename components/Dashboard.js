@@ -11,7 +11,6 @@ import React, {useState, useEffect} from "react";
 import {useTranslation} from "next-i18next";
 
 import UpdateSection from "./UpdateSection";
-import LongTrial from "./LongTrial";
 import EnableSection from "./EnableSection";
 import {TroubleShootBanner, ReviewBanner} from "./Banners";
 
@@ -50,7 +49,6 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
       {t("p2")}
     </Button>
   );
-  const oneYearFree = storeData.longTrial ? <LongTrial data={storeData} shop={shop} /> : null;
   return (
     <Page title="Simple Wordpress Post Feed">
       <EnableSection data={storeData} shop={shop} />
@@ -77,7 +75,6 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
         setShowBanner={setShowBanner}
       />
       <UpdateSection data={storeData} shop={shop} />
-      {oneYearFree}
     </Page>
   );
 };
