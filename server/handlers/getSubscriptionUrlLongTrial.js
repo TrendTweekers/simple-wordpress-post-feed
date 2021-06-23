@@ -33,7 +33,7 @@ const getSubscriptionUrl = async (
       appSubscriptionCreate(
           name: "Long Trial"
           returnUrl: "${returnUrl}"
-          test: true
+          test: false
           trialDays: ${longTrial}
           lineItems: [
           {
