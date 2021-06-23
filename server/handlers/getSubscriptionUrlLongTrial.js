@@ -1,12 +1,14 @@
 const {default: Shopify} = require("@shopify/shopify-api");
 
-const env = require("../config/config");
-const {getFs} = require("../lib/firebase/firebase");
+const {getFs, writeFs} = require("../lib/firebase/firebase");
+const config = require("../config/config");
 
-const {initShop} = require("./checkShop");
+
 const createWebhook = require("./createWebhook");
+const {initShop} = require("./checkShop");
 
-const {APP} = env;
+
+const {APP} = config;
 
 
 /** Creating subscription URL
@@ -14,31 +16,30 @@ const {APP} = env;
  * @param  {string} accessToken
  * @param  {string} shop
  * @param  {string} returnUrl
- * @param  {boolean} getUrl if we want to get back the URL and not redirect, set true
- * @param {boolean} webhook if we want to make a webhook set true
+ * @param  {boolean} getUrl default false if we want to get back the URL and not redirect
+ * @param {boolean} webhook default true if we want to make a webhook
  */
 const getSubscriptionUrl = async (
   ctx,
   accessToken,
   shop,
-  getUrl = false,
   returnUrl,
+  getUrl = false,
   webhook = true,
 ) => {
-  const settings = await getFs("settings", APP);
+  const {longTrial, price} = await getFs("settings", APP);
 
-  const query = JSON.stringify({
-    query: `mutation {
+  const query = `mutation {
       appSubscriptionCreate(
           name: "Long Trial"
           returnUrl: "${returnUrl}"
           test: true
-          trialDays: ${settings.longTrial}
+          trialDays: ${longTrial}
           lineItems: [
           {
             plan: {
               appRecurringPricingDetails: {
-                  price: { amount: ${settings.price}, currencyCode: USD }
+                  price: { amount: ${price}, currencyCode: USD }
               }
             }
           }
@@ -53,13 +54,13 @@ const getSubscriptionUrl = async (
               id
             }
         }
-    }`,
-  });
+    }`;
 
   const client = new Shopify.Clients.Graphql(shop, accessToken);
   const response = await client.query({
     data: query,
   });
+  console.log(JSON.stringify(response));
   const {confirmationUrl} = response.body.data.appSubscriptionCreate;
 
   /** Getting the charge ID */
@@ -76,6 +77,7 @@ const getSubscriptionUrl = async (
   if (!getUrl) {
     return ctx.redirect(confirmationUrl);
   }
+  writeFs(APP, shop, {longTrial: false});
   return confirmationUrl;
 };
 

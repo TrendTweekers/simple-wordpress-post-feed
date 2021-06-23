@@ -120,21 +120,22 @@ const checkCharge = async (shop, token, chargeID) => {
   return active;
 };
 
-/** Cancelling existing  recurringcharge
+/** Cancelling existing  recurringcharge and creating a new longer one
  * @param  {string} shop
  * @param  {string} token
  * @param  {string} chargeID
  */
-const deleteCharge = (shop, token, chargeID) => {
-  fetch(
+const deleteCharge = async (shop, token, chargeID) => {
+  const result = await fetch(
     `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
     {
-      method: "delete",
+      method: "DELETE",
       headers: {
         "X-Shopify-Access-Token": token,
       },
     },
-  );
+  ).catch((err) => console.log(err));
+  return result;
 };
 
 // exports

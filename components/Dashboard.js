@@ -1,3 +1,5 @@
+/* eslint-disable shopify/prefer-early-return */
+/* eslint-disable react/prop-types */
 import {
   Page,
   Card,
@@ -7,10 +9,9 @@ import {
 } from "@shopify/polaris";
 import React, {useState, useEffect} from "react";
 import {useTranslation} from "next-i18next";
-import PropTypes from "prop-types";
-import Link from "next/link";
 
 import UpdateSection from "./UpdateSection";
+import LongTrial from "./LongTrial";
 import EnableSection from "./EnableSection";
 import {TroubleShootBanner, ReviewBanner} from "./Banners";
 
@@ -49,6 +50,7 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
       {t("p2")}
     </Button>
   );
+  const oneYearFree = storeData.longTrial ? <LongTrial data={storeData} shop={shop} /> : null;
   return (
     <Page title="Simple Wordpress Post Feed">
       <EnableSection data={storeData} shop={shop} />
@@ -56,10 +58,7 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
         <TextContainer>
           <Heading>{t("header")}</Heading>
           <p>
-            {t("p1")} {t("p2")} {t("p3")}{" "}
-            <Link href="/about">
-              <a>{t("documentation")}</a>
-            </Link>
+            {t("p1")} {t("p2")} {t("p3")}
           </p>
           {themeSectionEditor}
           <p>
@@ -78,6 +77,7 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
         setShowBanner={setShowBanner}
       />
       <UpdateSection data={storeData} shop={shop} />
+      {oneYearFree}
     </Page>
   );
 };

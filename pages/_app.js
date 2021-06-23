@@ -33,6 +33,7 @@ class MyApp extends App {
   }
 }
 
+// eslint-disable-next-line require-await
 MyApp.getInitialProps = async ({ctx}) => {
 
   return {

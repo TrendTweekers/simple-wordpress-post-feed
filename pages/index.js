@@ -1,7 +1,6 @@
 // import deleteSection from './../components/delete_section';
 import React, {useState, useEffect} from "react";
 import fetch from "isomorphic-unfetch";
-import lscache from "lscache";
 import {serverSideTranslations} from "next-i18next/serverSideTranslations";
 
 import About from "../components/About";
@@ -19,13 +18,10 @@ import {TUNNEL_URL} from "../server/config/config";
 const Index = ({shopOrigin: shop}) => {
   const abortController = new AbortController();
   const [storeData, setStoreData] = useState();
-  const [msg, setMsg] = useState();
   const [page, setPage] = useState('main');
-  const [review, setReview] = useState();
-  const action = "init";
 
   const getSettings = () => {
-    fetch(`${TUNNEL_URL}/api/data?shop=${shop}&action=${action}`, {
+    fetch(`${TUNNEL_URL}/api/data`, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -35,22 +31,7 @@ const Index = ({shopOrigin: shop}) => {
         setStoreData(json);
       })
       .catch((err) => console.log(err));
-    const message = `${TUNNEL_URL}${shop}message`;
-    const review = `${TUNNEL_URL}${shop}review`;
 
-    if (lscache.supported()) {
-      if (lscache.get(message)) {
-        setMsg(lscache.get(message));
-      } else {
-        lscache.set(message, "true", 300000);
-      }
-      if (lscache.get(review)) {
-        setReview(lscache.get(review));
-
-      } else {
-        lscache.set(review, "true", 300000);
-      }
-    }
   };
 
   useEffect(() => {
@@ -61,7 +42,7 @@ const Index = ({shopOrigin: shop}) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shop]);
 
-  const activePage = page === 'main' ? <Dashboard storeData={storeData} shop={shop} reviewBanner={review} /> : <About />;
+  const activePage = page === 'main' ? <Dashboard storeData={storeData} shop={shop} /> : <About />;
 
   if (storeData) {
     return (

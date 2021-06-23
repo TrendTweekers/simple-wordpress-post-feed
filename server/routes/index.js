@@ -1,3 +1,4 @@
+/* eslint-disable require-atomic-updates */
 /* eslint-disable babel/camelcase */
 const {default: Shopify, ApiVersion} = require("@shopify/shopify-api");
 
@@ -11,7 +12,7 @@ const {
   deleteCharge,
 } = require("../lib/shopify/functions");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
-const getSubscriptionUrl_LongTrial = require("../handlers/getSubscriptionUrl_LongTrial");
+const getSubscriptionUrlLongTrial = require("../handlers/getSubscriptionUrlLongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
 const {APP, TUNNEL_URL} = config;
@@ -20,9 +21,11 @@ const {APP, TUNNEL_URL} = config;
  * @param  {context} ctx
  */
 const getData = async (ctx) => {
-  const {shop, action} = await ctx.request.query;
+  const referer = ctx.request.header.referer;
+  const urlParams = new URLSearchParams(referer);
+  const shop = urlParams.get('shop');
 
-  console.log(`GET DATA LOG ${shop} and ${action}`);
+  console.log(`GET DATA LOG ${shop}`);
 
   /** Checking version in settings DB */
   const settings = await getSettings(APP);
@@ -38,6 +41,8 @@ const getData = async (ctx) => {
     clean: fsData.clean,
     theme: fsData.theme,
     disableUpdate,
+    longTrial: fsData.longTrial,
+    chargeID: fsData.chargeID,
   };
   if (data.version === undefined) {
     data.version = settings.version;
@@ -149,14 +154,14 @@ const update = async (ctx) => {
  * @return {object} allowed:boolean and confirmationUrl:string
  */
 const install = async (ctx) => {
-  const {shop, action} = await ctx.request.query;
+  const {shop, action, host} = await ctx.request.query;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
-  const {token, chargeID, plan, theme} = shopData;
+  const {token, chargeID, plan, theme, longTrial} = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
   const development = await checkDevShop(shop, token);
   const currentTheme = await checkTheme(shop, token);
-  const returnUrl = `${TUNNEL_URL}?shop=${shop}`;
+  const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
 
   /** Always checking if the current theme is the same as in the DB */
   if (theme !== currentTheme) {
@@ -175,12 +180,30 @@ const install = async (ctx) => {
     const plan = {plan: shopData.plan};
     await writeFs(APP, shop, plan);
     ctx.body = {allowed: true};
-  } else if (shopData.longTrial) {
+  // } else if (shopData.longTrial) {
 
-    /** Longer trial for winners */
+  //   /** Longer trial for winners */
 
-    deleteCharge(shop, token, chargeID);
-    const confirmationUrl = await getSubscriptionUrl_LongTrial(
+  //   deleteCharge(shop, token, chargeID);
+  //   const confirmationUrl = await getSubscriptionUrl_LongTrial(
+  //     ctx,
+  //     token,
+  //     shop,
+  //     returnUrl,
+  //     true,
+  //     false,
+  //   );
+  //   const longTrial = {longTrial: false};
+
+  //   await writeFs(APP, shop, longTrial);
+  //   ctx.body = {allowed: false, confirmationUrl};
+  // }
+  } else if (activeCharge) {
+    ctx.body = {allowed: true};
+  } else if (longTrial) {
+
+    /** Runs when its normal store and got one year free */
+    const confirmationUrl = await getSubscriptionUrlLongTrial(
       ctx,
       token,
       shop,
@@ -188,12 +211,7 @@ const install = async (ctx) => {
       true,
       false,
     );
-    const longTrial = {longTrial: false};
-
-    await writeFs(APP, shop, longTrial);
     ctx.body = {allowed: false, confirmationUrl};
-  } else if (activeCharge) {
-    ctx.body = {allowed: true};
   } else if (development) {
 
       /** Runs when its dev store */
@@ -221,6 +239,14 @@ const install = async (ctx) => {
   }
 };
 
+const cancelCharge = async (ctx) => {
+  const {shop, chargeID} = await ctx.request.body;
+  const shopData = await getFs(APP, shop);
+  const {token} = shopData;
+  deleteCharge(shop, token, chargeID);
+  ctx.body = 'OK';
+};
+
 module.exports.getData = getData;
 module.exports.redact = redact;
 module.exports.uninstall = uninstall;
@@ -228,3 +254,4 @@ module.exports.update = update;
 module.exports.install = install;
 module.exports.customerRedact = customerRedact;
 module.exports.customerData = customerData;
+module.exports.cancelCharge = cancelCharge;

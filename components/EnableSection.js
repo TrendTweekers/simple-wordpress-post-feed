@@ -23,19 +23,16 @@ const EnableSection = ({shop, data}) => {
 
   const [disabled, setDisabled] = useState(clean);
 
-  const deleteBannerMessage = t("deactivate");
-  const restoreBannerMessage = t("activate");
-
   const contentStatus = disabled ? t("Enable") : t("Disable");
   const textStatus = disabled ? t("disabled") : t("enabled");
 
   const handleClick = () => {
-    const data = {shop, action: null};
+    const postData = {shop, action: null};
     if (disabled) {
-      data.action = "enable";
+      postData.action = "enable";
       setDisabled(false);
     } else {
-      data.action = "clean";
+      postData.action = "clean";
       setDisabled(true);
     }
     fetch(`${TUNNEL_URL}/api/update`, {
@@ -44,13 +41,10 @@ const EnableSection = ({shop, data}) => {
         "Content-Type": "application/json",
         // 'Content-Type': 'application/x-www-form-urlencoded',
       },
-      redirect: "follow", // manual, *follow, error
-      referrer: "no-referrer", // no-referrer, *client
-      body: JSON.stringify(data),
+      redirect: "follow",
+      referrer: "origin",
+      body: JSON.stringify(postData),
     })
-      .then((res) => {
-        //
-      })
       .catch((err) => console.log(err));
   };
 
@@ -65,6 +59,13 @@ const EnableSection = ({shop, data}) => {
       {t("Section_is")} <TextStyle variation="strong">{textStatus}</TextStyle>
     </SettingToggle>
   );
+};
+
+EnableSection.propTypes = {
+  shop: PropTypes.string,
+  data: PropTypes.shape({
+    clean: PropTypes.bool,
+  }),
 };
 
 EnableSection.defaultProps = {
