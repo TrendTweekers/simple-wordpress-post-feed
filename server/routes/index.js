@@ -21,9 +21,7 @@ const {APP, TUNNEL_URL} = config;
  * @param  {context} ctx
  */
 const getData = async (ctx) => {
-  const referer = ctx.request.header.referer;
-  const urlParams = new URLSearchParams(referer);
-  const shop = urlParams.get('shop');
+  const {shop} = await ctx.request.query;
 
   console.log(`GET DATA LOG ${shop}`);
 
