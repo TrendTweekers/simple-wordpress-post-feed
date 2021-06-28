@@ -21,7 +21,7 @@ const Index = ({shopOrigin: shop}) => {
   const [page, setPage] = useState('main');
 
   const getSettings = () => {
-    fetch(`${TUNNEL_URL}/api/data`, {
+    fetch(`${TUNNEL_URL}/api/data?shop=${shop}`, {
       headers: {
         "Content-Type": "application/json",
       },
