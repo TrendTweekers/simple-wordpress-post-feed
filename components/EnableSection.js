@@ -9,7 +9,6 @@ import fetch from "isomorphic-unfetch";
 import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
 
-import {TUNNEL_URL} from "../server/config/config";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -35,7 +34,7 @@ const EnableSection = ({shop, data}) => {
       postData.action = "clean";
       setDisabled(true);
     }
-    fetch(`${TUNNEL_URL}/api/update`, {
+    fetch(`/api/update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

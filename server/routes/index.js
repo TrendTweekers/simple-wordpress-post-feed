@@ -178,24 +178,7 @@ const install = async (ctx) => {
     const plan = {plan: shopData.plan};
     await writeFs(APP, shop, plan);
     ctx.body = {allowed: true};
-  // } else if (shopData.longTrial) {
 
-  //   /** Longer trial for winners */
-
-  //   deleteCharge(shop, token, chargeID);
-  //   const confirmationUrl = await getSubscriptionUrl_LongTrial(
-  //     ctx,
-  //     token,
-  //     shop,
-  //     returnUrl,
-  //     true,
-  //     false,
-  //   );
-  //   const longTrial = {longTrial: false};
-
-  //   await writeFs(APP, shop, longTrial);
-  //   ctx.body = {allowed: false, confirmationUrl};
-  // }
   } else if (activeCharge) {
     ctx.body = {allowed: true};
   } else if (longTrial) {

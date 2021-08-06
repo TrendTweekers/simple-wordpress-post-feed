@@ -7,7 +7,6 @@ import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
-import {TUNNEL_URL} from "../server/config/config";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -21,7 +20,7 @@ const Index = ({shopOrigin: shop}) => {
   const [page, setPage] = useState('main');
 
   const getSettings = () => {
-    fetch(`${TUNNEL_URL}/api/data?shop=${shop}`, {
+    fetch(`/api/data?shop=${shop}`, {
       headers: {
         "Content-Type": "application/json",
       },

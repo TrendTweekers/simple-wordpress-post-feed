@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 const env = {};
 
 /** Global Settings */
@@ -6,7 +5,7 @@ env.SCOPES = [
   "write_themes",
   "read_themes",
   "read_script_tags",
-  "write_script_tags"
+  "write_script_tags",
 ];
 env.API_VERSION = "2021-04";
 env.GRAPHQL_VERSION = "2021-04";
@@ -22,7 +21,7 @@ env.HOOK_URL =
 if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_KEY = "8a664d8080a60db1866490c2e9cc1834";
   env.SHOPIFY_API_SECRET_KEY = "a1081d3ac38bfe4f8b8580dca0347ead";
-  env.TUNNEL_URL = "https://ingrid.eu.ngrok.io";
+  env.TUNNEL_URL = process.env.HOST;
   env.TEST = true;
 
   /** Production Mode */

@@ -15,7 +15,6 @@ import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
 import es from "@shopify/polaris/locales/es.json";
 
-import {TUNNEL_URL} from "../server/config/config";
 
 import Spinner from "./SpinnerComponent";
 
@@ -71,7 +70,7 @@ const authStep = ({config, Component, pageProps}) => {
    */
   const makeInstall = () => {
     const action = "install";
-    fetch(`${TUNNEL_URL}/api/install?shop=${shopOrigin}&action=${action}&host=${host}`, {
+    fetch(`/api/install?shop=${shopOrigin}&action=${action}&host=${host}`, {
       method: "GET",
       mode: "cors",
       headers: {

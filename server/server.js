@@ -30,7 +30,6 @@ const {checkDevShop} = require("./lib/shopify/functions");
 const {
   SHOPIFY_API_SECRET_KEY,
   SHOPIFY_API_KEY,
-  SCOPES,
   APP,
   TUNNEL_URL,
 } = env;
@@ -43,7 +42,9 @@ function extractHostParameter(ctx) {
 Shopify.Context.initialize({
   API_KEY: SHOPIFY_API_KEY,
   API_SECRET_KEY: SHOPIFY_API_SECRET_KEY,
-  SCOPES,
+  SCOPES: process.env.SCOPES
+  ? process.env.SCOPES.split(",")
+  : "write_themes,read_themes,read_script_tags,write_script_tags",
   HOST_NAME: TUNNEL_URL.replace(/https:\/\//, ""),
   API_VERSION: ApiVersion.April21,
   IS_EMBEDDED_APP: true,
