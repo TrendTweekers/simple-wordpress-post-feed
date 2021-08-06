@@ -7,7 +7,6 @@ import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
-import {TUNNEL_URL} from "../server/config/config";
 
 /**
  * Index is fetching data with graphql from wordpress.
