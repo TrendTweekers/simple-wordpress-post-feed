@@ -30,7 +30,7 @@ const UpdateSection = ({data, shop}) => {
     setTimeout(() => {
       setBanner(false);
     }, 9000);
-    fetch(`${TUNNEL_URL}/api/update`, {
+    fetch(`/api/update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

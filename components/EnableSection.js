@@ -35,7 +35,7 @@ const EnableSection = ({shop, data}) => {
       postData.action = "clean";
       setDisabled(true);
     }
-    fetch(`${TUNNEL_URL}/api/update`, {
+    fetch(`/api/update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

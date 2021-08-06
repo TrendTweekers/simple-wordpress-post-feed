@@ -71,7 +71,7 @@ const authStep = ({config, Component, pageProps}) => {
    */
   const makeInstall = () => {
     const action = "install";
-    fetch(`${TUNNEL_URL}/api/install?shop=${shopOrigin}&action=${action}&host=${host}`, {
+    fetch(`/api/install?shop=${shopOrigin}&action=${action}&host=${host}`, {
       method: "GET",
       mode: "cors",
       headers: {
