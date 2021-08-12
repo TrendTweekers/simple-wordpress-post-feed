@@ -45,3 +45,10 @@ longTrial = true in db and need to cancel subscription in postman
 https://shopify.dev/docs/admin-api/rest/reference/billing/recurringapplicationcharge#destroy-2021-04
 
 DELETE https://{shop_URL}/admin/api/2021-04/recurring_application_charges/{recurring_application_charge_id}.json
+
+
+
+
+`ngrok http 8081 -region eu -subdomain=ingrid`
+
+`shopify node serve --host=https://https://ingrid.eu.ngrok.io`
