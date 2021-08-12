@@ -1,21 +1,21 @@
 /* eslint-disable require-atomic-updates */
-require("isomorphic-unfetch");
-// const {default: graphQLProxy} = require("@shopify/koa-shopify-graphql-proxy");
-const {verifyRequest} = require("@shopify/koa-shopify-auth");
-const {receiveWebhook} = require("@shopify/koa-shopify-webhooks");
-const Koa = require("koa");
-const next = require("next");
-const bodyParser = require("koa-bodyparser");
-const Router = require("@koa/router");
-const session = require("koa-session");
-const {default: Shopify, ApiVersion} = require("@shopify/shopify-api");
-const {default: createShopifyAuth} = require("@shopify/koa-shopify-auth");
+import "@babel/polyfill";
 
-const getSubscriptionUrlDEV = require("./handlers/getSubscriptionUrlDEV");
-const getSubscriptionUrl = require("./handlers/getSubscriptionUrl");
-const env = require("./config/config");
-const {getFs} = require("./lib/firebase/firebase");
-const {
+import "isomorphic-unfetch";
+import {receiveWebhook} from "@shopify/koa-shopify-webhooks";
+import Koa from "koa";
+import next from "next";
+import bodyParser from "koa-bodyparser";
+import Router from "@koa/router";
+import session from "koa-session";
+import {Shopify, ApiVersion} from "@shopify/shopify-api";
+import createShopifyAuth,{verifyRequest}  from "@shopify/koa-shopify-auth";
+
+import getSubscriptionUrlDEV from "./handlers/getSubscriptionUrlDEV";
+import getSubscriptionUrl from "./handlers/getSubscriptionUrl";
+import env from "./config/config";
+import {getFs} from "./lib/firebase/firebase";
+import {
   getData,
   update,
   uninstall,
@@ -24,8 +24,8 @@ const {
   customerData,
   customerRedact,
   cancelCharge,
-} = require("./routes/");
-const {checkDevShop} = require("./lib/shopify/functions");
+} from "./routes/";
+import {checkDevShop} from "./lib/shopify/functions";
 
 const {
   SHOPIFY_API_SECRET_KEY,
@@ -34,7 +34,7 @@ const {
   TUNNEL_URL,
 } = env;
 
-function extractHostParameter(ctx) {
+const extractHostParameter = (ctx) => {
   const parts = new URL(`https://${ctx.request.header.host}${ctx.request.url}`);
   return parts.searchParams.get('host');
 }
