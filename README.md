@@ -51,4 +51,4 @@ DELETE https://{shop_URL}/admin/api/2021-04/recurring_application_charges/{recur
 
 `ngrok http 8081 -region eu -subdomain=ingrid`
 
-`shopify node serve --host=https://https://ingrid.eu.ngrok.io`
+`npm run serve`
