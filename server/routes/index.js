@@ -1,6 +1,6 @@
 /* eslint-disable require-atomic-updates */
 /* eslint-disable babel/camelcase */
-const {default: Shopify, ApiVersion} = require("@shopify/shopify-api");
+
 
 const {getFs, getSettings, writeFs} = require("../lib/firebase/firebase");
 const {checkTheme} = require("../lib/shopify/functions");
@@ -10,12 +10,14 @@ const {
   checkCharge,
   checkDevShop,
   deleteCharge,
+  supportBlocks,
 } = require("../lib/shopify/functions");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrlLongTrial = require("../handlers/getSubscriptionUrlLongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
 const {APP, TUNNEL_URL} = config;
+
 
 /** Getting all the data from DB
  * @param  {context} ctx
@@ -28,6 +30,13 @@ const getData = async (ctx) => {
   /** Checking version in settings DB */
   const settings = await getSettings(APP);
   const fsData = await getFs(APP, shop);
+  const {token, theme} = fsData;
+  const support = await supportBlocks(shop, token);
+  if (!support.supportsSe && !support.supportsAppBlocks) {
+    pushTopic(shop, theme.toString(), token, "enable");
+  } else {
+    pushTopic(shop, theme.toString(), token, "clean");
+  }
 
   let disableUpdate = true;
   if (fsData.version !== settings.version && fsData.version !== undefined) {
@@ -41,6 +50,7 @@ const getData = async (ctx) => {
     disableUpdate,
     longTrial: fsData.longTrial,
     chargeID: fsData.chargeID,
+    support,
   };
   if (data.version === undefined) {
     data.version = settings.version;
@@ -173,12 +183,15 @@ const install = async (ctx) => {
     } else {
       shopData.plan = "basic";
     }
-    pushTopic(shop, shopData.theme.toString(), shopData.token, action);
+    const support = await supportBlocks(shop, token);
+    if (!support.supportsSe && !support.supportsAppBlocks) {
+      pushTopic(shop, theme.toString(), token, action);
+    }
+
     ctx.status = 200;
     const plan = {plan: shopData.plan};
     await writeFs(APP, shop, plan);
     ctx.body = {allowed: true};
-
   } else if (activeCharge) {
     ctx.body = {allowed: true};
   } else if (longTrial) {
@@ -195,27 +208,27 @@ const install = async (ctx) => {
     ctx.body = {allowed: false, confirmationUrl};
   } else if (development) {
 
-      /** Runs when its dev store */
+    /** Runs when its dev store */
     const confirmationUrl = await getSubscriptionUrlDEV(
-        ctx,
-        token,
-        shop,
-        returnUrl,
-        true,
-        false,
-      );
+      ctx,
+      token,
+      shop,
+      returnUrl,
+      true,
+      false,
+    );
     ctx.body = {allowed: false, confirmationUrl};
   } else {
 
-      /** Runs when its normal store */
+    /** Runs when its normal store */
     const confirmationUrl = await getSubscriptionUrl(
-        ctx,
-        token,
-        shop,
-        returnUrl,
-        true,
-        false,
-      );
+      ctx,
+      token,
+      shop,
+      returnUrl,
+      true,
+      false,
+    );
     ctx.body = {allowed: false, confirmationUrl};
   }
 };
@@ -225,7 +238,7 @@ const cancelCharge = async (ctx) => {
   const shopData = await getFs(APP, shop);
   const {token} = shopData;
   deleteCharge(shop, token, chargeID);
-  ctx.body = 'OK';
+  ctx.body = "OK";
 };
 
 module.exports.getData = getData;

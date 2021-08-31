@@ -74,6 +74,7 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
         showBanner={showBanner}
         setShowBanner={setShowBanner}
       />
+      {/* <ThemeCheck data={storeData} /> */}
       <UpdateSection data={storeData} shop={shop} />
     </Page>
   );
