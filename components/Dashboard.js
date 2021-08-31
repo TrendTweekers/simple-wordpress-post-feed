@@ -13,7 +13,6 @@ import {useTranslation} from "next-i18next";
 import UpdateSection from "./UpdateSection";
 import EnableSection from "./EnableSection";
 import {TroubleShootBanner, ReviewBanner} from "./Banners";
-import ThemeCheck from "./ThemeCheck";
 
 /**
  * Index is fetching data with graphql from wordpress.

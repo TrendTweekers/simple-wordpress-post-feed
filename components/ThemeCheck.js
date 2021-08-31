@@ -1,14 +1,11 @@
+/* eslint-disable react/prop-types */
 import React from 'react';
 import {
-    Page,
-    Layout,
-    Spinner,
     Stack,
     Card,
     TextContainer,
     Icon,
     TextStyle,
-    Link,
   } from "@shopify/polaris";
 import {RiskMinor, CircleTickOutlineMinor} from "@shopify/polaris-icons";
 
@@ -33,11 +30,7 @@ const ThemeCheck = ({data}) => {
     );
   };
 
-  const AppBlockSetupLayout = ({
-            theme,
-            supportsAppBlocks,
-            supportsSe,
-          }) => {
+  const AppBlockSetupLayout = () => {
     return (
 
       <Card>
@@ -67,10 +60,10 @@ const ThemeCheck = ({data}) => {
     );
   };
 
-  const CurrentThemeLayout = ({theme, supportsAppBlocks, supportsSe}) => {
+  const CurrentThemeLayout = () => {
     const appBlocksUnsupportedDescription = (
       <p>
-        Currently published theme's{" "}
+        Currently published theme&apos;s{" "}
         <TextStyle variation="strong">main-product</TextStyle> section (
         <TextStyle variation="strong">{theme.name}</TextStyle>) does not support
         app blocks.
@@ -107,7 +100,7 @@ const ThemeCheck = ({data}) => {
         </Card.Section>
         <Card.Section>
           {supportsAppBlocks && supportsSe && (
-          <p>Your theme fully supports app blocks 🎉</p>
+          <p>Your theme fully supports app blocks </p>
             )}
           {(!supportsAppBlocks || !supportsSe) && (
           <TextContainer>
