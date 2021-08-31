@@ -19,8 +19,9 @@ import PropTypes from "prop-types";
 const EnableSection = ({shop, data}) => {
   const {t} = useTranslation("dashboard");
   const {clean} = data;
-
+  const {support: {supportsSe, supportsAppBlocks}} = data;
   const [disabled, setDisabled] = useState(clean);
+  console.log(supportsSe, supportsAppBlocks);
 
   const contentStatus = disabled ? t("Enable") : t("Disable");
   const textStatus = disabled ? t("disabled") : t("enabled");
@@ -46,18 +47,24 @@ const EnableSection = ({shop, data}) => {
     })
       .catch((err) => console.log(err));
   };
+  if (!supportsAppBlocks && !supportsSe) {
+    return (
+      <SettingToggle
+        action={{
+          content: contentStatus,
+          onAction: handleClick,
+        }}
+        enabled={!disabled}
+      >
+        {t("Section_is")} <TextStyle variation="strong">{textStatus}</TextStyle>
+      </SettingToggle>
+    );
+  } else {
+    return (
+      <></>
+    );
+  }
 
-  return (
-    <SettingToggle
-      action={{
-        content: contentStatus,
-        onAction: handleClick,
-      }}
-      enabled={!disabled}
-    >
-      {t("Section_is")} <TextStyle variation="strong">{textStatus}</TextStyle>
-    </SettingToggle>
-  );
 };
 
 EnableSection.propTypes = {
