@@ -318,11 +318,11 @@ const supportBlocks = async (shop, token) => {
     /**
      * Check if each of the sample app's app blocks have been added to the product.json template
      */
-    containsSWPFAppBlock: containsAppBlock(
-      templateJSONAssetContents[0]?.value,
-      "home-section-swpf",
-      "b261966a-8614-4405-a97b-68a3a40fdcc0",
-    ),
+    // containsSWPFAppBlock: containsAppBlock(
+    //   templateJSONAssetContents[0]?.value,
+    //   "home-section-swpf",
+    //   "b261966a-8614-4405-a97b-68a3a40fdcc0",
+    // ),
   };
   console.log(response);
   return response;
