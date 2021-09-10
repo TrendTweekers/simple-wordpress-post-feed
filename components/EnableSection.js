@@ -21,7 +21,6 @@ const EnableSection = ({shop, data}) => {
   const {clean} = data;
   const {support: {supportsSe, supportsAppBlocks}} = data;
   const [disabled, setDisabled] = useState(clean);
-  console.log(supportsSe, supportsAppBlocks);
 
   const contentStatus = disabled ? t("Enable") : t("Disable");
   const textStatus = disabled ? t("disabled") : t("enabled");
