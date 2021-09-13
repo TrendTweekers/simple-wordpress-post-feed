@@ -7,8 +7,8 @@ env.SCOPES = [
   "read_script_tags",
   "write_script_tags",
 ];
-env.API_VERSION = "2021-04";
-env.GRAPHQL_VERSION = "2021-04";
+env.API_VERSION = "2021-07";
+env.GRAPHQL_VERSION = "2021-07";
 env.port = 3000;
 
 /** Pub/Sub */
