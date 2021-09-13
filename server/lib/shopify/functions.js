@@ -6,6 +6,7 @@ import config from "../../config/config";
 import "isomorphic-unfetch";
 
 const {API_VERSION} = config;
+const {GRAPHQL_VERSION} = config;
 
 /**
  * Containing functions used to retrive and work data from Shopify
@@ -176,7 +177,7 @@ const containsAppBlock = (
 
 const createClient = (shop, accessToken) => {
   return new ApolloClient({
-    uri: `https://${shop}/admin/api/2019-10/graphql.json`,
+    uri: `https://${shop}/admin/api/${GRAPHQL_VERSION}/graphql.json`,
     request: (operation) => {
       operation.setContext({
         headers: {
