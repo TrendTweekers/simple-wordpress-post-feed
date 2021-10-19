@@ -46,7 +46,6 @@ const EnableSection = ({shop, data}) => {
     })
       .catch((err) => console.log(err));
   };
-  if (!supportsAppBlocks && !supportsSe) {
     return (
       <SettingToggle
         action={{
@@ -58,12 +57,6 @@ const EnableSection = ({shop, data}) => {
         {t("Section_is")} <TextStyle variation="strong">{textStatus}</TextStyle>
       </SettingToggle>
     );
-  } else {
-    return (
-      <></>
-    );
-  }
-
 };
 
 EnableSection.propTypes = {

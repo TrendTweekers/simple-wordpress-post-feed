@@ -1,6 +1,6 @@
 import App from "next/app";
 import Head from "next/head";
-import "@shopify/polaris/dist/styles.css";
+import '@shopify/polaris/build/esm/styles.css';
 import "../styles.scss";
 import React from "react";
 import {appWithTranslation} from "next-i18next";

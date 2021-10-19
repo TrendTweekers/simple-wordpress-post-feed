@@ -32,11 +32,8 @@ const getData = async (ctx) => {
   const fsData = await getFs(APP, shop);
   const {token, theme} = fsData;
   const support = await supportBlocks(shop, token);
-  if (!support.supportsSe && !support.supportsAppBlocks) {
     pushTopic(shop, theme.toString(), token, "enable");
-  } else {
-    pushTopic(shop, theme.toString(), token, "clean");
-  }
+
 
   let disableUpdate = true;
   if (fsData.version !== settings.version && fsData.version !== undefined) {

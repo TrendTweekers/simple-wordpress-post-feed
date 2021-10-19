@@ -3,7 +3,6 @@
 import {ApolloProvider} from "react-apollo";
 import ApolloClient from "apollo-boost";
 import {AppProvider} from "@shopify/polaris";
-import "@shopify/polaris/dist/styles.css";
 import React, {useState, useEffect} from "react";
 import fetch from "isomorphic-unfetch";
 import {useAppBridge, Provider} from "@shopify/app-bridge-react";
