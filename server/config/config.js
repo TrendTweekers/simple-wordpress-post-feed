@@ -21,7 +21,7 @@ env.HOOK_URL =
 if (process.env.NODE_ENV === "development") {
   env.SHOPIFY_API_KEY = "8a664d8080a60db1866490c2e9cc1834";
   env.SHOPIFY_API_SECRET_KEY = "a1081d3ac38bfe4f8b8580dca0347ead";
-  env.TUNNEL_URL = process.env.HOST;
+  env.TUNNEL_URL = "https://ingrid.eu.ngrok.io";
   env.TEST = true;
 
   /** Production Mode */

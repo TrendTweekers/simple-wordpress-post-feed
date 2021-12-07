@@ -9,7 +9,7 @@ Adding ngrok token
 `ngrok authtoken 6gSpC39U3skFF6CsmPJYF_3opca5N75GRHr6u8Ga6u8`
 
 In terminal start ngrok.  
-`ngrok http 3000 -region eu -subdomain=ingrid`
+`ngrok http 8081 -region eu -subdomain=ingrid`
 
 Copying forwarding https address to shopify  
 `admin => Apps=>Better Related... => App setup`
