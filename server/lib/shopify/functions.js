@@ -330,7 +330,7 @@ const supportBlocks = async (shop, token) => {
   } catch (error) {
     console.log(error)
     const response = {
-      theme: publishedTheme,
+      theme: 99999,
       supportsSe:false,
       supportsAppBlocks:false
     }
