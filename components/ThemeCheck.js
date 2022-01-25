@@ -34,16 +34,6 @@ const ThemeCheck = ({data}) => {
     return (
 
       <Card>
-        {/* <Card.Section>
-          <Stack vertical>
-            <GettingStartedStep
-              title="Average Review Score"
-            />
-            <GettingStartedStep
-              title="Product Reviews"
-            />
-          </Stack>
-        </Card.Section> */}
         <Card.Section>
           {supportsAppBlocks && supportsSe && (
             <p>

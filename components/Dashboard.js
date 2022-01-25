@@ -1,3 +1,4 @@
+/* eslint-disable shopify/jsx-no-hardcoded-content */
 /* eslint-disable shopify/prefer-early-return */
 /* eslint-disable react/prop-types */
 import {
@@ -8,7 +9,6 @@ import {
   Button,
 } from "@shopify/polaris";
 import React, {useState, useEffect} from "react";
-import {useTranslation} from "next-i18next";
 
 import UpdateSection from "./UpdateSection";
 import EnableSection from "./EnableSection";
@@ -21,11 +21,8 @@ import {TroubleShootBanner, ReviewBanner} from "./Banners";
  */
 
 const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
-  const {t} = useTranslation("dashboard");
   const [showBanner, setShowBanner] = useState(banner === "true");
-  const [showReviewBanner, setShowReviewBanner] = useState(
-    reviewBanner === "true",
-  );
+  const [showReviewBanner, setShowReviewBanner] = useState(reviewBanner === "true");
 
   useEffect(() => {
     if (banner === undefined) {
@@ -42,11 +39,11 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
       onClick={() =>
         window.open(
           `https://${shop}/admin/themes/${storeData.theme}/editor`,
-          "_blank",
+          "_blank"
         )
       }
     >
-      {t("p2")}
+      Theme section editor
     </Button>
   );
   return (
@@ -54,13 +51,13 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
       <EnableSection data={storeData} shop={shop} />
       <Card sectioned>
         <TextContainer>
-          <Heading>{t("header")}</Heading>
+          <Heading>Thank you for installing Simple Wordpress Post Feed!</Heading>
           <p>
-            {t("p1")} {t("p2")} {t("p3")}
+          To get started go to Theme section editor and add the Wordpress Post Feed section. For more detailed instructions see the documentation
           </p>
           {themeSectionEditor}
           <p>
-            <i>{t("p4")}</i>
+            <i>Hope you enjoy the app and please don&apos;t forget to leave a review <span role="img" aria-label="kisses">😘</span></i>
           </p>
         </TextContainer>
       </Card>
