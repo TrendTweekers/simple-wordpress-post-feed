@@ -1,5 +1,4 @@
 import React from "react";
-// import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
 
 // import LanguageSelector from "./LanguageSelector";

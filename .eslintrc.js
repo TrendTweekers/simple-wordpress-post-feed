@@ -1,25 +1,19 @@
 module.exports = {
-  extends: ["prettier", "plugin:shopify/esnext",
-    "plugin:shopify/react", "plugin:shopify/node",
+  extends: [
+    'plugin:shopify/react',
+    'plugin:shopify/polaris',
+    'plugin:shopify/jest',
+    'plugin:shopify/webpack',
   ],
-  plugins: ["prettier", "chai-expect"],
   rules: {
-    "import/no-unresolved": "off",
-    "no-console": "off",
-    "shopify/jsx-no-hardcoded-content": "off",
-    "react/react-in-jsx-scope": "off",
+    'import/no-unresolved': 'off',
   },
-  parser: "babel-eslint",
-  overrides: [{
-    files: ["*.test.*"],
-    rules: {
-      "shopify/jsx-no-hardcoded-content": "off",
-      "react/react-in-jsx-scope": "off",
-      "jsx-a11y/anchor-is-valid": "off",
+  overrides: [
+    {
+      files: ['*.test.*'],
+      rules: {
+        'shopify/jsx-no-hardcoded-content': 'off',
+      },
     },
-  }],
-  env: {
-    browser: true,
-    node: true,
-  },
+  ],
 };

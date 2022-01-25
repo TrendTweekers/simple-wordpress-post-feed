@@ -6,7 +6,6 @@ import {
 } from "@shopify/polaris";
 import React, {useState} from "react";
 import fetch from "isomorphic-unfetch";
-import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
 
 
@@ -17,7 +16,6 @@ import PropTypes from "prop-types";
  */
 
 const UpdateSection = ({data, shop}) => {
-  const {t} = useTranslation("dashboard");
   const [buttonDisabled, setButtonDisabled] = useState(data.disableUpdate);
   const [banner, setBanner] = useState(false);
   const action = "update";
@@ -49,24 +47,24 @@ const UpdateSection = ({data, shop}) => {
       <Banner
         key="update_banner"
         status="success"
-        title={t("ubanner")}
+        title="Reinstall & Update was successful!"
       />
     </div>
   ) : null;
 
   const version = buttonDisabled
-  ? `${t("u2")} ${data.latestVersion} ${t("u3")}`
-  : `${t("u4")} ${data.version} => ${data.latestVersion}`;
+  ? `Store version ${data.latestVersion} is up to date`
+  : `update: ${data.version} => ${data.latestVersion}`;
 
   return (
     <section>
       {bannerMessage}
       <br />
-      <Card title={t("utitle")} sectioned>
+      <Card title="Update App" sectioned>
         <TextContainer>
-          <p>{t("u1")}</p>
+          <p>Keep your app up to date when new version is released</p>
           <Button onClick={update} disabled={buttonDisabled}>
-            {t("ubutton")}
+            Update now
           </Button>
           <p>
             {version}

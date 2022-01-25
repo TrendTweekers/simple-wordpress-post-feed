@@ -1,6 +1,6 @@
-import {Page} from "@shopify/polaris";
-import React, {useState, useEffect} from "react";
-import ApolloClient, {gql} from "apollo-boost";
+import { Page } from "@shopify/polaris";
+import React, { useState, useEffect } from "react";
+import ApolloClient, { gql } from "apollo-boost";
 
 import Spinner from "./SpinnerComponent";
 
@@ -21,7 +21,7 @@ const About = () => {
     wordpress
       .query({
         query: gql`
-          query($id: Int) {
+          query ($id: Int) {
             apps(where: { id: $id }) {
               edges {
                 node {
@@ -40,23 +40,21 @@ const About = () => {
         },
       })
       .then((result) => {
-        setContent({__html: result.data.apps.edges[0].node.content});
+        setContent({ __html: result.data.apps.edges[0].node.content });
       })
       .catch((err) => console.log(err));
   };
 
-  const MyComponent = () => (<div
-    className="post"
-    dangerouslySetInnerHTML={content}
-                             />
-    );
+  const MyComponent = () => (
+    <div className="post" dangerouslySetInnerHTML={content} />
+  );
 
   useEffect(() => {
     fetchDataAction();
   }, [pageURI]);
 
   if (content) {
-    return <Page title="Documentation" > { MyComponent() } </Page>;
+    return <Page title="Documentation"> {MyComponent()} </Page>;
   } else {
     return <Spinner />;
   }

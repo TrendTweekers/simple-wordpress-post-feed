@@ -5,7 +5,6 @@ import {
 } from "@shopify/polaris";
 import React, {useState} from "react";
 import fetch from "isomorphic-unfetch";
-import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
 
 import {TUNNEL_URL} from "../server/config/config";
@@ -17,7 +16,6 @@ import {TUNNEL_URL} from "../server/config/config";
  */
 
 const LongTrial = ({data, shop}) => {
-  const {t} = useTranslation("dashboard");
   const [buttonDisabled, setButtonDisabled] = useState(!data.longTrial);
 
   const update = () => {
@@ -39,11 +37,11 @@ const LongTrial = ({data, shop}) => {
   return (
     <section>
       <br />
-      <Card title={t("Redeem your one year!")} sectioned>
+      <Card title="Redeem your one year!" sectioned>
         <TextContainer>
           <p>Click on redeem, go back to the Apps, and accept the new terms</p>
           <Button onClick={update} disabled={buttonDisabled}>
-            {t("Redeem")}
+            Redeem
           </Button>
         </TextContainer>
       </Card>

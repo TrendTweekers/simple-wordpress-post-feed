@@ -3,7 +3,6 @@ import Head from "next/head";
 import '@shopify/polaris/build/esm/styles.css';
 import "../styles.scss";
 import React from "react";
-import {appWithTranslation} from "next-i18next";
 import {Provider} from "@shopify/app-bridge-react";
 
 import {SHOPIFY_API_KEY} from "../server/config/config";
@@ -42,4 +41,4 @@ MyApp.getInitialProps = async ({ctx}) => {
   };
 };
 
-export default appWithTranslation(MyApp);
+export default MyApp;

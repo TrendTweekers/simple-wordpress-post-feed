@@ -6,7 +6,6 @@ import {
 } from "@shopify/polaris";
 import React, {useState} from "react";
 import fetch from "isomorphic-unfetch";
-import {useTranslation} from "next-i18next";
 import PropTypes from "prop-types";
 
 
@@ -17,13 +16,11 @@ import PropTypes from "prop-types";
  */
 
 const EnableSection = ({shop, data}) => {
-  const {t} = useTranslation("dashboard");
   const {clean} = data;
-  const {support: {supportsSe, supportsAppBlocks}} = data;
   const [disabled, setDisabled] = useState(clean);
 
-  const contentStatus = disabled ? t("Enable") : t("Disable");
-  const textStatus = disabled ? t("disabled") : t("enabled");
+  const contentStatus = disabled ? "Enable" : "Disable";
+  const textStatus = disabled ? "disabled" : "enabled";
 
   const handleClick = () => {
     const postData = {shop, action: null};
@@ -46,17 +43,17 @@ const EnableSection = ({shop, data}) => {
     })
       .catch((err) => console.log(err));
   };
-    return (
-      <SettingToggle
-        action={{
-          content: contentStatus,
-          onAction: handleClick,
-        }}
-        enabled={!disabled}
-      >
-        {t("Section_is")} <TextStyle variation="strong">{textStatus}</TextStyle>
-      </SettingToggle>
-    );
+  return (
+    <SettingToggle
+      action={{
+        content: contentStatus,
+        onAction: handleClick,
+      }}
+      enabled={!disabled}
+    >
+        Section is <TextStyle variation="strong">{textStatus}</TextStyle>
+    </SettingToggle>
+  );
 };
 
 EnableSection.propTypes = {

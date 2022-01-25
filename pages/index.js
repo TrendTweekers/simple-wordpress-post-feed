@@ -1,7 +1,6 @@
 // import deleteSection from './../components/delete_section';
 import React, {useState, useEffect} from "react";
 import fetch from "isomorphic-unfetch";
-import {serverSideTranslations} from "next-i18next/serverSideTranslations";
 
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
@@ -54,11 +53,5 @@ const Index = ({shopOrigin: shop}) => {
     return <Spinner />;
   }
 };
-
-export const getServerSideProps = async ({locale}) => ({
-  props: {
-    ...(await serverSideTranslations(locale, ["dashboard", "banner"])),
-  },
-});
 
 export default Index;
