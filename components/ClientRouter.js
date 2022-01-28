@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import {withRouter} from "next/router";
 import {ClientRouter as AppBridgeClientRouter} from "@shopify/app-bridge-react";
 

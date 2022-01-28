@@ -9,7 +9,8 @@ import bodyParser from "koa-bodyparser";
 import Router from "@koa/router";
 import session from "koa-session";
 import {Shopify, ApiVersion} from "@shopify/shopify-api";
-import createShopifyAuth,{verifyRequest}  from "@shopify/koa-shopify-auth";
+// import createShopifyAuth,{verifyRequest}  from "@shopify/koa-shopify-auth";
+import { createShopifyAuth, verifyRequest } from "simple-koa-shopify-auth";
 
 import getSubscriptionUrlDEV from "./handlers/getSubscriptionUrlDEV";
 import getSubscriptionUrl from "./handlers/getSubscriptionUrl";
@@ -46,7 +47,7 @@ Shopify.Context.initialize({
   ? process.env.SCOPES.split(",")
   : "write_themes,read_themes,read_script_tags,write_script_tags",
   HOST_NAME: TUNNEL_URL.replace(/https:\/\//, ""),
-  API_VERSION: ApiVersion.April21,
+  API_VERSION: ApiVersion.October21,
   IS_EMBEDDED_APP: true,
   SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
 });
@@ -68,6 +69,8 @@ app
     server.use(
       createShopifyAuth({
         accessMode: "offline",
+        authRoute: "/install/auth",
+        returnHeader: false,
         async afterAuth(ctx) {
           console.log(`after auth ran`);
           const {shop, accessToken} = ctx.state.shopify;
@@ -100,6 +103,7 @@ app
         if (storeDB) {
           await handleRequest(ctx);
         } else {
+          console.log('no shop in DB lets auth')
           ctx.redirect(`/auth?shop=${shop}`);
         }
       }
