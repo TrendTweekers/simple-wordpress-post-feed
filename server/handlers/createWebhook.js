@@ -1,4 +1,8 @@
-const {default: Shopify, ApiVersion} = require("@shopify/shopify-api");
+const {default: Shopify} = require("@shopify/shopify-api");
+import config from "../config/config";
+
+
+const { API_VERSION } = config;
 
 /** Create webhook for the shop
  * @param  {string} shop
@@ -9,16 +13,16 @@ const {default: Shopify, ApiVersion} = require("@shopify/shopify-api");
 
 const createWebhook = async (address, topic, accessToken, shop) => {
   const registration = await Shopify.Webhooks.Registry.register({
-    shop,
-    accessToken,
     path: address,
     topic,
-    apiVersion: ApiVersion.October20,
+    accessToken,
+    shop,
+    apiVersion: API_VERSION,
   });
-  if (registration.success) {
+  if (registration[topic].success) {
     console.log(`Successfully registered webhook for #${topic} --- ${shop}`);
   } else {
-    console.log("Failed to register webhook", registration.result);
+    console.log("Failed to register webhook", registration[topic].result);
   }
 };
 

@@ -1,6 +1,5 @@
 const webpack = require("webpack");
 const APIconfig = require("./server/config/config");
-const { i18n } = require("./next-i18next.config");
 const { default: Shopify } = require("@shopify/shopify-api");
 
 const localeSubpaths = {};
@@ -9,7 +8,6 @@ const { SHOPIFY_API_KEY } = APIconfig;
 const apiKey = JSON.stringify(SHOPIFY_API_KEY);
 
 module.exports = {
-  i18n,
   webpack: (config) => {
     const env = { API_KEY: apiKey };
     config.plugins.push(new webpack.DefinePlugin(env));
