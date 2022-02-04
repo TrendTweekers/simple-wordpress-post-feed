@@ -4,6 +4,7 @@ const {
   createMetafield,
 } = require("../lib/shopify/functions");
 const { writeFs } = require("../lib/firebase/firebase");
+const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
 
 const { APP } = config;
@@ -15,6 +16,7 @@ const { APP } = config;
  * @param  {} confirmationUrl
  */
 const initShop = async (shop, token, chargeID, confirmationUrl) => {
+  console.log('!!initShop function!!')
   // init values
   const shopData = {
     theme: "",
@@ -26,8 +28,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
 
   shopData.theme = await checkTheme(shop, token);
   const emailId = await checkEmailId(shop, token);
-//   const metafield = await createMetafield(shop, token);
-//  console.log(metafield);
+  const { id:metafieldId} = await createMetafield(shop,token);
   shopData.email = emailId.email;
   shopData.id = emailId.id;
   shopData.name = emailId.name;
@@ -39,6 +40,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
   const newData = {
     shop,
     id,
+    metafieldId,
     token,
     theme,
     email,
@@ -56,7 +58,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
   // push to DB
   await writeFs(APP, shop, newData);
   // push to pub/sub
-
+  pushTopic(shop, theme.toString(), token, "enable");
   return shopData;
 };
 

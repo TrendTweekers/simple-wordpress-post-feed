@@ -3,7 +3,7 @@
 
 
 const {getFs, getSettings, writeFs} = require("../lib/firebase/firebase");
-const {checkTheme} = require("../lib/shopify/functions");
+const {checkTheme, createMetafield} = require("../lib/shopify/functions");
 const config = require("../config/config");
 const {pushTopic} = require("../lib/pubsub/pubsub");
 const {
@@ -32,7 +32,7 @@ const getData = async (ctx) => {
   const fsData = await getFs(APP, shop);
   const {token, theme} = fsData;
   const support = await supportBlocks(shop, token);
-    pushTopic(shop, theme.toString(), token, "enable");
+    
 
 
   let disableUpdate = true;

@@ -346,27 +346,138 @@ const supportBlocks = async (shop, token) => {
   }
 };
 
+/** Create Metafield
+ * @param  {} shop
+ * @param  {} token
+ * @return {Object} response body
+ */
+
 const createMetafield = async (shop, token) => {
+  console.log("create metafield");
+  const customData = {
+    settings: {},
+  };
   const data = {
     metafield: {
-      namespace: "jimmy",
-      key: "something_admin",
-      value: '{"hello":2}',
+      namespace: "swpf",
+      key: "settings",
+      value: JSON.stringify(customData),
       type: "json",
     },
   };
   try {
-    const result = await fetch(
+    const response = await fetch(
       `https://${shop}/admin/api/${API_VERSION}/metafields.json`,
       {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "X-Shopify-Access-Token": token,
         },
         body: JSON.stringify(data),
       }
-    ).catch((err) => console.log(err));
-    return result;
+    )
+      .then((response) => response.json())
+      .then((data) => data.metafield)
+      .catch((err) => console.log(err));
+    return response;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+/** Retrieve/get Metafield
+ * @param  {} shop
+ * @param  {} token
+ * @param  {} metafielID
+ * @return {Object} response body
+ */
+
+ const getMetafield = async (shop, token,metafieldID) => {
+  console.log("get metafield");
+  try {
+    const response = await fetch(
+      `https://${shop}/admin/api/${API_VERSION}/metafields/${metafieldID}.json`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": token,
+        },
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => data.metafield.value)
+      .catch((err) => console.log(err));
+    return response;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+/** update Metafield
+ * @param  {} shop
+ * @param  {} token
+ * @param  {} metafielID
+ * @return {Object} response body
+ */
+
+ const updateMetafield = async (shop, token,metafieldID,data) => {
+  console.log("update metafield");
+  const updateData = {
+    metafield: {
+      id: metafieldID,
+      value: JSON.stringify(data),
+      type: "json",
+    },
+  };
+  try {
+    const response = await fetch(
+      `https://${shop}/admin/api/${API_VERSION}/metafields/${metafieldID}.json`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": token,
+        },
+        body: JSON.stringify(updateData),
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => data.metafield)
+      .catch((err) => console.log(err));
+    return response;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+
+/** Delete Metafield
+ * @param  {} shop
+ * @param  {} token
+ * @param  {} metafielID
+ * @return {Object} response body
+ */
+
+ const deleteMetafield = async (shop, token,metafieldID) => {
+  console.log("delete metafield");
+
+  try {
+    const response = await fetch(
+      `https://${shop}/admin/api/${API_VERSION}/metafields/${metafieldID}.json`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": token,
+        },
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => data)
+      .catch((err) => console.log(err));
+    return response;
   } catch (err) {
     console.log(err);
   }
@@ -381,3 +492,6 @@ module.exports.checkCharge = checkCharge;
 module.exports.deleteCharge = deleteCharge;
 module.exports.supportBlocks = supportBlocks;
 module.exports.createMetafield = createMetafield;
+module.exports.updateMetafield = updateMetafield;
+module.exports.getMetafield = getMetafield;
+module.exports.deleteMetafield = deleteMetafield;
