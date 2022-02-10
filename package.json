@@ -35,6 +35,7 @@
     "@babel/register": "^7.17.0",
     "@google-cloud/pubsub": "^2.18.5",
     "@koa/router": "^10.1.1",
+    "@reduxjs/toolkit": "^1.7.2",
     "@shopify/app-bridge": "^2.0.7",
     "@shopify/app-bridge-react": "^2.0.7",
     "@shopify/app-bridge-utils": "^2.0.7",
@@ -67,6 +68,10 @@
     "react": "^17.0.2",
     "react-apollo": "^3.1.5",
     "react-dom": "^17.0.2",
+    "react-redux": "^7.2.6",
+    "redux": "^4.1.2",
+    "redux-devtools-extension": "^2.13.9",
+    "redux-thunk": "^2.4.1",
     "sass": "^1.49.7",
     "simple-koa-shopify-auth": "^1.0.4"
   },

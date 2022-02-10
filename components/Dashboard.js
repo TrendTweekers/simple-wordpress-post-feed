@@ -13,6 +13,7 @@ import React, {useState, useEffect} from "react";
 import UpdateSection from "./UpdateSection";
 import EnableSection from "./EnableSection";
 import {TroubleShootBanner, ReviewBanner} from "./Banners";
+import { Store } from '../store/store';
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -20,10 +21,11 @@ import {TroubleShootBanner, ReviewBanner} from "./Banners";
  * has to be set
  */
 
-const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
+const Dashboard = ({ banner, reviewBanner}) => {
+  const { data, dispatch } = React.useContext(Store);
   const [showBanner, setShowBanner] = useState(banner === "true");
   const [showReviewBanner, setShowReviewBanner] = useState(reviewBanner === "true");
-
+const {theme,shop} = data
   useEffect(() => {
     if (banner === undefined) {
       setShowBanner(true);
@@ -38,7 +40,7 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
       primary
       onClick={() =>
         window.open(
-          `https://${shop}/admin/themes/${storeData.theme}/editor`,
+          `https://${shop}/admin/themes/${theme}/editor`,
           "_blank"
         )
       }
@@ -48,7 +50,7 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
   );
   return (
     <Page title="Simple Wordpress Post Feed">
-      <EnableSection data={storeData} shop={shop} />
+      <EnableSection/>
       <Card sectioned>
         <TextContainer>
           <Heading>Thank you for installing Simple Wordpress Post Feed!</Heading>
@@ -72,7 +74,7 @@ const Dashboard = ({storeData, shop, banner, reviewBanner}) => {
         setShowBanner={setShowBanner}
       />
       {/* <ThemeCheck data={storeData} /> */}
-      <UpdateSection data={storeData} shop={shop} />
+      <UpdateSection />
     </Page>
   );
 };

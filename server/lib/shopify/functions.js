@@ -4,6 +4,8 @@ import ApolloClient from "apollo-boost";
 import config from "../../config/config";
 
 import "isomorphic-unfetch";
+import initialState from "../../../store/initialState";
+const initialSettings = initialState.settings;
 
 const { API_VERSION } = config;
 const { GRAPHQL_VERSION } = config;
@@ -346,54 +348,51 @@ const supportBlocks = async (shop, token) => {
   }
 };
 
-/** Create Metafield
+/** Create Metafield separately for all settings based on initial settings
  * @param  {} shop
  * @param  {} token
  * @return {Object} response body
  */
 
 const createMetafield = async (shop, token) => {
-  console.log("create metafield");
-  const customData = {
-    settings: {},
-  };
-  const data = {
-    metafield: {
-      namespace: "swpf",
-      key: "settings",
-      value: JSON.stringify(customData),
-      type: "json",
-    },
-  };
-  try {
-    const response = await fetch(
-      `https://${shop}/admin/api/${API_VERSION}/metafields.json`,
-      {
+  console.log(`create metafield based on ${JSON.stringify(initialSettings)}`);
+
+  for (const property in initialSettings) {
+    const data = {
+      metafield: {
+        namespace: "swpf",
+        key: property,
+        value: initialSettings[property].value,
+        type: initialSettings[property].type,
+      },
+    };
+    try {
+      console.log(`metafield creation ${JSON.stringify(data)}`);
+      fetch(`https://${shop}/admin/api/${API_VERSION}/metafields.json`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Shopify-Access-Token": token,
         },
         body: JSON.stringify(data),
-      }
-    )
-      .then((response) => response.json())
-      .then((data) => data.metafield)
-      .catch((err) => console.log(err));
-    return response;
-  } catch (err) {
-    console.log(err);
+      })
+        .then((response) => response.json())
+        .then((data) => data.metafield)
+        .catch((err) => console.log(err));
+    } catch (err) {
+      console.log(err);
+    }
   }
 };
 
-/** Retrieve/get Metafield
+/** Retrieve/get one Metafield
  * @param  {} shop
  * @param  {} token
  * @param  {} metafielID
  * @return {Object} response body
  */
 
- const getMetafield = async (shop, token,metafieldID) => {
+const getMetafield = async (shop, token, metafieldID) => {
   console.log("get metafield");
   try {
     const response = await fetch(
@@ -415,6 +414,44 @@ const createMetafield = async (shop, token) => {
   }
 };
 
+/** Retrieve/get multiple Metafields
+ * @param  {} shop
+ * @param  {} token
+ * @param  {} metafielID
+ * @return {Object} nested objects {key:{id:number,value:json},key:{id:number,value:json}}
+ */
+
+const getMultipleMetafields = async (shop, token) => {
+  console.log("get metafields");
+  try {
+    const response = await fetch(
+      `https://${shop}/admin/api/${API_VERSION}/metafields.json?namespace=swpf&fields=key,id,value,type`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": token,
+        },
+      }
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data.metafields);
+        const objectVersion = data.metafields.reduce(
+          (obj, item) => (
+            (obj[item.key] = { value: item.value, id: item.id,type: item.type }), obj
+          ),
+          {}
+        );
+        return objectVersion
+      })
+      .catch((err) => console.log(err));
+    return response;
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 /** update Metafield
  * @param  {} shop
  * @param  {} token
@@ -422,18 +459,18 @@ const createMetafield = async (shop, token) => {
  * @return {Object} response body
  */
 
- const updateMetafield = async (shop, token,metafieldID,data) => {
+const updateMetafield = async (shop, token, id, value, type) => {
   console.log("update metafield");
   const updateData = {
     metafield: {
-      id: metafieldID,
-      value: JSON.stringify(data),
-      type: "json",
+      id,
+      value,
+      type,
     },
   };
   try {
     const response = await fetch(
-      `https://${shop}/admin/api/${API_VERSION}/metafields/${metafieldID}.json`,
+      `https://${shop}/admin/api/${API_VERSION}/metafields/${id}.json`,
       {
         method: "PUT",
         headers: {
@@ -452,7 +489,6 @@ const createMetafield = async (shop, token) => {
   }
 };
 
-
 /** Delete Metafield
  * @param  {} shop
  * @param  {} token
@@ -460,7 +496,7 @@ const createMetafield = async (shop, token) => {
  * @return {Object} response body
  */
 
- const deleteMetafield = async (shop, token,metafieldID) => {
+const deleteMetafield = async (shop, token, metafieldID) => {
   console.log("delete metafield");
 
   try {
@@ -494,4 +530,5 @@ module.exports.supportBlocks = supportBlocks;
 module.exports.createMetafield = createMetafield;
 module.exports.updateMetafield = updateMetafield;
 module.exports.getMetafield = getMetafield;
+module.exports.getMultipleMetafields = getMultipleMetafields;
 module.exports.deleteMetafield = deleteMetafield;

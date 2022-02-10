@@ -1,45 +1,44 @@
 /* eslint-disable require-atomic-updates */
 /* eslint-disable babel/camelcase */
 
-
-const {getFs, getSettings, writeFs} = require("../lib/firebase/firebase");
-const {checkTheme, createMetafield} = require("../lib/shopify/functions");
+const { getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
+const { checkTheme } = require("../lib/shopify/functions");
 const config = require("../config/config");
-const {pushTopic} = require("../lib/pubsub/pubsub");
+const { pushTopic } = require("../lib/pubsub/pubsub");
 const {
   checkCharge,
   checkDevShop,
   deleteCharge,
   supportBlocks,
+  getMultipleMetafields,
+  updateMetafield
 } = require("../lib/shopify/functions");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrlLongTrial = require("../handlers/getSubscriptionUrlLongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
-const {APP, TUNNEL_URL} = config;
-
+const { APP, TUNNEL_URL } = config;
 
 /** Getting all the data from DB
  * @param  {context} ctx
  */
 const getData = async (ctx) => {
-  const {shop} = await ctx.request.query;
+  const { shop } = await ctx.request.query;
 
   console.log(`GET DATA LOG ${shop}`);
 
   /** Checking version in settings DB */
   const settings = await getSettings(APP);
   const fsData = await getFs(APP, shop);
-  const {token, theme} = fsData;
+  const { token, theme } = fsData;
   const support = await supportBlocks(shop, token);
-    
-
 
   let disableUpdate = true;
   if (fsData.version !== settings.version && fsData.version !== undefined) {
     disableUpdate = false;
   }
   const data = {
+    shop,
     version: fsData.version,
     latestVersion: settings.version,
     clean: fsData.clean,
@@ -58,11 +57,33 @@ const getData = async (ctx) => {
   return data;
 };
 
+/** Upload data to metafields!@
+ * @param  {context} ctx
+ */
+const uploadData = async (ctx) => {
+  const { shop } = await ctx.request.query;
+  const fsData = await getFs(APP, shop);
+  const { token} = fsData;
+  const settings = await ctx.request.body;
+  console.log(`upload metafields to  ${shop}`);
+  try{
+    for(const property in settings){
+      const {id,value,type} = settings[property]
+      updateMetafield(shop,token,id,value,type)
+    }
+    ctx.response.status = 201;
+    return settings;
+  }catch(err){
+    console.log(err)
+    ctx.response.status = 500;
+  }
+};
+
 /** This is for shopify to redact everything GDPR mandatory webhook
  * @param  {context} ctx
  */
 const redact = async (ctx) => {
-  const {shop_domain, shop_id} = await ctx.request.body;
+  const { shop_domain, shop_id } = await ctx.request.body;
   console.log(`Redact  route ran by shopify GDPR for ${shop_domain}`);
   const shopData = await getFs(APP, shop_domain);
   const action = "uninstall";
@@ -81,7 +102,7 @@ const redact = async (ctx) => {
 const customerRedact = async (ctx) => {
   console.log(`Customer Redact  route ran by shopify GDPR`);
   const action = "data-erasure";
-  const {shop_domain, shop_id} = await ctx.request.body;
+  const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
     console.log(`Shop is in DB`);
@@ -99,12 +120,12 @@ const customerRedact = async (ctx) => {
 const customerData = async (ctx) => {
   console.log(`customer data  route ran by shopify GDPR`);
   const action = "data-request";
-  const {shop_domain, shop_id} = await ctx.request.body;
+  const { shop_domain, shop_id } = await ctx.request.body;
   const shopData = await getFs(APP, shop_domain);
   if (shopData) {
     console.log(`shop is in DB`);
     pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
-    ctx.body = {shopData};
+    ctx.body = { shopData };
   } else {
     console.log(`shop is NOT in DB`);
     ctx.body = {};
@@ -116,7 +137,7 @@ const customerData = async (ctx) => {
  */
 const uninstall = async (ctx) => {
   try {
-    const {myshopify_domain} = await ctx.request.body;
+    const { myshopify_domain } = await ctx.request.body;
     console.log(`Uninstall webhook ran ${myshopify_domain}`);
     const shopData = await getFs(APP, myshopify_domain);
     const action = "uninstall";
@@ -125,7 +146,7 @@ const uninstall = async (ctx) => {
         myshopify_domain,
         shopData.theme.toString(),
         shopData.token,
-        action,
+        action
       );
       ctx.response.status = 200;
     } else {
@@ -142,7 +163,7 @@ const uninstall = async (ctx) => {
  * @param {action}
  */
 const update = async (ctx) => {
-  const {shop, action} = await ctx.request.body;
+  const { shop, action } = await ctx.request.body;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
   if (shopData) {
@@ -159,10 +180,10 @@ const update = async (ctx) => {
  * @return {object} allowed:boolean and confirmationUrl:string
  */
 const install = async (ctx) => {
-  const {shop, action, host} = await ctx.request.query;
+  const { shop, action, host } = await ctx.request.query;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
-  const {token, chargeID, plan, theme, longTrial} = shopData;
+  const { token, chargeID, plan, theme, longTrial } = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
   const development = await checkDevShop(shop, token);
   const currentTheme = await checkTheme(shop, token);
@@ -170,7 +191,7 @@ const install = async (ctx) => {
 
   /** Always checking if the current theme is the same as in the DB */
   if (theme !== currentTheme) {
-    writeFs(APP, shop, {theme: currentTheme});
+    writeFs(APP, shop, { theme: currentTheme });
   }
 
   /** Runs only first time when someone log in and plan is active */
@@ -186,13 +207,12 @@ const install = async (ctx) => {
     }
 
     ctx.status = 200;
-    const plan = {plan: shopData.plan};
+    const plan = { plan: shopData.plan };
     await writeFs(APP, shop, plan);
-    ctx.body = {allowed: true};
+    ctx.body = { allowed: true };
   } else if (activeCharge) {
-    ctx.body = {allowed: true};
+    ctx.body = { allowed: true };
   } else if (longTrial) {
-
     /** Runs when its normal store and got one year free */
     const confirmationUrl = await getSubscriptionUrlLongTrial(
       ctx,
@@ -200,11 +220,10 @@ const install = async (ctx) => {
       shop,
       returnUrl,
       true,
-      false,
+      false
     );
-    ctx.body = {allowed: false, confirmationUrl};
+    ctx.body = { allowed: false, confirmationUrl };
   } else if (development) {
-
     /** Runs when its dev store */
     const confirmationUrl = await getSubscriptionUrlDEV(
       ctx,
@@ -212,11 +231,10 @@ const install = async (ctx) => {
       shop,
       returnUrl,
       true,
-      false,
+      false
     );
-    ctx.body = {allowed: false, confirmationUrl};
+    ctx.body = { allowed: false, confirmationUrl };
   } else {
-
     /** Runs when its normal store */
     const confirmationUrl = await getSubscriptionUrl(
       ctx,
@@ -224,21 +242,37 @@ const install = async (ctx) => {
       shop,
       returnUrl,
       true,
-      false,
+      false
     );
-    ctx.body = {allowed: false, confirmationUrl};
+    ctx.body = { allowed: false, confirmationUrl };
   }
 };
 
 const cancelCharge = async (ctx) => {
-  const {shop, chargeID} = await ctx.request.body;
+  const { shop, chargeID } = await ctx.request.body;
   const shopData = await getFs(APP, shop);
-  const {token} = shopData;
+  const { token } = shopData;
   deleteCharge(shop, token, chargeID);
   ctx.body = "OK";
 };
 
+const downloadMetafield = async (ctx) => {
+  console.log("download metafield");
+  try {
+    const { shop } = await ctx.request.query;
+    const { token } = await getFs(APP, shop);
+    const data = await getMultipleMetafields(shop, token);
+    console.log(`metafield data --> ${data}`);
+    ctx.body = data;
+    return data;
+  } catch (err) {
+    console.log(err);
+    return (ctx.body = "ERROR");
+  }
+};
+
 module.exports.getData = getData;
+module.exports.uploadData = uploadData;
 module.exports.redact = redact;
 module.exports.uninstall = uninstall;
 module.exports.update = update;
@@ -246,3 +280,4 @@ module.exports.install = install;
 module.exports.customerRedact = customerRedact;
 module.exports.customerData = customerData;
 module.exports.cancelCharge = cancelCharge;
+module.exports.downloadMetafield = downloadMetafield;

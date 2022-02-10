@@ -28,7 +28,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
 
   shopData.theme = await checkTheme(shop, token);
   const emailId = await checkEmailId(shop, token);
-  const { id:metafieldId} = await createMetafield(shop,token);
+  createMetafield(shop,token);
   shopData.email = emailId.email;
   shopData.id = emailId.id;
   shopData.name = emailId.name;
@@ -40,7 +40,6 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
   const newData = {
     shop,
     id,
-    metafieldId,
     token,
     theme,
     email,

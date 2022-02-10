@@ -1,11 +1,12 @@
 // import deleteSection from './../components/delete_section';
-import React, {useState, useEffect} from "react";
+import React, { useContext, useState, useEffect } from "react";
+import { Store } from "../store/store";
 import fetch from "isomorphic-unfetch";
-
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
+import NewDashboard from "../components/newThemeComponents/NewDashboard";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -13,23 +14,50 @@ import Spinner from "../components/SpinnerComponent";
  * has to be set
  */
 
-const Index = ({shopOrigin: shop}) => {
+const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
-  const [storeData, setStoreData] = useState();
-  const [page, setPage] = useState('main');
+  const { data, dispatch } = useContext(Store);
+  const [page, setPage] = useState("main");
 
-  const getSettings = () => {
+  const fetchShopData = () =>
     fetch(`/api/data?shop=${shop}`, {
       headers: {
         "Content-Type": "application/json",
       },
     })
       .then((res) => res.json())
-      .then((json) => {
-        setStoreData(json);
-      })
-      .catch((err) => console.log(err));
+      .then((json) => json);
 
+  const getMetaData = () =>
+    fetch(`/api/meta?shop=${shop}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((json) => json);
+
+  const getSettings = async () => {
+    dispatch({
+      type: "LOADING",
+      payload: true,
+    });
+    const shopData = await fetchShopData();
+    const metaData = await getMetaData();
+    dispatch({
+      type: "FETCH_DATA",
+      payload: shopData,
+    });
+    if (shopData.support.supportsSe && shopData.support.supportsAppBlocks) {
+      dispatch({
+        type: "FETCH_METADATA",
+        payload: metaData,
+      });
+    }
+    dispatch({
+      type: "LOADING",
+      payload: false,
+    });
   };
 
   useEffect(() => {
@@ -37,20 +65,23 @@ const Index = ({shopOrigin: shop}) => {
     return () => {
       abortController.abort();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shop]);
 
-  const activePage = page === 'main' ? <Dashboard storeData={storeData} shop={shop} /> : <About />;
+  const dashboardComponent = (data.support.supportsSe && data.support.supportsAppBlocks) ? <NewDashboard getSettings={getSettings}/> : <Dashboard />;
 
-  if (storeData) {
+  const activePage = page === "main" ? dashboardComponent : <About />;
+
+  if (data.isLoading) {
+    return <Spinner />;
+  } else {
+    console.log(data);
     return (
       <>
         <Header shop={shop} handleClick={setPage} />
         {activePage}
       </>
     );
-  } else {
-    return <Spinner />;
   }
 };
 

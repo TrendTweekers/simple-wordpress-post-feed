@@ -7,6 +7,7 @@ import {
 import React, {useState} from "react";
 import fetch from "isomorphic-unfetch";
 import PropTypes from "prop-types";
+import { Store } from '../store/store';
 
 
 /**
@@ -15,8 +16,9 @@ import PropTypes from "prop-types";
  * has to be set
  */
 
-const EnableSection = ({shop, data}) => {
-  const {clean} = data;
+const EnableSection = () => {
+  const { data, dispatch } = React.useContext(Store);
+  const {clean,shop} = data;
   const [disabled, setDisabled] = useState(clean);
 
   const contentStatus = disabled ? "Enable" : "Disable";
@@ -54,18 +56,6 @@ const EnableSection = ({shop, data}) => {
         Section is <TextStyle variation="strong">{textStatus}</TextStyle>
     </SettingToggle>
   );
-};
-
-EnableSection.propTypes = {
-  shop: PropTypes.string,
-  data: PropTypes.shape({
-    clean: PropTypes.bool,
-  }),
-};
-
-EnableSection.defaultProps = {
-  shop: "shop",
-  data: {clean: false},
 };
 
 export default EnableSection;

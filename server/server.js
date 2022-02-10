@@ -18,6 +18,7 @@ import env from "./config/config";
 import {getFs} from "./lib/firebase/firebase";
 import {
   getData,
+  uploadData,
   update,
   uninstall,
   redact,
@@ -25,6 +26,7 @@ import {
   customerData,
   customerRedact,
   cancelCharge,
+  downloadMetafield,
 } from "./routes/";
 import {checkDevShop} from "./lib/shopify/functions";
 
@@ -112,6 +114,8 @@ app
     const webhook = receiveWebhook({secret: SHOPIFY_API_SECRET_KEY});
     router
       .get("/api/data", getData)
+      .post("/api/data", uploadData)
+      .get("/api/meta", downloadMetafield)
       .get("/api/install", install)
       .post("/api/update", update)
       .post("/swpf/shop/redact", webhook, redact)
