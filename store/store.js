@@ -1,5 +1,6 @@
 import React, { createContext, useReducer } from "react";
 import initialState from "./initialState";
+import * as types from "./types";
 
 /** Initial GLOBAL STORAGE */
 
@@ -7,19 +8,19 @@ export const Store = createContext({ data: initialState });
 
 function reducer(data, action) {
   switch (action.type) {
-    case "LOADING":
+    case types.LOADING:
       return {
         ...data,
         disableSave: true,
         isLoading: action.payload,
       };
-    case "SAVE_DB":
+    case types.SAVE_DB:
       return {
         ...data,
         disableSave: true,
         isLoading: false,
       };
-    case "FETCH_DATA":
+    case types.FETCH_DATA:
       return {
         ...data,
         disableSave: true,
@@ -32,13 +33,16 @@ function reducer(data, action) {
         chargeID: action.payload.chargeID,
         support: action.payload.support,
       };
-    case "FETCH_METADATA":
+    case types.FETCH_METADATA:
       return {
         ...data,
         disableSave: true,
-        settings: action.payload,
+        settings: {
+          ...data.settings,
+          ...action.payload
+        },
       };
-    case "CHANGE_URL":
+    case types.CHANGE_URL:
       return {
         ...data,
         disableSave: false,
@@ -51,7 +55,7 @@ function reducer(data, action) {
           },
         },
       };
-    case "CHANGE_POST_NUMBER":
+    case types.CHANGE_POST_NUMBER:
       return {
         ...data,
         disableSave: false,
@@ -63,10 +67,11 @@ function reducer(data, action) {
           },
         },
       };
-    case "HOSTED_ON_WP":
+    case types.HOSTED_ON_WP:
       return {
         ...data,
         disableSave: false,
+        tested: false,
         testedOK: false,
         settings: {
           ...data.settings,
@@ -77,7 +82,7 @@ function reducer(data, action) {
         },
       };
 
-    case "CHANGE_CATEGORY":
+    case types.CHANGE_CATEGORY:
       return {
         ...data,
         disableSave: false,
@@ -89,7 +94,7 @@ function reducer(data, action) {
           },
         },
       };
-    case "CHANGE_TAGS":
+    case types.CHANGE_TAGS:
       return {
         ...data,
         disableSave: false,
@@ -101,7 +106,7 @@ function reducer(data, action) {
           },
         },
       };
-    case "CHANGE_TAGS_EXCLUDE":
+    case types.CHANGE_TAGS_EXCLUDE:
       return {
         ...data,
         disableSave: false,
@@ -113,7 +118,7 @@ function reducer(data, action) {
           },
         },
       };
-    case "CHANGE_SLUG":
+    case types.CHANGE_SLUG:
       return {
         ...data,
         disableSave: false,
@@ -125,7 +130,7 @@ function reducer(data, action) {
           },
         },
       };
-    case "CHANGE_TARGET":
+    case types.CHANGE_TARGET:
       return {
         ...data,
         disableSave: false,
@@ -137,7 +142,79 @@ function reducer(data, action) {
           },
         },
       };
-    case "TESTED":
+    case types.CHANGE_SECTIONTITLE:
+      return {
+        ...data,
+        disableSave: false,
+        settings: {
+          ...data.settings,
+          sectionTitle: {
+            ...data.settings.sectionTitle,
+            value: action.payload,
+          },
+        },
+      };
+    case types.CHANGE_SECTIONSUBTITLE:
+      return {
+        ...data,
+        disableSave: false,
+        settings: {
+          ...data.settings,
+          sectionSubtitle: {
+            ...data.settings.sectionSubtitle,
+            value: action.payload,
+          },
+        },
+      };
+    case types.CHANGE_SHOWEXCERPT:
+      return {
+        ...data,
+        disableSave: false,
+        settings: {
+          ...data.settings,
+          showExcerpt: {
+            ...data.settings.showExcerpt,
+            value: action.payload,
+          },
+        },
+      };
+    case types.CHANGE_CLICKABLE:
+      return {
+        ...data,
+        disableSave: false,
+        settings: {
+          ...data.settings,
+          clickableArticle: {
+            ...data.settings.clickableArticle,
+            value: action.payload,
+          },
+        },
+      };
+    case types.CHANGE_SHOWBUTTON:
+      return {
+        ...data,
+        disableSave: false,
+        settings: {
+          ...data.settings,
+          showButton: {
+            ...data.settings.showButton,
+            value: action.payload,
+          },
+        },
+      };
+    case types.CHANGE_BUTTONTEXT:
+      return {
+        ...data,
+        disableSave: false,
+        settings: {
+          ...data.settings,
+          buttonText: {
+            ...data.settings.buttonText,
+            value: action.payload,
+          },
+        },
+      };
+    case types.TESTEDOK:
       return {
         ...data,
         testedOK: action.payload,

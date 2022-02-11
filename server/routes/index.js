@@ -11,7 +11,9 @@ const {
   deleteCharge,
   supportBlocks,
   getMultipleMetafields,
-  updateMetafield
+  updateMetafield,
+  createMetafield,
+  deleteMetafield
 } = require("../lib/shopify/functions");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrlLongTrial = require("../handlers/getSubscriptionUrlLongTrial");
@@ -69,7 +71,15 @@ const uploadData = async (ctx) => {
   try{
     for(const property in settings){
       const {id,value,type} = settings[property]
-      updateMetafield(shop,token,id,value,type)
+      if(id && value !== ""){
+        updateMetafield(shop,token,id,value,type)
+      }else if(!id && value !== ""){
+        /**Create metafield if it was not existing */
+        createMetafield(shop,token,property,value,type)
+      }else if(id && value === ""){
+        /**Delete  metafield if value is 0*/
+        deleteMetafield(shop,token,id)
+      }
     }
     ctx.response.status = 201;
     return settings;

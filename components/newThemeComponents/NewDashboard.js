@@ -13,10 +13,12 @@ import {
 import React, { useState, useEffect } from "react";
 
 import { TroubleShootBanner, ReviewBanner } from "../Banners";
+import * as types from "../../store/types";
 import { Store } from "../../store/store";
 import UrlInput from "./UrlInput";
-import PostNumber from "./PostNumber";
+import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
+import ShowExcerpt from "./ShowExcerpt";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -30,7 +32,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   const [showReviewBanner, setShowReviewBanner] = useState(
     reviewBanner === "true"
   );
-  const { theme, shop, disableSave,settings } = data;
+  const { theme, shop, disableSave, settings, testedOK } = data;
   useEffect(() => {
     if (banner === undefined) {
       setShowBanner(true);
@@ -39,26 +41,26 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   }, [banner, reviewBanner]);
 
   const handleSubmit = () => {
-    console.log('settings')
-    console.log(settings)
+    console.log("settings");
+    console.log(settings);
     fetch(`/api/data?shop=${shop}`, {
-      method: 'POST',
-      credentials: 'same-origin',
+      method: "POST",
+      credentials: "same-origin",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      redirect: 'follow',
-      referrer: 'no-referrer',
+      redirect: "follow",
+      referrer: "no-referrer",
       body: JSON.stringify(settings),
     })
       .then((res) => {
         if (res.status === 201) {
-          console.log('succesful upload settings')
+          console.log("succesful upload settings");
           dispatch({
-            type: "SAVE_DB",
-          })
+            type: types.SAVE_DB,
+          });
         } else {
-          console.log('!!! unsuccesful upload settings :( !!!')
+          console.log("!!! unsuccesful upload settings :( !!!");
         }
       })
       .catch((err) => err);
@@ -68,6 +70,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   const themeSectionEditor = (
     <Button
       primary
+      disabled={!testedOK}
       onClick={() =>
         window.open(`https://${shop}/admin/themes/${theme}/editor`, "_blank")
       }
@@ -82,6 +85,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       message="Unsaved changes"
       saveAction={{
         onAction: () => handleSubmit(),
+        disabled: !testedOK,
       }}
       discardAction={{
         onAction: () => getSettings(),
@@ -99,9 +103,9 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
               Thank you for installing Simple Wordpress Post Feed!
             </Heading>
             <p>
-              To get started go to Theme section editor and add the Wordpress
-              Post Feed section. For more detailed instructions see the
-              documentation
+              To get started please set your Wordpress URL and some basic
+              settings here on the bottom. After saving the settings you can
+              head over to the Theme section editor to customize the widget
             </p>
             {themeSectionEditor}
             <p>
@@ -117,8 +121,10 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         </Card>
         <br />
         <UrlInput />
-        <PostNumber />
-        <Filters/>
+        <BasicSetings />
+        <ShowExcerpt/>
+        <Filters />
+        <ShowExcerpt/>
         <ReviewBanner
           showBanner={showReviewBanner}
           setShowBanner={setShowReviewBanner}

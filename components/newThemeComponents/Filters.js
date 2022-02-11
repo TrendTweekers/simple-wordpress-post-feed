@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
-import { TextField, FormLayout, Card, Checkbox } from "@shopify/polaris";
+import { TextField, FormLayout, Card } from "@shopify/polaris";
 import { Store } from "../../store/store";
+import * as types from "../../store/types";
 
 const Filters = () => {
   const { data, dispatch } = React.useContext(Store);
@@ -8,42 +9,37 @@ const Filters = () => {
   const { value: tags } = data.settings.tags;
   const { value: tagsExclude } = data.settings.tagsExclude;
   const { value: slug } = data.settings.slug;
-  const { value: target } = data.settings.target;
+
 
   const handleCategory = useCallback((newValue) => {
     dispatch({
-      type: "CHANGE_CATEGORY",
+      type: types.CHANGE_CATEGORY,
       payload: newValue,
     });
   }, []);
 
   const handleTags = useCallback((newValue) => {
     dispatch({
-      type: "CHANGE_TAGS",
+      type: types.CHANGE_TAGS,
       payload: newValue,
     });
   }, []);
 
   const handleTagsExclude = useCallback((newValue) => {
     dispatch({
-      type: "CHANGE_TAGS_EXCLUDE",
+      type: types.CHANGE_TAGS_EXCLUDE,
       payload: newValue,
     });
   }, []);
 
   const handleSlug = useCallback((newValue) => {
     dispatch({
-      type: "CHANGE_SLUG",
+      type: types.CHANGE_SLUG,
       payload: newValue,
     });
   }, []);
 
-  const handleTarget = useCallback((newValue) => {
-    dispatch({
-      type: "CHANGE_TARGET",
-      payload: newValue,
-    });
-  }, []);
+
 
   return (
     <Card sectioned title="Filters">
@@ -75,11 +71,6 @@ const Filters = () => {
           onChange={handleSlug}
           autoComplete="off"
           placeholder="cars,trees"
-        />
-        <Checkbox
-          label="Open on link on new page?"
-          checked={target}
-          onChange={handleTarget}
         />
       </FormLayout>
     </Card>

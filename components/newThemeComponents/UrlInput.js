@@ -1,4 +1,4 @@
-import React, { useCallback, useState,useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   TextField,
   Checkbox,
@@ -7,13 +7,14 @@ import {
   Banner,
 } from "@shopify/polaris";
 import { Store } from "../../store/store";
+import * as types from "../../store/types";
 import fetch from "cross-fetch";
 
 const UrlInput = () => {
   const { data, dispatch } = React.useContext(Store);
-  const {value} = data.settings.url;
+  const { value } = data.settings.url;
   const { value: hostedOnWP } = data.settings.hostedOnWP;
-  const { testedOK } = data;
+  const { testedOK, shop } = data;
 
   const isUrl = (inputString) => {
     const regexp =
@@ -26,23 +27,27 @@ const UrlInput = () => {
   };
 
   const testFetch = async () => {
-    const correctUrl = isUrl(value);
+    const selfHostedURL = `${isUrl(
+      value
+    )}/wp-json/wp/v2/posts?_embed&order=desc&per_page=1`;
+    const wpHostedURL = `https://public-api.wordpress.com/rest/v1.1/sites/${isUrl(
+      value
+    )}/posts/?number=1`;
     try {
-      const wpContent = await fetch(
-        `${correctUrl}/wp-json/wp/v2/posts?_embed&order=desc&per_page=1`
-      ).then((res) =>
+      const hostUrl = hostedOnWP ? wpHostedURL : selfHostedURL;
+      const wpContent = await fetch(hostUrl).then((res) =>
         res.json().then((json) => {
           return { status: res.status, json };
         })
       );
       if (wpContent.status == 200) {
         dispatch({
-          type: "TESTED",
+          type: types.TESTEDOK,
           payload: true,
         });
       } else {
         dispatch({
-          type: "TESTED",
+          type: types.TESTEDOK,
           payload: false,
         });
       }
@@ -52,47 +57,54 @@ const UrlInput = () => {
     }
   };
 
+  useEffect(() => {
+    const delayedTestFetch = setTimeout(() => {
+      testFetch();
+    }, 1000);
 
-
-    useEffect(() => {
-      const delayedTestFetch =
-      setTimeout(() => {
-        testFetch();
-      }, 1000);
-    
-      return () => {
-        clearTimeout(delayedTestFetch)
-      };
-    }, [value]);
-    
-
+    return () => {
+      clearTimeout(delayedTestFetch);
+    };
+  }, [value, hostedOnWP]);
 
   const handleChange = useCallback((newValue) => {
     dispatch({
-      type: "CHANGE_URL",
+      type: types.CHANGE_URL,
       payload: newValue,
     });
-    
   }, []);
 
   const handleChangeCheckBox = useCallback((newChecked) => {
     dispatch({
-      type: "HOSTED_ON_WP",
+      type: types.HOSTED_ON_WP,
       payload: newChecked,
     });
   }, []);
 
   const TestBanner = testedOK ? (
-    <Banner title="The entered URL is correct" status="success" />
-  ) : (
     <Banner
-      title="Please enter a valid URL or check where the website is hosted"
-      status="critical"
+      title="The entered URL is correct you are good to go :)"
+      status="success"
     />
+  ) : (
+    <>
+      <Banner
+        title="Please enter a valid URL or check where the website is hosted"
+        status="critical"
+      />
+      If it's just keeps not working{"  "}
+      <a
+        href={`mailto:support@stackedboosthelp.zendesk.com?subject=Simple Wordpress Post Feed- help for ${shop}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        support@stackedboosthelp.zendesk.com
+      </a>
+    </>
   );
 
   return (
-    <Card sectioned title="Hosting">
+    <Card sectioned title="Hosting settings">
       <FormLayout>
         <Checkbox
           label="Hosted on Wordpress?"

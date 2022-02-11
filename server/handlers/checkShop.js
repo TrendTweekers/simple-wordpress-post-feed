@@ -1,7 +1,7 @@
 const {
   checkTheme,
   checkEmailId,
-  createMetafield,
+  createMetafields,
 } = require("../lib/shopify/functions");
 const { writeFs } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
@@ -28,7 +28,7 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
 
   shopData.theme = await checkTheme(shop, token);
   const emailId = await checkEmailId(shop, token);
-  createMetafield(shop,token);
+  createMetafields(shop,token);
   shopData.email = emailId.email;
   shopData.id = emailId.id;
   shopData.name = emailId.name;

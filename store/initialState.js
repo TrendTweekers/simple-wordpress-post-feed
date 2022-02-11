@@ -56,6 +56,36 @@ const initialState = {
       value: false,
       type: "boolean",
     },
+    sectionTitle: {
+      id: "",
+      value: "",
+      type: "single_line_text_field",
+    },
+    sectionSubtitle: {
+      id: "",
+      value: "",
+      type: "single_line_text_field",
+    },
+    showExcerpt: {
+      id: "",
+      value: false,
+      type: "boolean",
+    },
+    clickableArticle: {
+      id: "",
+      value: true,
+      type: "boolean",
+    },
+    showButton: {
+      id: "",
+      value: false,
+      type: "boolean",
+    },
+    buttonText: {
+      id: "",
+      value: "",
+      type: "single_line_text_field",
+    },
   },
   tested: false,
   testedOK: false,

@@ -348,14 +348,52 @@ const supportBlocks = async (shop, token) => {
   }
 };
 
-/** Create Metafield separately for all settings based on initial settings
+
+/** Create one Metafield
  * @param  {} shop
  * @param  {} token
  * @return {Object} response body
  */
 
-const createMetafield = async (shop, token) => {
-  console.log(`create metafield based on ${JSON.stringify(initialSettings)}`);
+ const createMetafield = async (shop, token,key,value,type) => {
+  console.log(`create one metafield`);
+  const data = {
+    metafield: {
+      namespace: "swpf",
+      key,
+      value,
+      type,
+    },
+  };
+  try {
+    console.log(`metafield creation ${JSON.stringify(data)}`);
+    fetch(`https://${shop}/admin/api/${API_VERSION}/metafields.json`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": token,
+      },
+      body: JSON.stringify(data),
+    })
+      .then((response) => response.json())
+      .then((data) => data.metafield)
+      .catch((err) => console.log(err));
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+
+
+
+/** Create Metafields separately for all settings based on initial settings
+ * @param  {} shop
+ * @param  {} token
+ * @return {Object} response body
+ */
+
+const createMetafields = async (shop, token) => {
+  console.log(`create metafields based on initial settings`);
 
   for (const property in initialSettings) {
     const data = {
@@ -527,6 +565,7 @@ module.exports.checkDevShop = checkDevShop;
 module.exports.checkCharge = checkCharge;
 module.exports.deleteCharge = deleteCharge;
 module.exports.supportBlocks = supportBlocks;
+module.exports.createMetafields = createMetafields;
 module.exports.createMetafield = createMetafield;
 module.exports.updateMetafield = updateMetafield;
 module.exports.getMetafield = getMetafield;

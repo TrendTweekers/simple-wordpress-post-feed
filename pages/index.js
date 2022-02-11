@@ -7,6 +7,7 @@ import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
+import * as types from "../store/types";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -39,23 +40,23 @@ const Index = ({ shopOrigin: shop }) => {
 
   const getSettings = async () => {
     dispatch({
-      type: "LOADING",
+      type: types.LOADING,
       payload: true,
     });
     const shopData = await fetchShopData();
     const metaData = await getMetaData();
     dispatch({
-      type: "FETCH_DATA",
+      type: types.FETCH_DATA,
       payload: shopData,
     });
     if (shopData.support.supportsSe && shopData.support.supportsAppBlocks) {
       dispatch({
-        type: "FETCH_METADATA",
+        type: types.FETCH_METADATA,
         payload: metaData,
       });
     }
     dispatch({
-      type: "LOADING",
+      type: types.LOADING,
       payload: false,
     });
   };
