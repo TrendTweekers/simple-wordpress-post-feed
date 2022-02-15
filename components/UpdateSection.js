@@ -7,6 +7,7 @@ import {
 import React, {useState} from "react";
 import fetch from "isomorphic-unfetch";
 import PropTypes from "prop-types";
+import { Store } from '../store/store';
 
 
 /**
@@ -15,8 +16,10 @@ import PropTypes from "prop-types";
  * has to be set
  */
 
-const UpdateSection = ({data, shop}) => {
-  const [buttonDisabled, setButtonDisabled] = useState(data.disableUpdate);
+const UpdateSection = () => {
+  const { data, dispatch } = React.useContext(Store);
+  const {version, latestVersion,disableUpdate} = data
+  const [buttonDisabled, setButtonDisabled] = useState(disableUpdate);
   const [banner, setBanner] = useState(false);
   const action = "update";
 
@@ -52,9 +55,9 @@ const UpdateSection = ({data, shop}) => {
     </div>
   ) : null;
 
-  const version = buttonDisabled
+  const versionNumber = buttonDisabled
   ? `Store version ${data.latestVersion} is up to date`
-  : `update: ${data.version} => ${data.latestVersion}`;
+  : `update: ${version} => ${latestVersion}`;
 
   return (
     <section>
@@ -67,25 +70,12 @@ const UpdateSection = ({data, shop}) => {
             Update now
           </Button>
           <p>
-            {version}
+            {versionNumber}
           </p>
         </TextContainer>
       </Card>
     </section>
   );
-};
-
-UpdateSection.propTypes = {
-  shop: PropTypes.string,
-  data: PropTypes.shape({
-    disableUpdate: PropTypes.bool,
-    latestVersion: PropTypes.string,
-    version: PropTypes.string,
-  }),
-};
-// Specifies the default values for props:
-UpdateSection.defaultProps = {
-  data: {version: "1.1.1.1", latestVersion: "1.1.1.1", disableUpdate: true},
 };
 
 export default UpdateSection;

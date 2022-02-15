@@ -3,6 +3,7 @@
 import {ApolloProvider} from "react-apollo";
 import ApolloClient from "apollo-boost";
 import {AppProvider} from "@shopify/polaris";
+import {StoreProvider} from '../store/store';
 import React, {useState, useEffect} from "react";
 import fetch from "isomorphic-unfetch";
 import {useAppBridge, Provider} from "@shopify/app-bridge-react";
@@ -69,7 +70,7 @@ const authStep = ({config, Component, pageProps}) => {
    */
   const makeInstall = () => {
     const action = "install";
-    fetch(`/api/install?shop=${shopOrigin}&action=${action}&host=${host}`, {
+    fetch(`/api/install?shop=${shopOrigin}&host=${host}`, {
       method: "GET",
       mode: "cors",
       headers: {
@@ -111,14 +112,29 @@ const authStep = ({config, Component, pageProps}) => {
     );
   } else if (allowed) {
     return (
-      <AppProvider i18n={[en, pl, sv, es]}>
+      <AppProvider 
+      i18n={{
+        Polaris: {
+          Frame: {
+            skipToContent: 'Skip to content',
+          },
+          ContextualSaveBar: {
+            save: 'Save',
+            discard: 'Discard',
+          },
+        },
+        translations:[en, pl, sv, es],
+      }}
+      >
         <Provider config={config}>
+        <StoreProvider>
           <MyProvider
             Component={Component}
             {...pageProps}
             shopOrigin={shopOrigin}
             host={host}
           />
+          </StoreProvider>
         </Provider>
       </AppProvider>
     );

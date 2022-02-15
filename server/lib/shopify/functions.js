@@ -4,6 +4,8 @@ import ApolloClient from "apollo-boost";
 import config from "../../config/config";
 
 import "isomorphic-unfetch";
+import initialState from "../../../store/initialState";
+const initialSettings = initialState.settings;
 
 const { API_VERSION } = config;
 const { GRAPHQL_VERSION } = config;
@@ -317,12 +319,13 @@ const supportBlocks = async (shop, token) => {
     } else {
       console.log("None of the desired templates support app blocks");
     }
-
+    const newThemeCapable =
+      supportsSe === true && supportsAppBlocks === true ? true : false;
     const response = {
       theme: publishedTheme,
       supportsSe,
       supportsAppBlocks,
-
+      newThemeCapable,
       /**
        * Check if each of the sample app's app blocks have been added to the product.json template
        */
@@ -346,31 +349,7 @@ const supportBlocks = async (shop, token) => {
   }
 };
 
-const createMetafield = async (shop, token) => {
-  const data = {
-    metafield: {
-      namespace: "jimmy",
-      key: "something_admin",
-      value: '{"hello":2}',
-      type: "json",
-    },
-  };
-  try {
-    const result = await fetch(
-      `https://${shop}/admin/api/${API_VERSION}/metafields.json`,
-      {
-        method: "POST",
-        headers: {
-          "X-Shopify-Access-Token": token,
-        },
-        body: JSON.stringify(data),
-      }
-    ).catch((err) => console.log(err));
-    return result;
-  } catch (err) {
-    console.log(err);
-  }
-};
+
 
 // exports
 
@@ -380,4 +359,4 @@ module.exports.checkDevShop = checkDevShop;
 module.exports.checkCharge = checkCharge;
 module.exports.deleteCharge = deleteCharge;
 module.exports.supportBlocks = supportBlocks;
-module.exports.createMetafield = createMetafield;
+

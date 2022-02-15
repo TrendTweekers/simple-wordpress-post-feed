@@ -1,11 +1,13 @@
 // import deleteSection from './../components/delete_section';
-import React, {useState, useEffect} from "react";
+import React, { useContext, useState, useEffect } from "react";
+import { Store } from "../store/store";
 import fetch from "isomorphic-unfetch";
-
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
+import NewDashboard from "../components/newThemeComponents/NewDashboard";
+import * as types from "../store/types";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -13,22 +15,51 @@ import Spinner from "../components/SpinnerComponent";
  * has to be set
  */
 
-const Index = ({shopOrigin: shop}) => {
+const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
-  const [storeData, setStoreData] = useState();
-  const [page, setPage] = useState('main');
-
-  const getSettings = () => {
+  const { data, dispatch } = useContext(Store);
+  const [page, setPage] = useState("main");
+  const {newThemeCapable} = data.support;
+  
+  const fetchShopData = () =>
     fetch(`/api/data?shop=${shop}`, {
       headers: {
         "Content-Type": "application/json",
       },
     })
       .then((res) => res.json())
-      .then((json) => {
-        setStoreData(json);
+      .then((json) => json);
+
+  const getMetaData = () =>
+    fetch(`/api/meta?shop=${shop}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((json) => json);
+
+  const getSettings = async () => {
+    dispatch({
+      type: types.LOADING,
+      payload: true,
+    });
+    const metaData = await getMetaData();
+    const shopData = await fetchShopData();
+
+      dispatch({
+        type: types.FETCH_METADATA,
+        payload: metaData,
+      });
+
+      dispatch({
+        type: types.FETCH_DATA,
+        payload: shopData,
+      });
+      dispatch({
+        type:types.LOADING,
+        payload:false
       })
-      .catch((err) => console.log(err));
 
   };
 
@@ -37,20 +68,22 @@ const Index = ({shopOrigin: shop}) => {
     return () => {
       abortController.abort();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shop]);
 
-  const activePage = page === 'main' ? <Dashboard storeData={storeData} shop={shop} /> : <About />;
+  const dashboardComponent = newThemeCapable ? <NewDashboard getSettings={getSettings}/> : <Dashboard />;
 
-  if (storeData) {
+  const activePage = page === "main" ? dashboardComponent : <About newThemeCapable={newThemeCapable}/>;
+
+  if (data.isLoading) {
+    return <Spinner />;
+  } else {
     return (
       <>
         <Header shop={shop} handleClick={setPage} />
         {activePage}
       </>
     );
-  } else {
-    return <Spinner />;
   }
 };
 
