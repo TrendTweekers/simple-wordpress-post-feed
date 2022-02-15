@@ -10,11 +10,13 @@ const {
   checkDevShop,
   deleteCharge,
   supportBlocks,
+} = require("../lib/shopify/functions");
+const {
   getMultipleMetafields,
   updateMetafield,
   createMetafield,
-  deleteMetafield
-} = require("../lib/shopify/functions");
+  deleteMetafield,
+} = require("../lib/shopify/metafields");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrlLongTrial = require("../handlers/getSubscriptionUrlLongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
@@ -65,26 +67,26 @@ const getData = async (ctx) => {
 const uploadData = async (ctx) => {
   const { shop } = await ctx.request.query;
   const fsData = await getFs(APP, shop);
-  const { token} = fsData;
+  const { token } = fsData;
   const settings = await ctx.request.body;
   console.log(`upload metafields to  ${shop}`);
-  try{
-    for(const property in settings){
-      const {id,value,type} = settings[property]
-      if(id && value !== ""){
-        updateMetafield(shop,token,id,value,type)
-      }else if(!id && value !== ""){
+  try {
+    for (const property in settings) {
+      const { id, value, type } = settings[property];
+      if (id && value !== "") {
+        updateMetafield(shop, token, id, value, type);
+      } else if (!id && value !== "") {
         /**Create metafield if it was not existing */
-        createMetafield(shop,token,property,value,type)
-      }else if(id && value === ""){
+        createMetafield(shop, token, property, value, type);
+      } else if (id && value === "") {
         /**Delete  metafield if value is 0*/
-        deleteMetafield(shop,token,id)
+        deleteMetafield(shop, token, id);
       }
     }
     ctx.response.status = 201;
     return settings;
-  }catch(err){
-    console.log(err)
+  } catch (err) {
+    console.log(err);
     ctx.response.status = 500;
   }
 };
@@ -190,7 +192,7 @@ const update = async (ctx) => {
  * @return {object} allowed:boolean and confirmationUrl:string
  */
 const install = async (ctx) => {
-  const { shop, action, host } = await ctx.request.query;
+  const { shop, host } = await ctx.request.query;
   console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
   const { token, chargeID, plan, theme, longTrial } = shopData;
@@ -198,6 +200,8 @@ const install = async (ctx) => {
   const development = await checkDevShop(shop, token);
   const currentTheme = await checkTheme(shop, token);
   const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
+  const { newThemeCapable } = await supportBlocks(shop, token);
+  const action = newThemeCapable ? "newtheme-install" : "install";
 
   /** Always checking if the current theme is the same as in the DB */
   if (theme !== currentTheme) {
@@ -211,10 +215,7 @@ const install = async (ctx) => {
     } else {
       shopData.plan = "basic";
     }
-    const support = await supportBlocks(shop, token);
-    if (!support.supportsSe && !support.supportsAppBlocks) {
-      pushTopic(shop, theme.toString(), token, action);
-    }
+    pushTopic(shop, theme.toString(), token, action);
 
     ctx.status = 200;
     const plan = { plan: shopData.plan };

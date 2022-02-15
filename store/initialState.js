@@ -18,7 +18,7 @@ const initialState = {
   settings: {
     hostedOnWP: {
       id: "",
-      value: true,
+      value: false,
       type: "boolean",
     },
     postNumber: {

@@ -9,7 +9,8 @@ import Spinner from "./SpinnerComponent";
  * @param  {pageURI}
  * has to be set
  */
-const About = () => {
+const About = ({newThemeCapable}) => {
+  const pageId = newThemeCapable ? 1255 : 387;
   const [content, setContent] = useState();
   const pageURI = "mesmerize-pro";
 
@@ -35,7 +36,7 @@ const About = () => {
           }
         `,
         variables: {
-          id: 387,
+          id: pageId,
           format: "RENDERED",
         },
       })

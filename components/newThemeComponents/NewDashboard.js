@@ -9,6 +9,7 @@ import {
   TextContainer,
   Heading,
   Button,
+  Layout,
 } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
 
@@ -19,6 +20,7 @@ import UrlInput from "./UrlInput";
 import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
 import ShowExcerpt from "./ShowExcerpt";
+import LastPost from "./LastPost";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -41,8 +43,6 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   }, [banner, reviewBanner]);
 
   const handleSubmit = () => {
-    console.log("settings");
-    console.log(settings);
     fetch(`/api/data?shop=${shop}`, {
       method: "POST",
       credentials: "same-origin",
@@ -55,7 +55,6 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     })
       .then((res) => {
         if (res.status === 201) {
-          console.log("succesful upload settings");
           dispatch({
             type: types.SAVE_DB,
           });
@@ -92,51 +91,58 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       }}
     />
   );
-
-  return (
-    <Frame>
-      {SaveBar}
-      <Page title="Simple Wordpress Post Feed">
-        <Card sectioned>
-          <TextContainer>
-            <Heading>
-              Thank you for installing Simple Wordpress Post Feed!
-            </Heading>
-            <p>
-              To get started please set your Wordpress URL and some basic
-              settings here on the bottom. After saving the settings you can
-              head over to the Theme section editor to customize the widget
-            </p>
-            {themeSectionEditor}
-            <p>
-              <i>
-                Hope you enjoy the app and please don&apos;t forget to leave a
-                review{" "}
-                <span role="img" aria-label="kisses">
-                  😘
-                </span>
-              </i>
-            </p>
-          </TextContainer>
-        </Card>
-        <br />
-        <UrlInput />
-        <BasicSetings />
-        <ShowExcerpt/>
-        <Filters />
-        <ShowExcerpt/>
-        <ReviewBanner
-          showBanner={showReviewBanner}
-          setShowBanner={setShowReviewBanner}
-        />
-        <br />
-        <TroubleShootBanner
-          showBanner={showBanner}
-          setShowBanner={setShowBanner}
-        />
-      </Page>
-    </Frame>
-  );
+    return (
+      <Frame>
+        {SaveBar}
+        <Page title="Simple Wordpress Post Feed">
+          <Card sectioned>
+            <TextContainer>
+              <Heading>
+                Thank you for installing Simple Wordpress Post Feed!
+              </Heading>
+              <p>
+                To get started please set your Wordpress URL and some basic
+                settings here below. After saving the settings you can head over
+                to the Theme section editor to customize the widget
+              </p>
+              {themeSectionEditor}
+              <p>
+                <i>
+                  Hope you enjoy the app and please don&apos;t forget to leave a
+                  review{" "}
+                  <span role="img" aria-label="kisses">
+                    😘
+                  </span>
+                </i>
+              </p>
+            </TextContainer>
+          </Card>
+          <UrlInput />
+          <div className="menu-spacer" style={{ height: "16px" }}></div>
+          <Layout>
+            <Layout.Section oneThird>
+              <BasicSetings />
+            </Layout.Section>
+            <Layout.Section oneThird>
+              <Filters />
+            </Layout.Section>
+            <Layout.Section oneThird>
+              <ShowExcerpt />
+            </Layout.Section>
+          </Layout>
+          <div className="menu-spacer" style={{ height: "16px" }}></div>
+          <ReviewBanner
+            showBanner={showReviewBanner}
+            setShowBanner={setShowReviewBanner}
+          />
+          <div className="menu-spacer" style={{ height: "16px" }}></div>
+          <TroubleShootBanner
+            showBanner={showBanner}
+            setShowBanner={setShowBanner}
+          />
+        </Page>
+      </Frame>
+    );
 };
 
 export default Dashboard;

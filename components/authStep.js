@@ -70,7 +70,7 @@ const authStep = ({config, Component, pageProps}) => {
    */
   const makeInstall = () => {
     const action = "install";
-    fetch(`/api/install?shop=${shopOrigin}&action=${action}&host=${host}`, {
+    fetch(`/api/install?shop=${shopOrigin}&host=${host}`, {
       method: "GET",
       mode: "cors",
       headers: {

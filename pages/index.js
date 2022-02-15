@@ -19,7 +19,8 @@ const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const { data, dispatch } = useContext(Store);
   const [page, setPage] = useState("main");
-
+  const {newThemeCapable} = data.support;
+  
   const fetchShopData = () =>
     fetch(`/api/data?shop=${shop}`, {
       headers: {
@@ -43,22 +44,23 @@ const Index = ({ shopOrigin: shop }) => {
       type: types.LOADING,
       payload: true,
     });
-    const shopData = await fetchShopData();
     const metaData = await getMetaData();
-    dispatch({
-      type: types.FETCH_DATA,
-      payload: shopData,
-    });
-    if (shopData.support.supportsSe && shopData.support.supportsAppBlocks) {
+    const shopData = await fetchShopData();
+
       dispatch({
         type: types.FETCH_METADATA,
         payload: metaData,
       });
-    }
-    dispatch({
-      type: types.LOADING,
-      payload: false,
-    });
+
+      dispatch({
+        type: types.FETCH_DATA,
+        payload: shopData,
+      });
+      dispatch({
+        type:types.LOADING,
+        payload:false
+      })
+
   };
 
   useEffect(() => {
@@ -69,14 +71,13 @@ const Index = ({ shopOrigin: shop }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shop]);
 
-  const dashboardComponent = (data.support.supportsSe && data.support.supportsAppBlocks) ? <NewDashboard getSettings={getSettings}/> : <Dashboard />;
+  const dashboardComponent = newThemeCapable ? <NewDashboard getSettings={getSettings}/> : <Dashboard />;
 
-  const activePage = page === "main" ? dashboardComponent : <About />;
+  const activePage = page === "main" ? dashboardComponent : <About newThemeCapable={newThemeCapable}/>;
 
   if (data.isLoading) {
     return <Spinner />;
   } else {
-    console.log(data);
     return (
       <>
         <Header shop={shop} handleClick={setPage} />

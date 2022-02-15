@@ -5,6 +5,7 @@ import {
   FormLayout,
   Card,
   Banner,
+  Spinner,
 } from "@shopify/polaris";
 import { Store } from "../../store/store";
 import * as types from "../../store/types";
@@ -12,9 +13,9 @@ import fetch from "cross-fetch";
 
 const UrlInput = () => {
   const { data, dispatch } = React.useContext(Store);
-  const { value } = data.settings.url;
+  const { value: url } = data.settings.url;
   const { value: hostedOnWP } = data.settings.hostedOnWP;
-  const { testedOK, shop } = data;
+  const { testedOK, shop, testing } = data;
 
   const isUrl = (inputString) => {
     const regexp =
@@ -28,10 +29,10 @@ const UrlInput = () => {
 
   const testFetch = async () => {
     const selfHostedURL = `${isUrl(
-      value
+      url
     )}/wp-json/wp/v2/posts?_embed&order=desc&per_page=1`;
     const wpHostedURL = `https://public-api.wordpress.com/rest/v1.1/sites/${isUrl(
-      value
+      url
     )}/posts/?number=1`;
     try {
       const hostUrl = hostedOnWP ? wpHostedURL : selfHostedURL;
@@ -45,6 +46,10 @@ const UrlInput = () => {
           type: types.TESTEDOK,
           payload: true,
         });
+        dispatch({
+          type: types.LAST_POST,
+          payload: wpContent.json[0],
+        });
       } else {
         dispatch({
           type: types.TESTEDOK,
@@ -53,7 +58,10 @@ const UrlInput = () => {
       }
       return wpContent;
     } catch (err) {
-      console.log(err);
+      dispatch({
+        type: types.TESTEDOK,
+        payload: false,
+      });
     }
   };
 
@@ -65,7 +73,7 @@ const UrlInput = () => {
     return () => {
       clearTimeout(delayedTestFetch);
     };
-  }, [value, hostedOnWP]);
+  }, [url, hostedOnWP]);
 
   const handleChange = useCallback((newValue) => {
     dispatch({
@@ -83,7 +91,7 @@ const UrlInput = () => {
 
   const TestBanner = testedOK ? (
     <Banner
-      title="The entered URL is correct you are good to go :)"
+      title="The entered URL is correct, do not forget to SAVE it and you are good to go :)"
       status="success"
     />
   ) : (
@@ -103,8 +111,13 @@ const UrlInput = () => {
     </>
   );
 
+  const SpinnerBanner = (
+    <Banner title="" status="info">
+      <Spinner size="small"/>
+    </Banner>
+  );
   return (
-    <Card sectioned title="Hosting settings">
+    <Card sectioned title="Hosting settings" id="hosting-settings">
       <FormLayout>
         <Checkbox
           label="Hosted on Wordpress?"
@@ -113,7 +126,7 @@ const UrlInput = () => {
         />
         <TextField
           label="Wordpress Site URL"
-          value={value}
+          value={url}
           onChange={handleChange}
           autoComplete="off"
           type="url"
@@ -121,7 +134,7 @@ const UrlInput = () => {
           onBlur={() => testFetch()}
           inputMode="url"
         />
-        {TestBanner}
+        {testing ? SpinnerBanner : TestBanner}
       </FormLayout>
     </Card>
   );

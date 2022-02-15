@@ -27,10 +27,6 @@
 }
 // General styles
 
-img {
-  max-width: 100%;
-  height: auto;
-}
 
 .Polaris-Spinner {
   position: absolute;
@@ -76,6 +72,33 @@ img {
   opacity: 0.01;
   transition: opacity 500ms ease-in;
 }
+
+//latest post styles
+.swpf-box{
+  height: 200px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.swpf-box img {
+  width: auto;
+  height: 100%;
+  object-fit:cover;
+  z-index: 1;
+}
+
+
+.swpf_box_title {
+  position: absolute;
+  z-index: 2;
+  padding-top: 160px;
+  font-weight: 600;
+  font-size: 16px;
+  color: #f3f3f3;
+}
+
+// latest post styles end
 
 //  Worpress styles
 

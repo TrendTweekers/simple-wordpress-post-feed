@@ -47,6 +47,8 @@ function reducer(data, action) {
         ...data,
         disableSave: false,
         testedOK: false,
+        lastPost:undefined,
+        testing:true,
         settings: {
           ...data.settings,
           url: {
@@ -73,6 +75,7 @@ function reducer(data, action) {
         disableSave: false,
         tested: false,
         testedOK: false,
+        testing: true,
         settings: {
           ...data.settings,
           hostedOnWP: {
@@ -217,8 +220,14 @@ function reducer(data, action) {
     case types.TESTEDOK:
       return {
         ...data,
-        testedOK: action.payload,
+        testing:false,
+        testedOK: action.payload, 
       };
+      case types.LAST_POST:
+        return {
+          ...data,
+          lastPost:action.payload
+        }
     default:
       return data;
   }
