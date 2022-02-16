@@ -27,11 +27,20 @@ const UrlInput = () => {
     return `https://${inputString}`;
   };
 
+  const urlStripWPHost = (inputString) => {
+    const regexp =
+      /(https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
+    if (regexp.test(inputString)) {
+      return inputString.slice(8);
+    }
+    return inputString;
+  };
+
   const testFetch = async () => {
     const selfHostedURL = `${isUrl(
       url
     )}/wp-json/wp/v2/posts?_embed&order=desc&per_page=1`;
-    const wpHostedURL = `https://public-api.wordpress.com/rest/v1.1/sites/${isUrl(
+    const wpHostedURL = `https://public-api.wordpress.com/rest/v1.1/sites/${urlStripWPHost(
       url
     )}/posts/?number=1`;
     try {
@@ -42,6 +51,18 @@ const UrlInput = () => {
         })
       );
       if (wpContent.status == 200) {
+
+        if (hostedOnWP) {
+          dispatch({
+            type: types.CHANGE_URL,
+            payload: urlStripWPHost(url),
+          });
+        } else {
+          dispatch({
+            type: types.CHANGE_URL,
+            payload: isUrl(url),
+          });
+        }
         dispatch({
           type: types.TESTEDOK,
           payload: true,
@@ -113,7 +134,7 @@ const UrlInput = () => {
 
   const SpinnerBanner = (
     <Banner title="" status="info">
-      <Spinner size="small"/>
+      <Spinner size="small" />
     </Banner>
   );
   return (
