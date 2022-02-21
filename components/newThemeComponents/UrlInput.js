@@ -52,17 +52,6 @@ const UrlInput = () => {
       );
       if (wpContent.status == 200) {
 
-        if (hostedOnWP) {
-          dispatch({
-            type: types.CHANGE_URL,
-            payload: urlStripWPHost(url),
-          });
-        } else {
-          dispatch({
-            type: types.CHANGE_URL,
-            payload: isUrl(url),
-          });
-        }
         dispatch({
           type: types.TESTEDOK,
           payload: true,
@@ -97,10 +86,17 @@ const UrlInput = () => {
   }, [url, hostedOnWP]);
 
   const handleChange = useCallback((newValue) => {
-    dispatch({
-      type: types.CHANGE_URL,
-      payload: newValue,
-    });
+    if (hostedOnWP) {
+      dispatch({
+        type: types.CHANGE_URL,
+        payload: urlStripWPHost(newValue),
+      });
+    } else {
+      dispatch({
+        type: types.CHANGE_URL,
+        payload: isUrl(newValue),
+      });
+    }
   }, []);
 
   const handleChangeCheckBox = useCallback((newChecked) => {
