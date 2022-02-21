@@ -18,8 +18,9 @@ import { Store } from '../store/store';
 
 const UpdateSection = () => {
   const { data, dispatch } = React.useContext(Store);
-  const {version, latestVersion,disableUpdate} = data
-  const [buttonDisabled, setButtonDisabled] = useState(disableUpdate);
+  const {version, latestVersion,disableUpdate,shop} = data
+  console.log(data)
+  const [buttonDisabled, setButtonDisabled] = useState(latestVersion === version);
   const [banner, setBanner] = useState(false);
   const action = "update";
 
