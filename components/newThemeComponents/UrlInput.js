@@ -89,12 +89,12 @@ const UrlInput = () => {
     if (hostedOnWP) {
       dispatch({
         type: types.CHANGE_URL,
-        payload: urlStripWPHost(newValue),
+        payload: newValue,
       });
     } else {
       dispatch({
         type: types.CHANGE_URL,
-        payload: isUrl(newValue),
+        payload: newValue,
       });
     }
   }, []);
