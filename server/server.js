@@ -49,7 +49,7 @@ Shopify.Context.initialize({
   ? process.env.SCOPES.split(",")
   : "write_themes,read_themes,read_script_tags,write_script_tags",
   HOST_NAME: TUNNEL_URL.replace(/https:\/\//, ""),
-  API_VERSION: ApiVersion.October21,
+  API_VERSION: ApiVersion.January22,
   IS_EMBEDDED_APP: true,
   SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
 });
