@@ -42,6 +42,14 @@ function reducer(data, action) {
           ...action.payload
         },
       };
+      case types.UPDATE_METADATA:
+        return {
+          ...data,
+          disableSave: true,
+          settings: {
+            ...action.payload
+          },
+        };
     case types.CHANGE_URL:
       return {
         ...data,

@@ -12,7 +12,7 @@ import {
   Layout,
 } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
-
+import axios from "axios";
 import { TroubleShootBanner, ReviewBanner } from "../Banners";
 import * as types from "../../store/types";
 import { Store } from "../../store/store";
@@ -41,20 +41,16 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       setShowReviewBanner(true);
     }
   }, [banner, reviewBanner]);
-
   const handleSubmit = () => {
-    fetch(`/api/data?shop=${shop}`, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      redirect: "follow",
-      referrer: "no-referrer",
-      body: JSON.stringify(settings),
+    axios.post(`/api/data`, {
+      settings
     })
-      .then((res) => {
-        if (res.status === 201) {
+      .then(({data,status}) => {
+        if (status === 200) {
+          dispatch({
+            type: types.FETCH_METADATA,
+            payload: data,
+          });
           dispatch({
             type: types.SAVE_DB,
           });

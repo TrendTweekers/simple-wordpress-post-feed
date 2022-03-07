@@ -2,6 +2,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Store } from "../store/store";
 import fetch from "isomorphic-unfetch";
+import axios from "axios";
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
@@ -22,22 +23,10 @@ const Index = ({ shopOrigin: shop }) => {
   const {newThemeCapable} = data.support;
   
   const fetchShopData = () =>
-    fetch(`/api/data?shop=${shop}`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((json) => json);
+    axios(`/api/data`).then(({data}) => data);
 
   const getMetaData = () =>
-    fetch(`/api/meta?shop=${shop}`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((json) => json);
+    axios(`/api/meta`).then(({data}) => data);
 
   const getSettings = async () => {
     dispatch({

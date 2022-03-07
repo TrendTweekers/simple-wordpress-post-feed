@@ -3,7 +3,7 @@ import ApolloClient from "apollo-boost";
 
 import config from "../../config/config";
 
-import "isomorphic-unfetch";
+import axios from "axios";
 import initialState from "../../../store/initialState";
 const initialSettings = initialState.settings;
 
@@ -24,7 +24,7 @@ const { GRAPHQL_VERSION } = config;
 
 const checkTheme = async (shop, token) => {
   try {
-    const results = await fetch(
+    const results = await axios(
       `https://${shop}/admin/api/${API_VERSION}/themes.json`,
       {
         headers: {
@@ -32,9 +32,8 @@ const checkTheme = async (shop, token) => {
         },
       }
     )
-      .then((response) => response.json())
-      .then((json) => {
-        const mainTheme = json.themes.filter((theme) => theme.role === "main");
+      .then(({data}) => {
+        const mainTheme = data.themes.filter((theme) => theme.role === "main");
         return mainTheme[0].id;
       });
     return results;
@@ -52,7 +51,7 @@ const checkTheme = async (shop, token) => {
  */
 const checkEmailId = async (shop, token) => {
   try {
-    const results = await fetch(
+    const results = await axios(
       `https://${shop}/admin/api/${API_VERSION}/shop.json`,
       {
         headers: {
@@ -60,12 +59,11 @@ const checkEmailId = async (shop, token) => {
         },
       }
     )
-      .then((response) => response.json())
-      .then((json) => {
+      .then(({data: {shop:{email,id,shop_owner}}}) => {
         return {
-          email: json.shop.email,
-          id: json.shop.id,
-          name: json.shop.shop_owner,
+          email: email,
+          id: id,
+          name: shop_owner,
         };
       });
     return results;
@@ -81,7 +79,7 @@ const checkEmailId = async (shop, token) => {
  * @return {boolean}
  */
 const checkDevShop = async (shop, token) => {
-  const devShop = await fetch(
+  const devShop = await axios(
     `https://${shop}/admin/api/${API_VERSION}/shop.json`,
     {
       headers: {
@@ -89,11 +87,10 @@ const checkDevShop = async (shop, token) => {
       },
     }
   )
-    .then((response) => response.json())
-    .then((json) => {
+    .then(({data:{shop:{plan_name}}}) => {
       if (
-        json.shop.plan_name === "affiliate" ||
-        json.shop.plan_name === "partner_test"
+        plan_name === "affiliate" ||
+        plan_name === "partner_test"
       ) {
         return true;
       }
@@ -109,7 +106,7 @@ const checkDevShop = async (shop, token) => {
  * @return {boolean}
  */
 const checkCharge = async (shop, token, chargeID) => {
-  const active = await fetch(
+  const active = await axios(
     `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
     {
       headers: {
@@ -117,9 +114,8 @@ const checkCharge = async (shop, token, chargeID) => {
       },
     }
   )
-    .then((response) => response.json())
-    .then((json) => {
-      if (json.recurring_application_charge.status === "active") {
+    .then(({data:{recurring_application_charge:{status}}}) => {
+      if (status === "active") {
         return true;
       }
       return false;
@@ -133,10 +129,9 @@ const checkCharge = async (shop, token, chargeID) => {
  * @param  {string} chargeID
  */
 const deleteCharge = async (shop, token, chargeID) => {
-  const result = await fetch(
+  const result = await axios.delete(
     `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
     {
-      method: "DELETE",
       headers: {
         "X-Shopify-Access-Token": token,
       },

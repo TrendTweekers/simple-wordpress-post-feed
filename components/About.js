@@ -14,7 +14,7 @@ const About = ({newThemeCapable}) => {
   const [content, setContent] = useState();
   const pageURI = "mesmerize-pro";
 
-  const fetchDataAction = () => {
+  const fetchDocumentation = () => {
     const wordpress = new ApolloClient({
       uri: "https://stackedboost.com/graphql",
     });
@@ -51,7 +51,7 @@ const About = ({newThemeCapable}) => {
   );
 
   useEffect(() => {
-    fetchDataAction();
+    fetchDocumentation();
   }, [pageURI]);
 
   if (content) {
