@@ -7,6 +7,7 @@ import {
   Banner,
   Spinner,
 } from "@shopify/polaris";
+import axios from "axios";
 import { Store } from "../../store/store";
 import * as types from "../../store/types";
 import fetch from "cross-fetch";
@@ -45,11 +46,9 @@ const UrlInput = () => {
     )}/posts/?number=1`;
     try {
       const hostUrl = hostedOnWP ? wpHostedURL : selfHostedURL;
-      const wpContent = await fetch(hostUrl).then((res) =>
-        res.json().then((json) => {
-          return { status: res.status, json };
-        })
-      );
+      const wpContent = await axios(hostUrl).then(({status,data}) =>{
+          return { status, data };
+        });
       if (wpContent.status == 200) {
 
         dispatch({
@@ -58,7 +57,7 @@ const UrlInput = () => {
         });
         dispatch({
           type: types.LAST_POST,
-          payload: wpContent.json[0],
+          payload: wpContent.data[0],
         });
       } else {
         dispatch({

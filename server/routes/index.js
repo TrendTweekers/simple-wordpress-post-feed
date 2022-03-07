@@ -27,8 +27,8 @@ const { APP, TUNNEL_URL } = config;
  * @param  {context} ctx
  */
 const getData = async (ctx) => {
-  const { shop } = await ctx.request.query;
-
+  const referer = new URLSearchParams(ctx.request.header.referer);
+  const shop = referer.get("shop");
   console.log(`GET DATA LOG ${shop}`);
 
   /** Checking version in settings DB */
@@ -65,31 +65,46 @@ const getData = async (ctx) => {
  * @param  {context} ctx
  */
 const uploadData = async (ctx) => {
-  const { shop } = await ctx.request.query;
+  const { settings } = await ctx.request.body;
+  const referer = new URLSearchParams(ctx.request.header.referer);
+  const shop = referer.get("shop");
+  console.log(`Upload data route ran for ${shop}`);
   const fsData = await getFs(APP, shop);
   const { token } = fsData;
-  const settings = await ctx.request.body;
-  console.log(`upload metafields to  ${shop}`);
-  try {
-    for (const property in settings) {
-      const { id, value, type } = settings[property];
+
+  const lengthOfSettings = Object.keys(settings).length;
+  const uploadPromise = new Promise((resolve, reject) => {
+    const newData= {...settings};
+    Object.keys(settings).forEach(async (key, i) => {
+      const { id, value, type } = settings[key];
       if (id && value !== "") {
+        newData[key] = { id, value, type };
         updateMetafield(shop, token, id, value, type);
-      } else if (!id && value !== "") {
-        /**Create metafield if it was not existing */
-        createMetafield(shop, token, property, value, type);
-      } else if (id && value === "") {
-        /**Delete  metafield if value is 0*/
-        deleteMetafield(shop, token, id);
       }
-    }
-    ctx.response.status = 201;
-    return settings;
-  } catch (err) {
-    console.log(err);
-    ctx.response.status = 500;
-  }
-};
+      if (!id && value !== "") {
+        /**Create metafield if it was not existing */
+        const { id: newID } = await createMetafield(
+          shop,
+          token,
+          key,
+          value,
+          type
+        );
+        newData[key] = { id: newID, value, type };
+      }
+      if (id && value === "") {
+        deleteMetafield(shop, token, id);
+        newData[key] = { id: "", value: "", type };
+      }
+      if (i === lengthOfSettings - 1) {
+        resolve(newData)
+      }
+    });
+  });
+  uploadPromise.then((updatedData) => {
+    ctx.body = updatedData;
+  })
+}
 
 /** This is for shopify to redact everything GDPR mandatory webhook
  * @param  {context} ctx
@@ -188,12 +203,11 @@ const update = async (ctx) => {
 
 /** Auth + Install route that run at first time, and each time somebody start the app
  * @param  {string} shop
- * @param {string} action
+ * @param {string} host
  * @return {object} allowed:boolean and confirmationUrl:string
  */
 const install = async (ctx) => {
   const { shop, host } = await ctx.request.query;
-  console.log(`${action} section route ran`);
   const shopData = await getFs(APP, shop);
   const { token, chargeID, plan, theme, longTrial } = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
@@ -202,6 +216,7 @@ const install = async (ctx) => {
   const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
   const { newThemeCapable } = await supportBlocks(shop, token);
   const action = newThemeCapable ? "newtheme-install" : "install";
+  console.log(`${action} section route ran`);
 
   /** Always checking if the current theme is the same as in the DB */
   if (theme !== currentTheme) {
@@ -268,9 +283,10 @@ const cancelCharge = async (ctx) => {
 };
 
 const downloadMetafield = async (ctx) => {
+  const referer = new URLSearchParams(ctx.request.header.referer);
+  const shop = referer.get("shop");
   console.log("download metafield");
   try {
-    const { shop } = await ctx.request.query;
     const { token } = await getFs(APP, shop);
     const data = await getMultipleMetafields(shop, token);
     console.log(`metafield data --> ${data}`);

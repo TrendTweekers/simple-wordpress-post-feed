@@ -5,7 +5,7 @@ import ApolloClient from "apollo-boost";
 import {AppProvider} from "@shopify/polaris";
 import {StoreProvider} from '../store/store';
 import React, {useState, useEffect} from "react";
-import fetch from "isomorphic-unfetch";
+import axios from "axios";
 import {useAppBridge, Provider} from "@shopify/app-bridge-react";
 import {authenticatedFetch} from "@shopify/app-bridge-utils";
 import {Redirect} from "@shopify/app-bridge/actions";
@@ -69,24 +69,20 @@ const authStep = ({config, Component, pageProps}) => {
    * Make install route run and returning if the shop allowed to log in or not, if not, returning an existing confirmation url or a new one
    */
   const makeInstall = () => {
-    const action = "install";
-    fetch(`/api/install?shop=${shopOrigin}&host=${host}`, {
-      method: "GET",
-      mode: "cors",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      redirect: "follow",
-      referrer: "no-referrer",
+    axios(`/api/install`, {
+      params:{
+        shop: shopOrigin,
+        host
+      }
     })
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.allowed) {
+      .then((res) => {
+        const {data :{allowed,confirmationUrl}} = res;
+        if (allowed) {
           setAllowed(true);
           setLoading(false);
         } else {
           setAllowed(false);
-          setConfirmationUrl(json.confirmationUrl);
+          setConfirmationUrl(confirmationUrl);
           setLoading(false);
         }
       })
@@ -110,7 +106,8 @@ const authStep = ({config, Component, pageProps}) => {
         <Spinner />
       </AppProvider>
     );
-  } else if (allowed) {
+  } 
+  if (allowed) {
     return (
       <AppProvider 
       i18n={{

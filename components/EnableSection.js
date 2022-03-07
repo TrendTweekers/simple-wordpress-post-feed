@@ -1,14 +1,8 @@
-import {
-
-  TextStyle,
-  SettingToggle,
-
-} from "@shopify/polaris";
-import React, {useState} from "react";
-import fetch from "isomorphic-unfetch";
+import { TextStyle, SettingToggle } from "@shopify/polaris";
+import React, { useState } from "react";
+import axios from "axios";
 import PropTypes from "prop-types";
-import { Store } from '../store/store';
-
+import { Store } from "../store/store";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -17,32 +11,20 @@ import { Store } from '../store/store';
  */
 
 const EnableSection = () => {
-  const { data, dispatch } = React.useContext(Store);
-  const {clean,shop} = data;
+  const { data } = React.useContext(Store);
+  const { clean, shop } = data;
   const [disabled, setDisabled] = useState(clean);
 
   const contentStatus = disabled ? "Enable" : "Disable";
   const textStatus = disabled ? "disabled" : "enabled";
 
   const handleClick = () => {
-    const postData = {shop, action: null};
-    if (disabled) {
-      postData.action = "enable";
-      setDisabled(false);
-    } else {
-      postData.action = "clean";
-      setDisabled(true);
-    }
-    fetch(`/api/update`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // 'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      redirect: "follow",
-      referrer: "origin",
-      body: JSON.stringify(postData),
-    })
+    const postData = { shop, action: disabled ? "enable" : "clean" };
+
+    axios
+      .post(`/api/update`, {
+        postData,
+      })
       .catch((err) => console.log(err));
   };
   return (
@@ -53,7 +35,7 @@ const EnableSection = () => {
       }}
       enabled={!disabled}
     >
-        Section is <TextStyle variation="strong">{textStatus}</TextStyle>
+      Section is <TextStyle variation="strong">{textStatus}</TextStyle>
     </SettingToggle>
   );
 };
