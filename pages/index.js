@@ -1,4 +1,3 @@
-// import deleteSection from './../components/delete_section';
 import React, { useContext, useState, useEffect } from "react";
 import { Store } from "../store/store";
 import fetch from "isomorphic-unfetch";

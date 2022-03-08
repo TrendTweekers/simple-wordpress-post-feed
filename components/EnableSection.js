@@ -23,7 +23,7 @@ const EnableSection = () => {
 
     axios
       .post(`/api/update`, {
-        postData,
+        ...postData,
       })
       .catch((err) => console.log(err));
   };
