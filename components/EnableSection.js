@@ -20,7 +20,13 @@ const EnableSection = () => {
 
   const handleClick = () => {
     const postData = { shop, action: disabled ? "enable" : "clean" };
-
+    if (disabled) {
+      postData.action = "enable";
+      setDisabled(false);
+    } else {
+      postData.action = "clean";
+      setDisabled(true);
+    }
     axios
       .post(`/api/update`, {
         ...postData,
