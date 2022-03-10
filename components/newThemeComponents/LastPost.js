@@ -14,7 +14,7 @@ import {
 const LastPost = () => {
   const { data } = React.useContext(Store);
   const { lastPost } = data;
-  console.log(lastPost);
+  //console.log(lastPost);
 
   if (lastPost) {
     return (

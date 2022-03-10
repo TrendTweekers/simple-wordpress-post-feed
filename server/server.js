@@ -20,6 +20,7 @@ import {
   getData,
   uploadData,
   update,
+  deleteAllMeta,
   uninstall,
   redact,
   install,
@@ -115,6 +116,7 @@ app
     router
       .get("/api/data", getData)
       .post("/api/data", uploadData)
+      .post("/api/deletedata", deleteAllMeta)
       .get("/api/meta", downloadMetafield)
       .get("/api/install", install)
       .post("/api/update", update)
