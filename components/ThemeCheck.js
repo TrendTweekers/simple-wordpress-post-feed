@@ -13,7 +13,6 @@ const ThemeCheck = ({data}) => {
   const {theme,
     supportsAppBlocks,
     supportsSe} = data.support;
-  console.log(data);
 
   const GettingStartedStep = ({title, description, completed}) => {
     const source = completed ? CircleTickOutlineMinor : RiskMinor;

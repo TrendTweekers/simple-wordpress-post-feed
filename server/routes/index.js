@@ -73,38 +73,66 @@ const uploadData = async (ctx) => {
   const { token } = fsData;
 
   const lengthOfSettings = Object.keys(settings).length;
-  const uploadPromise = new Promise((resolve, reject) => {
-    const newData= {...settings};
+  const newData = { ...settings };
+  Object.keys(settings).forEach(async (key, i) => {
+    const { id, value, type } = settings[key];
+    if (id && value !== "") {
+      newData[key] = { id, value, type };
+      updateMetafield(shop, token, id, value, type);
+    }
+    if (!id && value !== "") {
+      /**Create metafield if it was not existing */
+      const { id: newID } = await createMetafield(
+        shop,
+        token,
+        key,
+        value,
+        type
+      );
+      newData[key] = { id: newID, value, type };
+    }
+    if (id && value === "") {
+      deleteMetafield(shop, token, id);
+      newData[key] = { id: "", value: "", type };
+    }
+    if (i === lengthOfSettings - 1) {
+      console.log(newData);
+    }
+  });
+ctx.body = settings;
+};
+
+/** Upload data to metafields!@
+ * @param  {context} ctx
+ */
+const deleteAllMeta = async (ctx) => {
+  const { settings } = await ctx.request.body;
+  const referer = new URLSearchParams(ctx.request.header.referer);
+  const shop = referer.get("shop");
+  console.log(`Delete all meta ${shop}`);
+  const fsData = await getFs(APP, shop);
+  const { token } = fsData;
+
+  const lengthOfSettings = Object.keys(settings).length;
+  const deletePromise = new Promise((resolve, reject) => {
+    const newData = { ...settings };
     Object.keys(settings).forEach(async (key, i) => {
-      const { id, value, type } = settings[key];
-      if (id && value !== "") {
-        newData[key] = { id, value, type };
-        updateMetafield(shop, token, id, value, type);
-      }
-      if (!id && value !== "") {
-        /**Create metafield if it was not existing */
-        const { id: newID } = await createMetafield(
-          shop,
-          token,
-          key,
-          value,
-          type
-        );
-        newData[key] = { id: newID, value, type };
-      }
-      if (id && value === "") {
+      const { id, type } = settings[key];
+      if (id) {
         deleteMetafield(shop, token, id);
         newData[key] = { id: "", value: "", type };
       }
       if (i === lengthOfSettings - 1) {
-        resolve(newData)
+        resolve(newData);
       }
     });
   });
-  uploadPromise.then((updatedData) => {
-    ctx.body = updatedData;
-  })
-}
+  deletePromise.then((deletedData) => {
+    console.log("promise finished");
+    console.log(deletedData);
+    return (ctx.body = deletedData);
+  });
+};
 
 /** This is for shopify to redact everything GDPR mandatory webhook
  * @param  {context} ctx
@@ -303,6 +331,7 @@ module.exports.uploadData = uploadData;
 module.exports.redact = redact;
 module.exports.uninstall = uninstall;
 module.exports.update = update;
+module.exports.deleteAllMeta = deleteAllMeta;
 module.exports.install = install;
 module.exports.customerRedact = customerRedact;
 module.exports.customerData = customerData;
