@@ -9,6 +9,7 @@ import {
   Button,
 } from "@shopify/polaris";
 import React, {useState, useEffect} from "react";
+import * as types from "../store/types";
 
 import UpdateSection from "./UpdateSection";
 import EnableSection from "./EnableSection";
@@ -21,17 +22,12 @@ import { Store } from '../store/store';
  * has to be set
  */
 
-const Dashboard = ({ banner, reviewBanner}) => {
+const Dashboard = ({ newTheme}) => {
   const { data, dispatch } = React.useContext(Store);
-  const [showBanner, setShowBanner] = useState(banner === "true");
-  const [showReviewBanner, setShowReviewBanner] = useState(reviewBanner === "true");
+  const [showBanner, setShowBanner] = useState("true");
+  const [showReviewBanner, setShowReviewBanner] = useState("true");
 const {theme,shop} = data
-  useEffect(() => {
-    if (banner === undefined) {
-      setShowBanner(true);
-      setShowReviewBanner(true);
-    }
-  }, [banner, reviewBanner]);
+
 
 
   /** Link to the shop theme customizer */
@@ -75,6 +71,12 @@ const {theme,shop} = data
       />
       {/* <ThemeCheck data={storeData} /> */}
       <UpdateSection />
+      <br />
+      <Card sectioned>
+      <Heading>If you are currently using older theme but you want to test the settings for Theme 2.0 please click on the button below!</Heading>
+      <br/>
+      <Button primary onClick={newTheme}>Show theme 2.0 settings</Button>
+      </Card>
     </Page>
   );
 };

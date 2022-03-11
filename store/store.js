@@ -33,6 +33,13 @@ function reducer(data, action) {
         chargeID: action.payload.chargeID,
         support: action.payload.support,
       };
+    case types.RESET_DATA:
+      return {
+        ...data,
+        disableSave: true,
+        isLoading: false,
+        settings: initialState.settings,
+      }
     case types.FETCH_METADATA:
       return {
         ...data,

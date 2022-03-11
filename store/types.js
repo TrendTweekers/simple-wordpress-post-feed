@@ -1,6 +1,7 @@
 export const LOADING = "LOADING"
 export const SAVE_DB = "SAVE_DB"
 export const FETCH_DATA = "FETCH_DATA"
+export const RESET_DATA = "RESET_DATA"
 export const FETCH_METADATA = "FETCH_METADATA"
 export const UPDATE_METADATA = "UPDATE_METADATA"
 export const CHANGE_URL = "CHANGE_URL"

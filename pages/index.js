@@ -1,6 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Store } from "../store/store";
-import fetch from "isomorphic-unfetch";
 import axios from "axios";
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
@@ -18,8 +17,9 @@ import * as types from "../store/types";
 const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const { data, dispatch } = useContext(Store);
+  const [themeOverride, setThemeOverride] = useState(false);
   const [page, setPage] = useState("main");
-  const {newThemeCapable} = data.support;
+  const {support:{newThemeCapable}} = data;
   
   const fetchShopData = () =>
     axios(`/api/data`).then(({data}) => data);
@@ -50,16 +50,19 @@ const Index = ({ shopOrigin: shop }) => {
       })
 
   };
+/**Override current theme setting, showing new Theme 2.0 settings */
+const newThemeSwitch = () => {
+  setThemeOverride(!themeOverride);
+}
 
   useEffect(() => {
     getSettings();
     return () => {
       abortController.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shop]);
+  }, [shop,themeOverride]);
 
-  const dashboardComponent = newThemeCapable ? <NewDashboard getSettings={getSettings}/> : <Dashboard />;
+  const dashboardComponent = newThemeCapable || themeOverride ? <NewDashboard getSettings={getSettings}/> : <Dashboard newTheme={newThemeSwitch} />;
 
   const activePage = page === "main" ? dashboardComponent : <About newThemeCapable={newThemeCapable}/>;
 

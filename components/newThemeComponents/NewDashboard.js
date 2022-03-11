@@ -91,8 +91,12 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   const handleDeleteAllMeta = () => {
     axios.post(`/api/deletedata`, {
       settings
-    })
+    }).then(()=>dispatch({
+      type: types.RESET_DATA,
+      }));
   }
+
+
     return (
       <Frame>
         {SaveBar}
@@ -143,6 +147,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
             setShowBanner={setShowBanner}
           />
           <Button destructive onClick={handleDeleteAllMeta}>Delete all meta tags</Button>
+          
         </Page>
       </Frame>
     );

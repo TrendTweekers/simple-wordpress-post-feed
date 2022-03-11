@@ -1925,24 +1925,24 @@
   "resolved" "https://registry.npmjs.org/@rushstack/eslint-patch/-/eslint-patch-1.1.0.tgz"
   "version" "1.1.0"
 
-"@shopify/app-bridge-react@^2.0.16":
-  "integrity" "sha512-4dfb8VZ0V9ahQf1NEMWk37FgtvC6Epy7wqQYqcYSHW5k9Ezy+TIxxgqtsqgir4L8GY92Nur4GYOAyMbR7a09bA=="
-  "resolved" "https://registry.npmjs.org/@shopify/app-bridge-react/-/app-bridge-react-2.0.16.tgz"
-  "version" "2.0.16"
+"@shopify/app-bridge-react@^2.0.17":
+  "integrity" "sha512-9TfvJp2fuNxBj2cNmrrcRRCQOIHWALseoQNfx+2Y+reWkKJV3f6tzAGDsQd5Y23YFLrnusxAdkEeHCdyVDppLg=="
+  "resolved" "https://registry.npmjs.org/@shopify/app-bridge-react/-/app-bridge-react-2.0.17.tgz"
+  "version" "2.0.17"
   dependencies:
-    "@shopify/app-bridge" "^2.0.16"
+    "@shopify/app-bridge" "^2.0.17"
 
-"@shopify/app-bridge-utils@^2.0.16":
-  "integrity" "sha512-3amIoIhs9arbTDR0c3u0hsiabQJtDDP4uO45Z1RBaYbdlpQhR6HPomP2Bx5tSoPplpDfL15RMd49KGobRuliYw=="
-  "resolved" "https://registry.npmjs.org/@shopify/app-bridge-utils/-/app-bridge-utils-2.0.16.tgz"
-  "version" "2.0.16"
+"@shopify/app-bridge-utils@^2.0.17":
+  "integrity" "sha512-/gXp2gzrezjfB17ColyiaB2anZt4VBbcIz5SedW0uyT1jis4lURnObueGFBWgCxdwbwanOuiVDVcBlkrTFB+hg=="
+  "resolved" "https://registry.npmjs.org/@shopify/app-bridge-utils/-/app-bridge-utils-2.0.17.tgz"
+  "version" "2.0.17"
   dependencies:
-    "@shopify/app-bridge" "^2.0.16"
+    "@shopify/app-bridge" "^2.0.17"
 
-"@shopify/app-bridge@^2.0.16":
-  "integrity" "sha512-E/JjyT94Bh623xezx91mVFGmAELIIUUVJyZfg6qbG6B6czGAciNfTRQKyXak9o+y4In0tbXBU3xNCE0sIY9Fow=="
-  "resolved" "https://registry.npmjs.org/@shopify/app-bridge/-/app-bridge-2.0.16.tgz"
-  "version" "2.0.16"
+"@shopify/app-bridge@^2.0.17":
+  "integrity" "sha512-XnaodqwnGJu8NkuukDTl1jfmT2U9yCgKZ8CLriFU8XjFonBWsCOiDcWjmsDC1osjCopufA9toHNl6mimBSG6XQ=="
+  "resolved" "https://registry.npmjs.org/@shopify/app-bridge/-/app-bridge-2.0.17.tgz"
+  "version" "2.0.17"
   dependencies:
     "base64url" "^3.0.1"
 
@@ -2016,10 +2016,10 @@
   "resolved" "https://registry.npmjs.org/@shopify/polaris-icons/-/polaris-icons-4.18.1.tgz"
   "version" "4.18.1"
 
-"@shopify/polaris@^9.0.0":
-  "integrity" "sha512-3hwlezHx2jJDvdsrQh5q2dK//p199LzftxyDomWb6+HyYU+Tp/GxZnC42kB/kfS4lQyGa0/zP8HQDnBc732NCw=="
-  "resolved" "https://registry.npmjs.org/@shopify/polaris/-/polaris-9.0.0.tgz"
-  "version" "9.0.0"
+"@shopify/polaris@^9.2.0":
+  "integrity" "sha512-jrOaazl71KzphrU5mv/ux2ptlYyzSHkcbVcdU9G4SpnzKjIIGunMmbnxZEJIIBLd9+e55baVOlAvpj4NYDDgRw=="
+  "resolved" "https://registry.npmjs.org/@shopify/polaris/-/polaris-9.2.0.tgz"
+  "version" "9.2.0"
   dependencies:
     "@shopify/polaris-icons" "^4.17.0"
     "@types/react" "^17.0.19"
