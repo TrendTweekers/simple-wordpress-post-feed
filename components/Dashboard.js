@@ -8,8 +8,7 @@ import {
   Heading,
   Button,
 } from "@shopify/polaris";
-import React, {useState, useEffect} from "react";
-import * as types from "../store/types";
+import React, {useState} from "react";
 
 import UpdateSection from "./UpdateSection";
 import EnableSection from "./EnableSection";
@@ -23,7 +22,7 @@ import { Store } from '../store/store';
  */
 
 const Dashboard = ({ newTheme}) => {
-  const { data, dispatch } = React.useContext(Store);
+  const { data } = React.useContext(Store);
   const [showBanner, setShowBanner] = useState("true");
   const [showReviewBanner, setShowReviewBanner] = useState("true");
 const {theme,shop} = data
