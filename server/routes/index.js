@@ -144,11 +144,8 @@ const redact = async (ctx) => {
   const action = "uninstall";
   if (shopData) {
     pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
-    ctx.body = {};
-  } else {
-    console.log(`Shop is already not in DB ${shop_domain}`);
-    ctx.body = {};
   }
+  ctx.response.status = 200;
 };
 
 /** This is for shopify to redact customer GDPR mandatory webhook
@@ -162,11 +159,8 @@ const customerRedact = async (ctx) => {
   if (shopData) {
     console.log(`Shop is in DB`);
     pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
-    ctx.body = {};
-  } else {
-    console.log(`Shop is NOT in DB`);
-    ctx.body = {};
-  }
+  } 
+    ctx.response.status = 200;
 };
 
 /** This is for shopify to get customer DATA GDPR mandatory webhook
@@ -183,7 +177,7 @@ const customerData = async (ctx) => {
     ctx.body = { shopData };
   } else {
     console.log(`shop is NOT in DB`);
-    ctx.body = {};
+    ctx.body = {message: "Shop is not in DB"};
   }
 };
 
