@@ -1,13 +1,12 @@
-const {default: Shopify} = require("@shopify/shopify-api");
+const { default: Shopify } = require("@shopify/shopify-api");
 
 const env = require("../config/config");
-const {getFs} = require("../lib/firebase/firebase");
+const { getFs } = require("../lib/firebase/firebase");
 
-const {initShop} = require("./checkShop");
+const { initShop } = require("./checkShop");
 const createWebhook = require("./createWebhook");
 
-const {APP} = env;
-
+const { APP } = env;
 
 /** Creating subscription URL
  * @param  {object} ctx context object
@@ -18,14 +17,14 @@ const {APP} = env;
  * @param {boolean} webhook if we want to make a webhook set true
  */
 const getSubscriptionUrlDEV = async (
-    ctx,
-    accessToken,
-    shop,
-    returnUrl,
-    getUrl = false,
-    webhook = true,
+  ctx,
+  accessToken,
+  shop,
+  returnUrl,
+  getUrl = false,
+  webhook = true
 ) => {
-  const {trial, price} = await getFs("settings", APP);
+  const { trial, price } = await getFs("settings", APP);
 
   const query = `mutation {
     appSubscriptionCreate(
@@ -37,7 +36,8 @@ const getSubscriptionUrlDEV = async (
         {
           plan: {
             appRecurringPricingDetails: {
-                price: { amount: ${price}, currencyCode: USD }
+                price: { amount: ${price}, currencyCode: USD },
+                interval: EVERY_30_DAYS
             }
           }
         }
@@ -58,17 +58,16 @@ const getSubscriptionUrlDEV = async (
   const response = await client.query({
     data: query,
   });
-  const {confirmationUrl} = response.body.data.appSubscriptionCreate;
+  const { confirmationUrl } = response.body.data.appSubscriptionCreate;
 
-    /** Getting the charge ID */
-  const chargeID = response.body.data.appSubscriptionCreate.appSubscription.id.split(
-        "/",
-    )[4];
+  /** Getting the charge ID */
+  const chargeID =
+    response.body.data.appSubscriptionCreate.appSubscription.id.split("/")[4];
 
-    /** Initialization of the shop without saving the charging plan */
+  /** Initialization of the shop without saving the charging plan */
   await initShop(shop, accessToken, chargeID, confirmationUrl);
 
-    /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall */
+  /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall */
   if (webhook) {
     createWebhook(`/${APP}/uninstall`, "APP_UNINSTALLED", accessToken, shop);
   }

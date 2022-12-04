@@ -99,7 +99,7 @@ const uploadData = async (ctx) => {
       console.log(newData);
     }
   });
-ctx.body = settings;
+  ctx.body = settings;
 };
 
 /** Upload data to metafields!@
@@ -159,8 +159,8 @@ const customerRedact = async (ctx) => {
   if (shopData) {
     console.log(`Shop is in DB`);
     pushTopic(shop_domain, shopData.theme.toString(), shopData.token, action);
-  } 
-    ctx.response.status = 200;
+  }
+  ctx.response.status = 200;
 };
 
 /** This is for shopify to get customer DATA GDPR mandatory webhook
@@ -177,7 +177,7 @@ const customerData = async (ctx) => {
     ctx.body = { shopData };
   } else {
     console.log(`shop is NOT in DB`);
-    ctx.body = {message: "Shop is not in DB"};
+    ctx.body = { message: "Shop is not in DB" };
   }
 };
 
@@ -233,66 +233,70 @@ const install = async (ctx) => {
   const shopData = await getFs(APP, shop);
   const { token, chargeID, plan, theme, longTrial } = shopData;
   const activeCharge = await checkCharge(shop, token, chargeID);
-  const development = await checkDevShop(shop, token);
-  const currentTheme = await checkTheme(shop, token);
-  const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
-  const { newThemeCapable } = await supportBlocks(shop, token);
-  const action = newThemeCapable ? "newtheme-install" : "install";
-  console.log(`${action} section route ran`);
+  if (activeCharge) {
+    const development = await checkDevShop(shop, token);
+    const currentTheme = await checkTheme(shop, token);
+    const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
+    const { newThemeCapable } = await supportBlocks(shop, token);
+    const action = newThemeCapable ? "newtheme-install" : "install";
+    console.log(`${action} section route ran`);
 
-  /** Always checking if the current theme is the same as in the DB */
-  if (theme !== currentTheme) {
-    writeFs(APP, shop, { theme: currentTheme });
-  }
-
-  /** Runs only first time when someone log in and plan is active */
-  if (activeCharge && plan === "") {
-    if (development) {
-      shopData.plan = "developer";
-    } else {
-      shopData.plan = "basic";
+    /** Always checking if the current theme is the same as in the DB */
+    if (theme !== currentTheme) {
+      writeFs(APP, shop, { theme: currentTheme });
     }
-    pushTopic(shop, theme.toString(), token, action);
 
-    ctx.status = 200;
-    const plan = { plan: shopData.plan };
-    await writeFs(APP, shop, plan);
-    ctx.body = { allowed: true };
-  } else if (activeCharge) {
-    ctx.body = { allowed: true };
-  } else if (longTrial) {
-    /** Runs when its normal store and got one year free */
-    const confirmationUrl = await getSubscriptionUrlLongTrial(
-      ctx,
-      token,
-      shop,
-      returnUrl,
-      true,
-      false
-    );
-    ctx.body = { allowed: false, confirmationUrl };
-  } else if (development) {
-    /** Runs when its dev store */
-    const confirmationUrl = await getSubscriptionUrlDEV(
-      ctx,
-      token,
-      shop,
-      returnUrl,
-      true,
-      false
-    );
-    ctx.body = { allowed: false, confirmationUrl };
+    /** Runs only first time when someone log in and plan is active */
+    if (activeCharge && plan === "") {
+      if (development) {
+        shopData.plan = "developer";
+      } else {
+        shopData.plan = "basic";
+      }
+      pushTopic(shop, theme.toString(), token, action);
+
+      ctx.status = 200;
+      const plan = { plan: shopData.plan };
+      await writeFs(APP, shop, plan);
+      ctx.body = { allowed: true };
+    } else if (activeCharge) {
+      ctx.body = { allowed: true };
+    } else if (longTrial) {
+      /** Runs when its normal store and got one year free */
+      const confirmationUrl = await getSubscriptionUrlLongTrial(
+        ctx,
+        token,
+        shop,
+        returnUrl,
+        true,
+        false
+      );
+      ctx.body = { allowed: false, confirmationUrl };
+    } else if (development) {
+      /** Runs when its dev store */
+      const confirmationUrl = await getSubscriptionUrlDEV(
+        ctx,
+        token,
+        shop,
+        returnUrl,
+        true,
+        false
+      );
+      ctx.body = { allowed: false, confirmationUrl };
+    } else {
+      /** Runs when its normal store */
+      const confirmationUrl = await getSubscriptionUrl(
+        ctx,
+        token,
+        shop,
+        returnUrl,
+        true,
+        false
+      );
+      ctx.body = { allowed: false, confirmationUrl };
+    }
   } else {
-    /** Runs when its normal store */
-    const confirmationUrl = await getSubscriptionUrl(
-      ctx,
-      token,
-      shop,
-      returnUrl,
-      true,
-      false
-    );
-    ctx.body = { allowed: false, confirmationUrl };
+    ctx.body = { allowed: false, confirmationUrl: `/auth?shop=${shop}` };
   }
 };
 

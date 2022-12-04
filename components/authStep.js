@@ -1,20 +1,21 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable react/prop-types */
-import {ApolloProvider} from "react-apollo";
+import { ApolloProvider } from "react-apollo";
 import ApolloClient from "apollo-boost";
-import {AppProvider} from "@shopify/polaris";
-import {StoreProvider} from '../store/store';
-import React, {useState, useEffect} from "react";
+import { AppProvider } from "@shopify/polaris";
+import { StoreProvider } from "../store/store";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import {useAppBridge, Provider} from "@shopify/app-bridge-react";
-import {authenticatedFetch} from "@shopify/app-bridge-utils";
-import {Redirect} from "@shopify/app-bridge/actions";
+import { useAppBridge, Provider } from "@shopify/app-bridge-react";
+import { authenticatedFetch } from "@shopify/app-bridge-utils";
+import { Redirect } from "@shopify/app-bridge/actions";
 import createApp from "@shopify/app-bridge";
 import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
 import es from "@shopify/polaris/locales/es.json";
-
+import env from "../server/config/config.js";
+const { TUNNEL_URL } = env;
 
 import Spinner from "./SpinnerComponent";
 
@@ -28,7 +29,7 @@ const userLoggedInFetch = (app) => {
       response.headers.get("X-Shopify-API-Request-Failure-Reauthorize") === "1"
     ) {
       const authUrlHeader = response.headers.get(
-        "X-Shopify-API-Request-Failure-Reauthorize-Url",
+        "X-Shopify-API-Request-Failure-Reauthorize-Url"
       );
 
       const redirect = Redirect.create(app);
@@ -59,8 +60,8 @@ const MyProvider = (props) => {
 };
 
 /** This component is checking if shop is existing in DB having active charge in shopify system... */
-const authStep = ({config, Component, pageProps}) => {
-  const {apiKey, shopOrigin, host} = config;
+const authStep = ({ config, Component, pageProps }) => {
+  const { apiKey, shopOrigin, host } = config;
   const [allowed, setAllowed] = useState(false);
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
@@ -70,19 +71,22 @@ const authStep = ({config, Component, pageProps}) => {
    */
   const makeInstall = () => {
     axios(`/api/install`, {
-      params:{
+      params: {
         shop: shopOrigin,
-        host
-      }
+        host,
+      },
     })
       .then((res) => {
-        const {data :{allowed,confirmationUrl}} = res;
+        const {
+          data: { allowed, confirmationUrl },
+        } = res;
         if (allowed) {
           setAllowed(true);
           setLoading(false);
         } else {
+          console.log("not allowed");
           setAllowed(false);
-          setConfirmationUrl(confirmationUrl);
+          setConfirmationUrl(`${TUNNEL_URL}${confirmationUrl}`);
           setLoading(false);
         }
       })
@@ -91,7 +95,7 @@ const authStep = ({config, Component, pageProps}) => {
 
   useEffect(() => {
     makeInstall();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin]);
 
   const app = createApp({
@@ -106,44 +110,42 @@ const authStep = ({config, Component, pageProps}) => {
         <Spinner />
       </AppProvider>
     );
-  } 
+  }
   if (allowed) {
     return (
-      <AppProvider 
-      i18n={{
-        Polaris: {
-          Frame: {
-            skipToContent: 'Skip to content',
+      <AppProvider
+        i18n={{
+          Polaris: {
+            Frame: {
+              skipToContent: "Skip to content",
+            },
+            ContextualSaveBar: {
+              save: "Save",
+              discard: "Discard",
+            },
           },
-          ContextualSaveBar: {
-            save: 'Save',
-            discard: 'Discard',
-          },
-        },
-        translations:[en, pl, sv, es],
-      }}
+          translations: [en, pl, sv, es],
+        }}
       >
         <Provider config={config}>
-        <StoreProvider>
-          <MyProvider
-            Component={Component}
-            {...pageProps}
-            shopOrigin={shopOrigin}
-            host={host}
-          />
+          <StoreProvider>
+            <MyProvider
+              Component={Component}
+              {...pageProps}
+              shopOrigin={shopOrigin}
+              host={host}
+            />
           </StoreProvider>
         </Provider>
       </AppProvider>
     );
   } else {
-
-      /** If charge is not active we redirect them to the confirmation URL */
+    /** If charge is not active we redirect them to the confirmation URL */
     app.dispatch(
-        Redirect.toRemote({
-          url: `${confirmationUrl}`,
-        }),
-      );
-    return <div>Something went wrong</div>;
+      Redirect.toRemote({
+        url: `${confirmationUrl}`,
+      })
+    );
   }
 };
 

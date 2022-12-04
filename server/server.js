@@ -2,20 +2,20 @@
 import "@babel/polyfill";
 
 import "isomorphic-unfetch";
-import {receiveWebhook} from "@shopify/koa-shopify-webhooks";
+import { receiveWebhook } from "@shopify/koa-shopify-webhooks";
 import Koa from "koa";
 import next from "next";
 import bodyParser from "koa-bodyparser";
 import Router from "@koa/router";
 import session from "koa-session";
-import {Shopify, ApiVersion} from "@shopify/shopify-api";
+import { Shopify, ApiVersion } from "@shopify/shopify-api";
 // import createShopifyAuth,{verifyRequest}  from "@shopify/koa-shopify-auth";
 import { createShopifyAuth, verifyRequest } from "simple-koa-shopify-auth";
 
 import getSubscriptionUrlDEV from "./handlers/getSubscriptionUrlDEV";
 import getSubscriptionUrl from "./handlers/getSubscriptionUrl";
 import env from "./config/config";
-import {getFs} from "./lib/firebase/firebase";
+import { getFs } from "./lib/firebase/firebase";
 import {
   getData,
   uploadData,
@@ -29,26 +29,21 @@ import {
   cancelCharge,
   downloadMetafield,
 } from "./routes/";
-import {checkDevShop} from "./lib/shopify/functions";
+import { checkDevShop, checkCharge } from "./lib/shopify/functions";
 
-const {
-  SHOPIFY_API_SECRET_KEY,
-  SHOPIFY_API_KEY,
-  APP,
-  TUNNEL_URL,
-} = env;
+const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL } = env;
 
 const extractHostParameter = (ctx) => {
   const parts = new URL(`https://${ctx.request.header.host}${ctx.request.url}`);
-  return parts.searchParams.get('host');
-}
+  return parts.searchParams.get("host");
+};
 
 Shopify.Context.initialize({
   API_KEY: SHOPIFY_API_KEY,
   API_SECRET_KEY: SHOPIFY_API_SECRET_KEY,
   SCOPES: process.env.SCOPES
-  ? process.env.SCOPES.split(",")
-  : "write_themes,read_themes,read_script_tags,write_script_tags",
+    ? process.env.SCOPES.split(",")
+    : "write_themes,read_themes,read_script_tags,write_script_tags",
   HOST_NAME: TUNNEL_URL.replace(/https:\/\//, ""),
   API_VERSION: ApiVersion.January22,
   IS_EMBEDDED_APP: true,
@@ -56,8 +51,8 @@ Shopify.Context.initialize({
 });
 
 const port = parseInt(process.env.PORT, 10) || 3000;
-const dev = (process.env.NODE_ENV !== "production");
-const app = next({dev});
+const dev = process.env.NODE_ENV !== "production";
+const app = next({ dev });
 const handle = app.getRequestHandler();
 
 app
@@ -67,7 +62,7 @@ app
     const router = new Router();
     server.proxy = true;
     server.use(bodyParser());
-    server.use(session({sameSite: "none", secure: true}, server));
+    server.use(session({ sameSite: "none", secure: true }, server));
     server.keys = [Shopify.Context.API_SECRET_KEY];
     server.use(
       createShopifyAuth({
@@ -76,9 +71,14 @@ app
         returnHeader: false,
         async afterAuth(ctx) {
           console.log(`after auth ran`);
-          const {shop, accessToken} = ctx.state.shopify;
-          const host = extractHostParameter(ctx);
-
+          const { shop, accessToken } = ctx.state.shopify;
+          const { host } = ctx.query;
+          if (!accessToken) {
+            // This can happen if the browser interferes with the auth flow
+            ctx.response.status = 500;
+            ctx.response.body = "Failed to get access token! Please try again.";
+            return;
+          }
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
           const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${host}&shop=${shop}`;
@@ -89,10 +89,9 @@ app
             await getSubscriptionUrl(ctx, accessToken, shop, returnUrl);
           }
         },
-      }),
+      })
     );
     const handleRequest = async (ctx) => {
-      console.log(`handle request ran ${JSON.stringify(ctx.request.url)}`);
       await handle(ctx.req, ctx.res);
       ctx.respond = false;
       ctx.res.statusCode = 200;
@@ -103,16 +102,22 @@ app
       if (shop) {
         console.log(`Shop from query main page! ${shop}`);
         const storeDB = await getFs(APP, shop);
-        if (storeDB) {
+        const activeCharge = checkCharge(
+          shop,
+          storeDB.token,
+          storeDB?.chargeID
+        );
+        if (storeDB && activeCharge) {
           await handleRequest(ctx);
+          ctx.redirect(`/auth?shop=${shop}`);
         } else {
-          console.log('no shop in DB lets auth')
+          console.log("no shop in DB lets auth");
           ctx.redirect(`/auth?shop=${shop}`);
         }
       }
     });
 
-    const webhook = receiveWebhook({secret: SHOPIFY_API_SECRET_KEY});
+    const webhook = receiveWebhook({ secret: SHOPIFY_API_SECRET_KEY });
     router
       .get("/api/data", getData)
       .post("/api/data", uploadData)
@@ -128,7 +133,7 @@ app
 
     // Static content is clear
     router.get("(/_next/static/.*)", handleRequest);
-     // Webpack content is clear
+    // Webpack content is clear
     router.get("/_next/webpack-hmr", handleRequest);
     // Everything else must have sessions
     router.get("(.*)", verifyRequest(), handleRequest);
@@ -137,10 +142,10 @@ app
     server.use(router.routes());
     router.post(
       "/graphql",
-      verifyRequest({returnHeader: true}),
+      verifyRequest({ returnHeader: true }),
       async (ctx) => {
         await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
-      },
+      }
     );
 
     server.use(router.routes());

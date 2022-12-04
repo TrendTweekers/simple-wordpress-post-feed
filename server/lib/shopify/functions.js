@@ -31,11 +31,10 @@ const checkTheme = async (shop, token) => {
           "X-Shopify-Access-Token": token,
         },
       }
-    )
-      .then(({data}) => {
-        const mainTheme = data.themes.filter((theme) => theme.role === "main");
-        return mainTheme[0].id;
-      });
+    ).then(({ data }) => {
+      const mainTheme = data.themes.filter((theme) => theme.role === "main");
+      return mainTheme[0].id;
+    });
     return results;
   } catch (err) {
     console.log(err);
@@ -58,17 +57,23 @@ const checkEmailId = async (shop, token) => {
           "X-Shopify-Access-Token": token,
         },
       }
-    )
-      .then(({data: {shop:{email,id,shop_owner}}}) => {
+    ).then(
+      ({
+        data: {
+          shop: { email, id, shop_owner },
+        },
+      }) => {
         return {
           email: email,
           id: id,
           name: shop_owner,
         };
-      });
+      }
+    );
     return results;
   } catch (err) {
     console.log(err);
+    return false;
   }
   return console.log("check email,id");
 };
@@ -79,24 +84,28 @@ const checkEmailId = async (shop, token) => {
  * @return {boolean}
  */
 const checkDevShop = async (shop, token) => {
-  const devShop = await axios(
-    `https://${shop}/admin/api/${API_VERSION}/shop.json`,
-    {
-      headers: {
-        "X-Shopify-Access-Token": token,
-      },
-    }
-  )
-    .then(({data:{shop:{plan_name}}}) => {
-      if (
-        plan_name === "affiliate" ||
-        plan_name === "partner_test"
-      ) {
-        return true;
+  if (token) {
+    const devShop = await fetch(
+      `https://${shop}/admin/api/${API_VERSION}/shop.json`,
+      {
+        method: "GET",
+        headers: {
+          "X-Shopify-Access-Token": token,
+        },
       }
-      return false;
-    });
-  return devShop;
+    )
+      .then((response) => response.json())
+      .then(({ shop: { plan_name } }) => {
+        if (plan_name === "affiliate" || plan_name === "partner_test") {
+          return true;
+        }
+        return false;
+      });
+    return devShop;
+  } else {
+    console.log("no token");
+    return false;
+  }
 };
 
 /** This function checking if the charge is active or not
@@ -106,21 +115,28 @@ const checkDevShop = async (shop, token) => {
  * @return {boolean}
  */
 const checkCharge = async (shop, token, chargeID) => {
-  const active = await axios(
-    `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
-    {
-      headers: {
-        "X-Shopify-Access-Token": token,
-      },
-    }
-  )
-    .then(({data:{recurring_application_charge:{status}}}) => {
-      if (status === "active") {
-        return true;
+  try {
+    const active = await fetch(
+      `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
+      {
+        method: "GET",
+        headers: {
+          "X-Shopify-Access-Token": token,
+        },
       }
-      return false;
-    });
-  return active;
+    )
+      .then((response) => response.json())
+      .then(({ recurring_application_charge: { status } }) => {
+        if (status === "active") {
+          return true;
+        }
+        return false;
+      });
+    return active;
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
 };
 
 /** Cancelling existing  recurringcharge and creating a new longer one
@@ -129,14 +145,16 @@ const checkCharge = async (shop, token, chargeID) => {
  * @param  {string} chargeID
  */
 const deleteCharge = async (shop, token, chargeID) => {
-  const result = await axios.delete(
-    `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
-    {
-      headers: {
-        "X-Shopify-Access-Token": token,
-      },
-    }
-  ).catch((err) => console.log(err));
+  const result = await axios
+    .delete(
+      `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
+      {
+        headers: {
+          "X-Shopify-Access-Token": token,
+        },
+      }
+    )
+    .catch((err) => console.log(err));
   return result;
 };
 
@@ -344,8 +362,6 @@ const supportBlocks = async (shop, token) => {
   }
 };
 
-
-
 // exports
 
 module.exports.checkTheme = checkTheme;
@@ -354,4 +370,3 @@ module.exports.checkDevShop = checkDevShop;
 module.exports.checkCharge = checkCharge;
 module.exports.deleteCharge = deleteCharge;
 module.exports.supportBlocks = supportBlocks;
-
