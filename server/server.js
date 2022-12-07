@@ -33,11 +33,6 @@ import { checkDevShop, checkCharge } from "./lib/shopify/functions";
 
 const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL } = env;
 
-const extractHostParameter = (ctx) => {
-  const parts = new URL(`https://${ctx.request.header.host}${ctx.request.url}`);
-  return parts.searchParams.get("host");
-};
-
 Shopify.Context.initialize({
   API_KEY: SHOPIFY_API_KEY,
   API_SECRET_KEY: SHOPIFY_API_SECRET_KEY,
@@ -107,12 +102,11 @@ app
           storeDB.token,
           storeDB?.chargeID
         );
-        if (storeDB && activeCharge) {
+        if (activeCharge) {
           await handleRequest(ctx);
-          ctx.redirect(`/auth?shop=${shop}`);
         } else {
           console.log("no shop in DB lets auth");
-          ctx.redirect(`/auth?shop=${shop}`);
+          ctx.redirect(`/auth?shop=${shop}&host=${ctx.query.host}`);
         }
       }
     });

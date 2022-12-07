@@ -1,15 +1,11 @@
-const {default: Shopify} = require("@shopify/shopify-api");
+const { default: Shopify } = require("@shopify/shopify-api");
 
-const {getFs, writeFs} = require("../lib/firebase/firebase");
+const { getFs, writeFs } = require("../lib/firebase/firebase");
 const config = require("../config/config");
 
+const { initShop } = require("./checkShop");
 
-const createWebhook = require("./createWebhook");
-const {initShop} = require("./checkShop");
-
-
-const {APP} = config;
-
+const { APP } = config;
 
 /** Creating subscription URL
  * @param  {object} ctx context object
@@ -25,9 +21,9 @@ const getSubscriptionUrl = async (
   shop,
   returnUrl,
   getUrl = false,
-  webhook = true,
+  webhook = true
 ) => {
-  const {longTrial, price} = await getFs("settings", APP);
+  const { longTrial, price } = await getFs("settings", APP);
 
   const query = `mutation {
       appSubscriptionCreate(
@@ -61,23 +57,18 @@ const getSubscriptionUrl = async (
     data: query,
   });
   console.log(JSON.stringify(response));
-  const {confirmationUrl} = response.body.data.appSubscriptionCreate;
+  const { confirmationUrl } = response.body.data.appSubscriptionCreate;
 
   /** Getting the charge ID */
-  const chargeID = response.body.data.appSubscriptionCreate.appSubscription.id.split(
-    "/",
-  )[4];
+  const chargeID =
+    response.body.data.appSubscriptionCreate.appSubscription.id.split("/")[4];
 
   initShop(shop, accessToken, chargeID, confirmationUrl);
-
-  if (webhook) {
-    createWebhook(`/${APP}/uninstall`, "APP_UNINSTALLED", accessToken, shop);
-  }
 
   if (!getUrl) {
     return ctx.redirect(confirmationUrl);
   }
-  writeFs(APP, shop, {longTrial: false});
+  writeFs(APP, shop, { longTrial: false });
   return confirmationUrl;
 };
 

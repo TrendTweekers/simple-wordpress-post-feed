@@ -4,7 +4,6 @@ const env = require("../config/config");
 const { getFs } = require("../lib/firebase/firebase");
 
 const { initShop } = require("./checkShop");
-const createWebhook = require("./createWebhook");
 
 const { APP } = env;
 
@@ -68,9 +67,6 @@ const getSubscriptionUrlDEV = async (
   await initShop(shop, accessToken, chargeID, confirmationUrl);
 
   /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall */
-  if (webhook) {
-    createWebhook(`/${APP}/uninstall`, "APP_UNINSTALLED", accessToken, shop);
-  }
 
   if (!getUrl) {
     return ctx.redirect(confirmationUrl);

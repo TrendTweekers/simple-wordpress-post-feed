@@ -5,7 +5,6 @@ const config = require("../config/config");
 
 const { APP } = config;
 
-const createWebhook = require("./createWebhook");
 const { initShop } = require("./checkShop");
 
 /** Creating subscription URL
@@ -66,10 +65,6 @@ const getSubscriptionUrl = async (
     response.body.data.appSubscriptionCreate.appSubscription.id.split("/")[4];
 
   initShop(shop, accessToken, chargeID, confirmationUrl);
-
-  if (webhook) {
-    createWebhook(`/${APP}/uninstall`, "APP_UNINSTALLED", accessToken, shop);
-  }
 
   if (!getUrl) {
     return ctx.redirect(confirmationUrl);
