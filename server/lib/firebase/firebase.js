@@ -21,7 +21,8 @@ const getFs = (app, shop) => {
     .get()
     .then((doc) => {
       if (!doc.exists) {
-        return console.log("No such document!");
+        console.log("No such document!");
+        return false;
       }
       return doc.data();
     })
@@ -64,10 +65,7 @@ const getSettings = (app) => {
  */
 
 const deleteFs = (app, shop) => {
-  const deleteDoc = db
-    .collection(app)
-    .doc(shop)
-    .delete();
+  const deleteDoc = db.collection(app).doc(shop).delete();
 
   return deleteDoc;
 };
@@ -81,7 +79,7 @@ const deleteFs = (app, shop) => {
  */
 const writeFs = (app, shop, data) => {
   const docRef = db.collection(app).doc(shop);
-  const writeData = docRef.update(data, {merge: false});
+  const writeData = docRef.update(data, { merge: false });
 
   return writeData;
 };

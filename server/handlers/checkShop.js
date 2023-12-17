@@ -3,7 +3,7 @@ const {
   checkEmailId,
   supportBlocks,
 } = require("../lib/shopify/functions");
-const {createMetafields} = require("../lib/shopify/metafields")
+const { createMetafields } = require("../lib/shopify/metafields");
 const { writeFs } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const config = require("../config/config");
