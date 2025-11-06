@@ -106,5 +106,12 @@
       "prettier --write",
       "git add"
     ]
-  }
+  },
+  "main": ".eslintrc.js",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "homepage": "https://github.com/Shopify/shopify-node-app#readme"
 }
