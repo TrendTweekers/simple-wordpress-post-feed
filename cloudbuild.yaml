@@ -1,22 +1,13 @@
 steps:
-  # Build the Docker image (the Dockerfile handles yarn install + next build)
+  # Build the Docker image (Dockerfile performs yarn install + next build)
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      [
-        'build',
-        '-t', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app',
-        '.'
-      ]
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app', '.']
 
-  # Push the image
+  # Push it to Container Registry / Artifact Registry (same tag works with either)
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      [
-        'push',
-        'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app'
-      ]
+    args: ['push', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app']
 
-  # Deploy to Cloud Run
+  # Deploy to Cloud Run (update REGION/SERVICE if you need different names)
   - name: 'gcr.io/cloud-builders/gcloud'
     args:
       [
