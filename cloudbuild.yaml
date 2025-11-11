@@ -1,34 +1,31 @@
+substitutions:
+  _SERVICE: simple-wordpress-post-feed-app
+  _REGION: us-central1
+  _IMAGE: gcr.io/$PROJECT_ID/simple-wordpress-post-feed:${SHORT_SHA}
+
 steps:
-  # Step 1: Build with Node 18
-  - name: 'node:18'
-    id: 'Build'
-    entrypoint: bash
-    args:
-      - -lc
-      - |
-        set -e
-        apt-get update && apt-get install -y python3 make g++ >/dev/null
-        corepack enable
-        yarn install --non-interactive --no-progress --network-timeout 600000
-        yarn build
+  # Build the container
+  - name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "$_IMAGE", "."]
 
-  # Step 2: Push image to Google Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'Push'
-    args: ['push', 'us.gcr.io/pluginmaker/simple-wordpress-post-feed']
+  # Push it
+  - name: gcr.io/cloud-builders/docker
+    args: ["push", "$_IMAGE"]
 
-  # Step 3: Deploy to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'Deploy'
-    entrypoint: bash
+  # Deploy to Cloud Run
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
     args:
-      - -c
-      - |
-        gcloud run services update simple-wordpress-post-feed \
-          --image us.gcr.io/pluginmaker/simple-wordpress-post-feed \
-          --region us-central1 \
-          --platform managed \
-          --quiet
+      [
+        "run", "deploy", "$_SERVICE",
+        "--image", "$_IMAGE",
+        "--region", "$_REGION",
+        "--platform", "managed",
+        "--allow-unauthenticated"
+      ]
 
 images:
-  - 'us.gcr.io/pluginmaker/simple-wordpress-post-feed'
+  - "$_IMAGE"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
