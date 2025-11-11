@@ -1,31 +1,30 @@
 substitutions:
   _SERVICE: simple-wordpress-post-feed-app
   _REGION: us-central1
-  _IMAGE: gcr.io/$PROJECT_ID/simple-wordpress-post-feed:${SHORT_SHA}
 
 steps:
   # Build the container
   - name: gcr.io/cloud-builders/docker
-    args: ["build", "-t", "$_IMAGE", "."]
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed:$SHORT_SHA', '.']
 
   # Push it
   - name: gcr.io/cloud-builders/docker
-    args: ["push", "$_IMAGE"]
+    args: ['push', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed:$SHORT_SHA']
 
   # Deploy to Cloud Run
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
     args:
       [
-        "run", "deploy", "$_SERVICE",
-        "--image", "$_IMAGE",
-        "--region", "$_REGION",
-        "--platform", "managed",
-        "--allow-unauthenticated"
+        'run', 'deploy', '$_SERVICE',
+        '--image', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed:$SHORT_SHA',
+        '--region', '$_REGION',
+        '--platform', 'managed',
+        '--allow-unauthenticated'
       ]
 
 images:
-  - "$_IMAGE"
+  - 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed:$SHORT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
