@@ -1,28 +1,33 @@
+# ---- deps: install node_modules with the right toolchain ----
+FROM node:18-alpine AS deps
+WORKDIR /app
+# Needed by some native deps and next-swc
+RUN apk add --no-cache libc6-compat python3 make g++ bash
+COPY package.json yarn.lock ./
+RUN yarn --frozen-lockfile
 
-FROM node:lts-alpine
-# FROM node:11.14.0-alpine
-# Create app directory
-
-RUN apk update
-RUN apk upgrade
-
-RUN mkdir -p /usr/src/app
-# Set workdirr
-WORKDIR /usr/src/app
-# Install app dependencies
-COPY package.json /usr/src/app/
-#RUN npm install grpc --build-from-source
-
-# Bundle app source
-COPY . /usr/src/app
-
-RUN yarn install
+# ---- builder: build the Next.js app ----
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN yarn build
 
-# Expose P 3000
-EXPOSE 3000
+# ---- runner: lightweight image to run the app ----
+FROM node:18-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=8080
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Start service
-CMD [ "yarn", "start" ]
-# CMD [ "yarn", "run", "serve" ]
+# Copy only what we need to run
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.js ./next.config.js
 
+EXPOSE 8080
+# Start Next in production on Cloud Run's port
+CMD ["node_modules/.bin/next", "start", "-p", "8080"]
