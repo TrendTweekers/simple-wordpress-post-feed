@@ -1,12 +1,12 @@
 steps:
-  # Step 1 — Build dependencies with Python support
+  # Step 1 — Install dependencies and build for production
   - name: 'gcr.io/cloud-builders/npm'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         apt-get update && apt-get install -y python3 make g++ && \
-        npm install && \
+        npm ci && \
         npm run build
 
   # Step 2 — Build Docker image
@@ -42,6 +42,11 @@ steps:
         'managed',
         '--allow-unauthenticated'
       ]
+
+env:
+  - NODE_ENV=production
+  - NEXT_TELEMETRY_DISABLED=1
+  - NODE_OPTIONS=--experimental-vm-modules
 
 images:
   - 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app'
