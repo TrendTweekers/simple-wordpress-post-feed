@@ -115,3 +115,7 @@
   "type": "commonjs",
   "homepage": "https://github.com/Shopify/shopify-node-app#readme"
 }
+  ,
+  "engines": {
+    "node": ">=18.0.0"
+  }
