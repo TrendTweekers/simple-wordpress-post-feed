@@ -2,6 +2,8 @@
   "name": "shopify-node-app",
   "version": "1.0.6",
   "description": "Shopify's node app for CLI tool",
+  "type": "commonjs",
+  "main": ".eslintrc.js",
   "scripts": {
     "test": "jest",
     "serve": "concurrently --raw \"ngrok http 8081 -region eu -subdomain=ingrid\" \"shopify app serve --host=https://ingrid.eu.ngrok.io\"",
@@ -21,6 +23,14 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/shopify/shopify-node-app/issues"
+  },
+  "homepage": "https://github.com/Shopify/shopify-node-app#readme",
+  "directories": {
+    "test": "tests"
+  },
+  "keywords": [],
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "@babel/core": "7.20.5",
@@ -100,15 +110,5 @@
       "prettier --write",
       "git add"
     ]
-  },
-  "main": ".eslintrc.js",
-  "directories": {
-    "test": "tests"
-  },
-  "keywords": [],
-  "type": "commonjs",
-  "homepage": "https://github.com/Shopify/shopify-node-app#readme",
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
