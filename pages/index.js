@@ -13,27 +13,43 @@ function ReviewBanner() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const KEY_DISMISSED = "wpfeed_review_banner_dismissed";
-    const KEY_FIRST_SEEN = "wpfeed_first_seen";
-    const now = Date.now();
+    // Guard for SSR and strict-browsers (private mode etc.)
+    if (typeof window === "undefined") return;
+    try {
+      const KEY_DISMISSED = "wpfeed_review_banner_dismissed";
+      const KEY_FIRST_SEEN = "wpfeed_first_seen";
+      const now = Date.now();
 
-    // Record first seen timestamp
-    if (!localStorage.getItem(KEY_FIRST_SEEN)) {
-      localStorage.setItem(KEY_FIRST_SEEN, String(now));
+      // Record first seen timestamp once
+      if (!window.localStorage.getItem(KEY_FIRST_SEEN)) {
+        window.localStorage.setItem(KEY_FIRST_SEEN, String(now));
+      }
+
+      const firstSeen = Number(window.localStorage.getItem(KEY_FIRST_SEEN) || now);
+      const agedEnough = now - firstSeen > 3 * 24 * 60 * 60 * 1000; // ~3 days
+      const dismissed = window.localStorage.getItem(KEY_DISMISSED) === "1";
+
+      let shouldShow = agedEnough && !dismissed;
+
+      // Dev override: ?showReview=1
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("showReview") === "1") shouldShow = true;
+
+      setShow(shouldShow);
+    } catch {
+      // If storage is blocked, don’t show (fail safe)
+      setShow(false);
     }
-
-    const firstSeen = Number(localStorage.getItem(KEY_FIRST_SEEN) || now);
-    const agedEnough = now - firstSeen > 3 * 24 * 60 * 60 * 1000; // after ~3 days
-    const dismissed = localStorage.getItem(KEY_DISMISSED) === "1";
-
-    if (agedEnough && !dismissed) setShow(true);
-
-    // Dev shortcut: force show if ?showReview=1 in URL
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("showReview") === "1") setShow(true);
   }, []);
 
   if (!show) return null;
+
+  const handleDismiss = () => {
+    try {
+      window.localStorage.setItem("wpfeed_review_banner_dismissed", "1");
+    } catch {}
+    setShow(false);
+  };
 
   return (
     <div
@@ -58,8 +74,7 @@ function ReviewBanner() {
             💬 Enjoying WP Simple WordPress Post Feed?
           </div>
           <div style={{ color: "#075985", marginBottom: 10 }}>
-            Your feedback helps us improve and helps other merchants discover
-            the app.
+            Your feedback helps us improve and helps other merchants discover the app.
           </div>
           <a
             href="https://apps.shopify.com/simple-wordpress-post-feed#reviews?utm_source=app&utm_medium=banner&utm_campaign=review-nudge"
@@ -78,10 +93,7 @@ function ReviewBanner() {
           </a>
         </div>
         <button
-          onClick={() => {
-            localStorage.setItem("wpfeed_review_banner_dismissed", "1");
-            setShow(false);
-          }}
+          onClick={handleDismiss}
           title="Dismiss"
           style={{
             background: "transparent",
@@ -115,42 +127,24 @@ const Index = ({ shopOrigin: shop }) => {
   } = data;
 
   const fetchShopData = () => axios(`/api/data`).then(({ data }) => data);
-
   const getMetaData = () => axios(`/api/meta`).then(({ data }) => data);
 
   const getSettings = async () => {
-    dispatch({
-      type: types.LOADING,
-      payload: true,
-    });
+    dispatch({ type: types.LOADING, payload: true });
     const metaData = await getMetaData();
     const shopData = await fetchShopData();
 
-    dispatch({
-      type: types.FETCH_METADATA,
-      payload: metaData,
-    });
-
-    dispatch({
-      type: types.FETCH_DATA,
-      payload: shopData,
-    });
-    dispatch({
-      type: types.LOADING,
-      payload: false,
-    });
+    dispatch({ type: types.FETCH_METADATA, payload: metaData });
+    dispatch({ type: types.FETCH_DATA, payload: shopData });
+    dispatch({ type: types.LOADING, payload: false });
   };
 
   /** Override current theme setting, showing new Theme 2.0 settings */
-  const newThemeSwitch = () => {
-    setThemeOverride(!themeOverride);
-  };
+  const newThemeSwitch = () => setThemeOverride(!themeOverride);
 
   useEffect(() => {
     getSettings();
-    return () => {
-      abortController.abort();
-    };
+    return () => abortController.abort();
   }, [shop, themeOverride]);
 
   const dashboardComponent =
@@ -173,7 +167,7 @@ const Index = ({ shopOrigin: shop }) => {
     return (
       <>
         <Header shop={shop} handleClick={setPage} />
-        <ReviewBanner /> {/* ← added banner here */}
+        <ReviewBanner /> {/* ← banner rendered here */}
         {activePage}
       </>
     );
