@@ -1,22 +1,34 @@
 steps:
-  # Build the Docker image (Dockerfile performs yarn install + next build)
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app', '.']
-
-  # Push it to Container Registry / Artifact Registry (same tag works with either)
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app']
-
-  # Deploy to Cloud Run (update REGION/SERVICE if you need different names)
-  - name: 'gcr.io/cloud-builders/gcloud'
+  # Step 1: Build with Node 18
+  - name: 'node:18'
+    id: 'Build'
+    entrypoint: bash
     args:
-      [
-        'run','deploy','simple-wordpress-post-feed-app',
-        '--image','gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app',
-        '--region','us-central1',
-        '--platform','managed',
-        '--allow-unauthenticated'
-      ]
+      - -lc
+      - |
+        set -e
+        apt-get update && apt-get install -y python3 make g++ >/dev/null
+        corepack enable
+        yarn install --non-interactive --no-progress --network-timeout 600000
+        yarn build
+
+  # Step 2: Push image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push'
+    args: ['push', 'us.gcr.io/pluginmaker/simple-wordpress-post-feed']
+
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Deploy'
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud run services update simple-wordpress-post-feed \
+          --image us.gcr.io/pluginmaker/simple-wordpress-post-feed \
+          --region us-central1 \
+          --platform managed \
+          --quiet
 
 images:
-  - 'gcr.io/$PROJECT_ID/simple-wordpress-post-feed-app'
+  - 'us.gcr.io/pluginmaker/simple-wordpress-post-feed'
