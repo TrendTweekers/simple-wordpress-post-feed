@@ -1,33 +1,26 @@
-# ---- deps: install node_modules with the right toolchain ----
-FROM node:18-alpine AS deps
+# Use a modern Node with Alpine; add toolchain so next/webpack and any native deps build cleanly
+FROM node:18-alpine
+
+# Native build tools & glibc compat for some node modules
+RUN apk add --no-cache python3 make g++ libc6-compat bash
+
 WORKDIR /app
-# Needed by some native deps and next-swc
-RUN apk add --no-cache libc6-compat python3 make g++ bash
+
+# Install deps with a clean, reproducible lockfile install
 COPY package.json yarn.lock ./
 RUN yarn --frozen-lockfile
 
-# ---- builder: build the Next.js app ----
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy the rest of the app
 COPY . .
+
+# Build Next.js for production
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN yarn build
 
-# ---- runner: lightweight image to run the app ----
-FROM node:18-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV=production
+# Cloud Run listens on $PORT (we'll default to 8080)
 ENV PORT=8080
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Copy only what we need to run
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.js ./next.config.js
-
 EXPOSE 8080
-# Start Next in production on Cloud Run's port
-CMD ["node_modules/.bin/next", "start", "-p", "8080"]
+
+# Start your custom Koa server (as defined in package.json "start")
+CMD ["node", "server/index.js"]
