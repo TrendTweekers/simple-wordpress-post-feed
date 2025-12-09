@@ -1,11 +1,38 @@
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./../../../ServiceAccountKey.json");
+// Load Firebase credentials from environment variable or local file
+let serviceAccount;
+let credential;
+
+if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  // Load from environment variable (Railway/production)
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    credential = admin.credential.cert(serviceAccount);
+    console.log("Firebase credentials loaded from FIREBASE_SERVICE_ACCOUNT_KEY environment variable");
+  } catch (error) {
+    console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:", error);
+    throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON format");
+  }
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  // Load from file path specified in environment variable
+  credential = admin.credential.applicationDefault();
+  console.log("Firebase credentials loaded from GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
+} else {
+  // Fall back to local file (development)
+  try {
+    serviceAccount = require("./../../../ServiceAccountKey.json");
+    credential = admin.credential.cert(serviceAccount);
+    console.log("Firebase credentials loaded from local ServiceAccountKey.json file");
+  } catch (error) {
+    console.error("Error loading ServiceAccountKey.json:", error);
+    throw new Error("Firebase credentials not found. Please set FIREBASE_SERVICE_ACCOUNT_KEY environment variable or provide ServiceAccountKey.json file.");
+  }
+}
 
 // Initialize Firestore.
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  // credential: admin.credential.applicationDefault()
+  credential: credential,
 });
 const db = admin.firestore();
 
