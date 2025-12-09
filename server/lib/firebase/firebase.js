@@ -1,39 +1,27 @@
-const admin = require("firebase-admin");
+const admin = require('firebase-admin');
 
 // Load Firebase credentials from environment variable or local file
 let serviceAccount;
-let credential;
 
 if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-  // Load from environment variable (Railway/production)
+  // Production: Load from environment variable
   try {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    credential = admin.credential.cert(serviceAccount);
-    console.log("Firebase credentials loaded from FIREBASE_SERVICE_ACCOUNT_KEY environment variable");
+    console.log('Firebase credentials loaded from FIREBASE_SERVICE_ACCOUNT_KEY environment variable');
   } catch (error) {
-    console.error("Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:", error);
-    throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_KEY JSON format");
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
+    throw error;
   }
-} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-  // Load from file path specified in environment variable
-  credential = admin.credential.applicationDefault();
-  console.log("Firebase credentials loaded from GOOGLE_APPLICATION_CREDENTIALS:", process.env.GOOGLE_APPLICATION_CREDENTIALS);
 } else {
-  // Fall back to local file (development)
-  try {
-    serviceAccount = require("./../../../ServiceAccountKey.json");
-    credential = admin.credential.cert(serviceAccount);
-    console.log("Firebase credentials loaded from local ServiceAccountKey.json file");
-  } catch (error) {
-    console.error("Error loading ServiceAccountKey.json:", error);
-    throw new Error("Firebase credentials not found. Please set FIREBASE_SERVICE_ACCOUNT_KEY environment variable or provide ServiceAccountKey.json file.");
-  }
+  // Development: Load from local file
+  serviceAccount = require('./../../../ServiceAccountKey.json');
+  console.log('Firebase credentials loaded from local ServiceAccountKey.json file');
 }
 
-// Initialize Firestore.
 admin.initializeApp({
-  credential: credential,
+  credential: admin.credential.cert(serviceAccount)
 });
+
 const db = admin.firestore();
 
 /**
@@ -41,7 +29,6 @@ const db = admin.firestore();
  * @param {*} app app collection
  * @param {*} shop shop
  */
-
 const getFs = (app, shop) => {
   const docRef = db.collection(app).doc(shop);
   const getDoc = docRef
@@ -61,10 +48,9 @@ const getFs = (app, shop) => {
 };
 
 /**
- * Gett Application settings from Firestore
+ * Get Application settings from Firestore
  * @param {*} app name of app
  */
-
 const getSettings = (app) => {
   const docRef = db.collection("settings").doc(app);
   const getDoc = docRef
@@ -90,7 +76,6 @@ const getSettings = (app) => {
  * @param {*} app
  * @param {*} shop
  */
-
 const deleteFs = (app, shop) => {
   const deleteDoc = db.collection(app).doc(shop).delete();
 
@@ -102,7 +87,6 @@ const deleteFs = (app, shop) => {
  * @param {string} app
  * @param {string} shop
  * @param {any} data
- *
  */
 const writeFs = (app, shop, data) => {
   const docRef = db.collection(app).doc(shop);
