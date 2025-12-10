@@ -96,17 +96,29 @@ app
       const shop = ctx.query.shop;
       if (shop) {
         console.log(`Shop from query main page! ${shop}`);
+        
+        // Get shop data from Firebase
         const storeDB = await getFs(APP, shop);
-        const activeCharge = checkCharge(
+        
+        // Check if shop data exists and has required token
+        if (!storeDB || !storeDB.token) {
+          console.log(`No valid shop data found for ${shop}, redirecting to auth`);
+          ctx.redirect(`/install/auth?shop=${shop}&host=${ctx.query.host}`);
+          return;
+        }
+        
+        // Shop exists, check if charge is active
+        const activeCharge = await checkCharge(
           shop,
           storeDB.token,
           storeDB?.chargeID
         );
+        
         if (activeCharge) {
           await handleRequest(ctx);
         } else {
-          console.log("no shop in DB lets auth");
-          ctx.redirect(`/auth?shop=${shop}&host=${ctx.query.host}`);
+          console.log("Charge not active, redirecting to auth");
+          ctx.redirect(`/install/auth?shop=${shop}&host=${ctx.query.host}`);
         }
       }
     });
