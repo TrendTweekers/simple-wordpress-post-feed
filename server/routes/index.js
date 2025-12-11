@@ -316,7 +316,7 @@ const install = async (ctx) => {
       ctx.body = { allowed: false, confirmationUrl };
     }
   } else {
-    ctx.body = { allowed: false, confirmationUrl: `/auth?shop=${shop}` };
+    ctx.body = { allowed: false, confirmationUrl: `/auth/toplevel?shop=${shop}&host=${host}` };
   }
 };
 
