@@ -28,7 +28,9 @@ if (process.env.NODE_ENV === "development") {
 } else if (process.env.NODE_ENV === "production") {
   env.SHOPIFY_API_KEY = "312f1491e10a2848b3ef63a7cd13e91d";
   env.SHOPIFY_API_SECRET_KEY = "53c84cfb4aa7d5dee3b12f677b19fbfb";
-  env.TUNNEL_URL = "https://swpf.stackedboost.com";
+  env.TUNNEL_URL = process.env.TUNNEL_URL || 
+    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : 
+    "https://simple-wordpress-post-feed-production.up.railway.app");
   env.TEST = false;
 }
 
