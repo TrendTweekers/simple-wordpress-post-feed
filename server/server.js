@@ -77,11 +77,24 @@ app
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
           const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${host}&shop=${shop}`;
+          
+          // Get subscription URL (billing confirmation) if needed
+          let confirmationUrl = null;
           if (isDev) {
             // if not active or development we run the install function
-            await getSubscriptionUrlDEV(ctx, accessToken, shop, returnUrl);
+            confirmationUrl = await getSubscriptionUrlDEV(ctx, accessToken, shop, returnUrl, true);
           } else {
-            await getSubscriptionUrl(ctx, accessToken, shop, returnUrl);
+            confirmationUrl = await getSubscriptionUrl(ctx, accessToken, shop, returnUrl, true);
+          }
+          
+          // If billing confirmation is needed, redirect to it
+          // Otherwise, redirect to Shopify app launcher
+          if (confirmationUrl) {
+            ctx.redirect(confirmationUrl);
+          } else {
+            // Redirect to Shopify app launcher to ensure proper embedding
+            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
+            ctx.redirect(appLauncherUrl);
           }
         },
       })
