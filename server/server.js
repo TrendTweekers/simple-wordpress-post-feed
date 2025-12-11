@@ -105,9 +105,24 @@ app
       ctx.res.statusCode = 200;
     };
 
+    // Handle Shopify embedded app toplevel redirect for OAuth
+    router.get("/auth/toplevel", async (ctx) => {
+      const { shop, host } = ctx.query;
+      if (shop && host) {
+        // Redirect to OAuth flow in top-level window to break out of iframe
+        ctx.redirect(`/install/auth?shop=${shop}&host=${host}`);
+      } else {
+        ctx.status = 400;
+        ctx.body = "Missing shop or host parameter";
+      }
+    });
+
     router.get("/", async (ctx) => {
       const shop = ctx.query.shop;
-      if (shop) {
+      const host = ctx.query.host;
+      
+      // Check if this is an embedded app request (has shop and host)
+      if (shop && host) {
         console.log(`Shop from query main page! ${shop}`);
         
         // Get shop data from Firebase
@@ -115,8 +130,9 @@ app
         
         // Check if shop data exists and has required token
         if (!storeDB || !storeDB.token) {
-          console.log(`No valid shop data found for ${shop}, redirecting to auth`);
-          ctx.redirect(`/install/auth?shop=${shop}&host=${ctx.query.host}`);
+          console.log(`No valid shop data found for ${shop}, redirecting to toplevel auth`);
+          // Redirect to toplevel auth to break out of iframe for OAuth
+          ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
           return;
         }
         
@@ -130,9 +146,17 @@ app
         if (activeCharge) {
           await handleRequest(ctx);
         } else {
-          console.log("Charge not active, redirecting to auth");
-          ctx.redirect(`/install/auth?shop=${shop}&host=${ctx.query.host}`);
+          console.log("Charge not active, redirecting to toplevel auth");
+          // Redirect to toplevel auth to break out of iframe for OAuth
+          ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
         }
+      } else if (shop) {
+        // Non-embedded request, handle normally
+        console.log(`Non-embedded request for shop: ${shop}`);
+        await handleRequest(ctx);
+      } else {
+        // No shop parameter, handle normally
+        await handleRequest(ctx);
       }
     });
 
