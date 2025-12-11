@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 
 // Load Firebase credentials from environment variable or local file
+// Updated: Force redeploy
 let serviceAccount;
 
 if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
