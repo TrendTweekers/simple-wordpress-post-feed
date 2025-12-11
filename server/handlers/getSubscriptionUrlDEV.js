@@ -23,7 +23,9 @@ const getSubscriptionUrlDEV = async (
   getUrl = false,
   webhook = true
 ) => {
-  const { trial, price } = await getFs("settings", APP);
+  const settingsData = await getFs("settings", APP);
+  const trial = settingsData?.trial || 0;
+  const price = settingsData?.price || 0;
 
   const query = `mutation {
     appSubscriptionCreate(
@@ -57,11 +59,16 @@ const getSubscriptionUrlDEV = async (
   const response = await client.query({
     data: query,
   });
+  
+  if (!response?.body?.data?.appSubscriptionCreate) {
+    throw new Error("Failed to create subscription: " + JSON.stringify(response?.body));
+  }
+  
   const { confirmationUrl } = response.body.data.appSubscriptionCreate;
 
   /** Getting the charge ID */
   const chargeID =
-    response.body.data.appSubscriptionCreate.appSubscription.id.split("/")[4];
+    response.body.data.appSubscriptionCreate.appSubscription?.id?.split("/")[4] || null;
 
   /** Initialization of the shop without saving the charging plan */
   await initShop(shop, accessToken, chargeID, confirmationUrl);

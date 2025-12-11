@@ -34,22 +34,23 @@ const getData = async (ctx) => {
   /** Checking version in settings DB */
   const settings = await getSettings(APP);
   const fsData = await getFs(APP, shop);
-  const { token, theme } = fsData;
+  const token = fsData?.token || null;
+  const theme = fsData?.theme || null;
   const support = await supportBlocks(shop, token);
 
   let disableUpdate = true;
-  if (fsData.version !== settings.version && fsData.version !== undefined) {
+  if (fsData?.version !== settings?.version && fsData?.version !== undefined) {
     disableUpdate = false;
   }
   const data = {
     shop,
-    version: fsData.version,
-    latestVersion: settings.version,
-    clean: fsData.clean,
-    theme: fsData.theme,
+    version: fsData?.version,
+    latestVersion: settings?.version,
+    clean: fsData?.clean,
+    theme: fsData?.theme,
     disableUpdate,
-    longTrial: fsData.longTrial,
-    chargeID: fsData.chargeID,
+    longTrial: fsData?.longTrial || false,
+    chargeID: fsData?.chargeID || null,
     support,
   };
   if (data.version === undefined) {
@@ -70,7 +71,13 @@ const uploadData = async (ctx) => {
   const shop = referer.get("shop");
   console.log(`Upload data route ran for ${shop}`);
   const fsData = await getFs(APP, shop);
-  const { token } = fsData;
+  const token = fsData?.token || null;
+  
+  if (!token) {
+    ctx.status = 401;
+    ctx.body = { error: "No access token found for shop" };
+    return;
+  }
 
   const lengthOfSettings = Object.keys(settings).length;
   const newData = { ...settings };
@@ -111,7 +118,13 @@ const deleteAllMeta = async (ctx) => {
   const shop = referer.get("shop");
   console.log(`Delete all meta ${shop}`);
   const fsData = await getFs(APP, shop);
-  const { token } = fsData;
+  const token = fsData?.token || null;
+  
+  if (!token) {
+    ctx.status = 401;
+    ctx.body = { error: "No access token found for shop" };
+    return;
+  }
 
   const lengthOfSettings = Object.keys(settings).length;
   const deletePromise = new Promise((resolve, reject) => {
@@ -231,7 +244,14 @@ const update = async (ctx) => {
 const install = async (ctx) => {
   const { shop, host } = await ctx.request.query;
   const shopData = await getFs(APP, shop);
-  const { token, chargeID, plan, theme, longTrial } = shopData;
+  
+  // Safely extract properties with defaults
+  const token = shopData?.token || null;
+  const chargeID = shopData?.chargeID || null;
+  const plan = shopData?.plan || "";
+  const theme = shopData?.theme || null;
+  const longTrial = shopData?.longTrial || false;
+  
   const activeCharge = await checkCharge(shop, token, chargeID);
   if (activeCharge) {
     const development = await checkDevShop(shop, token);
@@ -303,8 +323,10 @@ const install = async (ctx) => {
 const cancelCharge = async (ctx) => {
   const { shop, chargeID } = await ctx.request.body;
   const shopData = await getFs(APP, shop);
-  const { token } = shopData;
-  deleteCharge(shop, token, chargeID);
+  const token = shopData?.token || null;
+  if (token) {
+    deleteCharge(shop, token, chargeID);
+  }
   ctx.body = "OK";
 };
 
@@ -313,7 +335,15 @@ const downloadMetafield = async (ctx) => {
   const shop = referer.get("shop");
   console.log("download metafield");
   try {
-    const { token } = await getFs(APP, shop);
+    const shopData = await getFs(APP, shop);
+    const token = shopData?.token || null;
+    
+    if (!token) {
+      ctx.status = 401;
+      ctx.body = { error: "No access token found for shop" };
+      return;
+    }
+    
     const data = await getMultipleMetafields(shop, token);
     console.log(`metafield data --> ${data}`);
     ctx.body = data;
