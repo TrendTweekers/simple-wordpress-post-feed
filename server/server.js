@@ -125,18 +125,37 @@ app
       if (shop && host) {
         console.log(`Shop from query main page! ${shop}`);
         
-        // Get shop data from Firebase
-        const storeDB = await getFs(APP, shop);
+        // First, check if there's a valid Shopify session (user is authenticated)
+        const shopifySession = ctx.state.shopify;
+        if (shopifySession && shopifySession.accessToken) {
+          console.log(`Valid Shopify session found for ${shop}, proceeding with app`);
+          // User is authenticated via Shopify session, proceed to render app
+          await handleRequest(ctx);
+          return;
+        }
+        
+        // No Shopify session, check Firebase for existing shop data
+        // IMPORTANT: Actually retrieve the data from Firebase first
+        let storeDB;
+        try {
+          storeDB = await getFs(APP, shop);
+          console.log(`Firebase query result for ${shop}:`, storeDB ? 'Found' : 'Not found');
+        } catch (error) {
+          console.error(`Error fetching shop data from Firebase for ${shop}:`, error);
+          storeDB = null;
+        }
         
         // Check if shop data exists and has required token
-        if (!storeDB || !storeDB.token) {
-          console.log(`No valid shop data found for ${shop}, redirecting to toplevel auth`);
+        // storeDB can be false (document doesn't exist), null, or undefined
+        if (!storeDB || storeDB === false || !storeDB.token) {
+          console.log(`No valid shop data found for ${shop} (storeDB: ${JSON.stringify(storeDB)}), redirecting to toplevel auth`);
           // Redirect to toplevel auth to break out of iframe for OAuth
           ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
           return;
         }
         
-        // Shop exists, check if charge is active
+        // Shop exists in Firebase with valid token, check if charge is active
+        console.log(`Shop data found for ${shop}, checking charge status`);
         const activeCharge = await checkCharge(
           shop,
           storeDB.token,
@@ -144,9 +163,10 @@ app
         );
         
         if (activeCharge) {
+          console.log(`Active charge found for ${shop}, rendering app`);
           await handleRequest(ctx);
         } else {
-          console.log("Charge not active, redirecting to toplevel auth");
+          console.log(`Charge not active for ${shop}, redirecting to toplevel auth`);
           // Redirect to toplevel auth to break out of iframe for OAuth
           ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
         }
