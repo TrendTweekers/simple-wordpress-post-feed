@@ -1,19 +1,36 @@
 const admin = require('firebase-admin');
 
-// Load Firebase credentials from environment variable
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: 'pluginmaker'
-}, {
-  ignoreUndefinedProperties: true
-});
-
-// Add this test log after init
-console.log('Firebase initialized with new key ID:', serviceAccount.private_key_id);
+// Guard against re-initialization
+if (!admin.apps.length) {
+  // Load Firebase credentials from environment variable
+  let serviceAccount = null;
+  
+  try {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    }
+  } catch (error) {
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
+  }
+  
+  if (serviceAccount) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: 'pluginmaker'
+    });
+    console.log('Firebase initialized with service account key ID:', serviceAccount.private_key_id);
+  } else {
+    // Fallback to application default credentials
+    admin.initializeApp({
+      projectId: 'pluginmaker'
+    });
+    console.log('Firebase initialized with application default credentials');
+  }
+}
 
 const db = admin.firestore();
+// Optional safety (prevents undefined write crashes)
+db.settings({ ignoreUndefinedProperties: true });
 
 /**
  * Get data for shop
