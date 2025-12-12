@@ -14,6 +14,12 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
     console.log('Service account email:', serviceAccount.client_email);
     console.log('Project ID:', serviceAccount.project_id);
     console.log('Private key starts with:', serviceAccount.private_key ? serviceAccount.private_key.substring(0, 50) : 'MISSING');
+    
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: 'pluginmaker',
+      databaseURL: 'https://pluginmaker.firebaseio.com'
+    });
   } catch (error) {
     console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
     throw error;
@@ -27,12 +33,13 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
   console.log('Service account email:', serviceAccount.client_email);
   console.log('Project ID:', serviceAccount.project_id);
   console.log('Private key starts with:', serviceAccount.private_key ? serviceAccount.private_key.substring(0, 50) : 'MISSING');
+  
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: 'pluginmaker',
+    databaseURL: 'https://pluginmaker.firebaseio.com'
+  });
 }
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  projectId: 'pluginmaker'
-});
 
 const db = admin.firestore();
 
