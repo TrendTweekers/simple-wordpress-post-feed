@@ -9,6 +9,7 @@ import bodyParser from "koa-bodyparser";
 import Router from "@koa/router";
 import session from "koa-session";
 import serve from "koa-static";
+import mount from "koa-mount";
 import path from "path";
 import { Shopify, ApiVersion } from "@shopify/shopify-api";
 // import createShopifyAuth,{verifyRequest}  from "@shopify/koa-shopify-auth";
@@ -104,21 +105,24 @@ app
     
     console.log("✅ _next middleware mounted in", __filename);
     
-    // Explicit static serving for /_next/static - serve directly from filesystem
-    // Check both regular and standalone paths
-    const staticBasePath = fs.existsSync(path.join(process.cwd(), ".next/standalone/.next/static"))
-      ? path.join(process.cwd(), ".next/standalone/.next/static")
-      : path.join(process.cwd(), ".next/static");
-    
-    server.use(serve(staticBasePath, {
-      prefix: "/_next/static",
-      maxage: 365 * 24 * 60 * 60 * 1000, // 1 year cache
-      gzip: true
-    }));
+    // Serve static assets with koa-static + koa-mount - MUST be before any Next handler
+    const nextStaticPath = path.join(process.cwd(), ".next", "static");
+    server.use(
+      mount(
+        "/_next/static",
+        serve(nextStaticPath, {
+          maxage: 365 * 24 * 60 * 60 * 1000,
+          gzip: true,
+        })
+      )
+    );
     
     // MUST be first middleware - Let Next handle other _next paths (not /_next/static) and favicon
     server.use(async (ctx, next) => {
-      if ((ctx.path.startsWith("/_next/") && !ctx.path.startsWith("/_next/static")) || ctx.path === "/favicon.ico") {
+      if (ctx.path.startsWith("/_next/static")) {
+        return next();
+      }
+      if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
         ctx.respond = false;
         await handle(ctx.req, ctx.res);
         return;
