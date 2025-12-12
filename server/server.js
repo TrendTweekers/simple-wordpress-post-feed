@@ -208,6 +208,7 @@ app
     const shopifyAuthMiddleware = createShopifyAuth({
       accessMode: "offline",
       authRoute: "/install/auth",
+      authCallbackPath: "/install/auth/callback",
       returnHeader: false,
       async afterAuth(ctx) {
           console.log(`after auth ran`);
@@ -257,16 +258,18 @@ app
         },
       });
     
-    // Mount auth middleware - explicitly handles /install/auth and callbacks
-    server.use(shopifyAuthMiddleware);
-    
-    // ✅ EXPLICIT ROUTE: Ensure /install/auth is explicitly handled (shouldn't reach here if auth middleware works)
-    router.get("/install/auth", async (ctx) => {
-      console.error(`[ERROR] /install/auth reached router handler - auth middleware should have handled this!`);
-      // This should never execute if auth middleware is working correctly
-      ctx.status = 500;
-      ctx.body = "Auth middleware error - /install/auth should be handled by createShopifyAuth";
+    // ✅ HARD ROUTE GUARD: Force /install/auth and /install/auth/callback to be handled by auth middleware
+    // This wrapper ensures these routes NEVER reach router or Next.js handlers
+    server.use(async (ctx, next) => {
+      if (ctx.path === "/install/auth" || ctx.path === "/install/auth/callback") {
+        console.log(`[AUTH GUARD] Routing ${ctx.path} to Shopify auth middleware`);
+        return shopifyAuthMiddleware(ctx, next);
+      }
+      return next();
     });
+    
+    // Mount auth middleware normally (handles other auth-related routes)
+    server.use(shopifyAuthMiddleware);
     
     // ✅ REQUIRED: Next.js static assets - MUST BE FIRST ROUTE
     router.get("/_next/(.*)", async (ctx) => {
@@ -428,15 +431,8 @@ app
     );
 
     // ✅ MUST BE LAST: Catch-all for Next.js - handles pages, API routes, and any unmatched routes
-    // EXCLUDE /install/auth - it's handled by createShopifyAuth middleware above
+    // /install/auth and /install/auth/callback are handled by hard route guard above
     router.get("(.*)", async (ctx) => {
-      // Skip /install/auth - it's handled by createShopifyAuth middleware
-      if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
-        console.error(`[ERROR] /install/auth reached router catch-all - auth middleware should have handled this!`);
-        ctx.status = 500;
-        ctx.body = "Auth middleware error - /install/auth should be handled by createShopifyAuth";
-        return;
-      }
       ctx.respond = false;
       await handle(ctx.req, ctx.res);
     });
@@ -447,15 +443,8 @@ app
     server.use(router.allowedMethods());
     
     // ✅ FINAL: Next.js catch-all - only handles unmatched routes
-    // This runs AFTER router routes, so /install/auth won't reach here
+    // /install/auth and /install/auth/callback are handled by hard route guard above
     server.use(async (ctx) => {
-      // Double-check: don't handle /install/auth here (should be caught by auth middleware)
-      if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
-        console.error(`[ERROR] /install/auth reached Next.js catch-all - auth middleware failed!`);
-        ctx.status = 500;
-        ctx.body = "Auth middleware error - /install/auth should be handled by createShopifyAuth";
-        return;
-      }
       await handle(ctx.req, ctx.res);
       ctx.respond = false;
     });
