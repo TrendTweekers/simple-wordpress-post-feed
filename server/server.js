@@ -80,11 +80,11 @@ app
     
     // CSP Middleware - Allow iframe embedding from Shopify domains
     server.use(async (ctx, next) => {
-      const shop = ctx.query.shop;
+      const shop = ctx.query.shop || ctx.request.query.shop; // Fallback for query param
       if (shop) {
         ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com;`);
       } else {
-        // Fallback for non-embedded or errors
+        // Secure fallback
         ctx.set('Content-Security-Policy', `frame-ancestors 'none';`);
       }
       await next();
