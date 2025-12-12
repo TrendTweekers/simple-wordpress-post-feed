@@ -12,7 +12,7 @@ module.exports = {
   assetPrefix: '',
   basePath: '',
   useFileSystemPublicRoutes: true,
-  trailingSlash: true, // Helps with static exports/paths
+  trailingSlash: false, // Disabled to prevent 308 redirect loops on /install/auth
   webpack: (config) => {
     const env = { API_KEY: apiKey };
     config.plugins.push(new webpack.DefinePlugin(env));

@@ -275,11 +275,26 @@ app
     
     // ✅ HARD ROUTE GUARD: Force /install/auth and /install/auth/callback to be handled by auth middleware
     // This wrapper ensures these routes NEVER reach router or Next.js handlers
-    // Path normalization above ensures /install/auth/ matches /install/auth
+    // Explicitly handle BOTH paths with and without trailing slashes to prevent Next.js redirect loops
     server.use(async (ctx, next) => {
-      // Check normalized path (after trailing slash removal)
-      if (ctx.path === "/install/auth" || ctx.path === "/install/auth/callback" || ctx.path.startsWith("/install/auth/")) {
-        console.log(`[AUTH GUARD] Routing ${ctx.path} to Shopify auth middleware`);
+      const path = ctx.path;
+      // Normalize path for comparison (remove trailing slash)
+      const normalizedPath = path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+      
+      // Explicitly check both original and normalized paths
+      if (
+        path === "/install/auth" || 
+        path === "/install/auth/" ||
+        path === "/install/auth/callback" ||
+        path === "/install/auth/callback/" ||
+        normalizedPath === "/install/auth" ||
+        normalizedPath === "/install/auth/callback"
+      ) {
+        console.log(`[AUTH GUARD] Routing ${path} (normalized: ${normalizedPath}) to Shopify auth middleware`);
+        // Normalize ctx.path before passing to auth middleware
+        if (path !== normalizedPath) {
+          ctx.path = normalizedPath;
+        }
         return shopifyAuthMiddleware(ctx, next);
       }
       return next();
