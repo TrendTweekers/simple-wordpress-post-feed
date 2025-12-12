@@ -6,6 +6,7 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps --no-audit --no-fund
 
 COPY . .
+RUN mkdir -p public
 RUN npm run build
 
 FROM node:18-alpine
