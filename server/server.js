@@ -159,8 +159,9 @@ app
         return;
       }
       
-      // Pass shop and host as query params to Next.js
-      // Explicitly set the URL query string so React can access it from window.location.search
+      // Attach to request for Next.js to access via ctx.query
+      // This ensures Next.js getInitialProps can read these values
+      ctx.req.query = { shop, host };
       ctx.req.url = `/?shop=${shop}&host=${host}`;
       
       await handle(ctx.req, ctx.res);

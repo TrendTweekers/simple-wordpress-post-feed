@@ -37,10 +37,14 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
     const router = useRouter();
     const { asPath, query } = router;
 
+    // Get shop and host from multiple sources (priority order: props > query > pageProps)
+    const shop = shopOrigin || query.shop || pageProps?.shop;
+    const hostValue = host || query.host || pageProps?.host;
+
     const config = {
       apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d',
-      host: host || query.host,
-      shopOrigin: shopOrigin || query.shop,
+      host: hostValue,
+      shopOrigin: shop,
       forceRedirect: true, // Forces top-level redirects if needed
     };
 
@@ -58,11 +62,15 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
     );
 }
 
-// eslint-disable-next-line require-await
+// Get props from server - pass shop and host as pageProps
 App.getInitialProps = async ({ ctx }) => {
   return {
-    shopOrigin: ctx.query.shop,
-    host: ctx.query.host,
+    shopOrigin: ctx.query?.shop,
+    host: ctx.query?.host,
+    pageProps: {
+      shop: ctx.query?.shop,
+      host: ctx.query?.host
+    }
   };
 };
 
