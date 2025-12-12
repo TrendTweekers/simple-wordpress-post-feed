@@ -26,6 +26,7 @@ RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
 # 🔴 THIS IS THE CRITICAL PART - Copy .next from builder stage
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/server ./server
+COPY --from=builder /app/store ./store
 COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/pages ./pages
 COPY --from=builder /app/components ./components
