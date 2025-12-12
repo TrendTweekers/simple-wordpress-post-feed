@@ -69,6 +69,21 @@ app
     });
     
     server.proxy = true;
+    
+    // ✅ MUST BE FIRST: do not let any middleware touch these
+    // Handle Next.js static assets, favicon, and static files before ANY other middleware
+    server.use(async (ctx, nextFn) => {
+      if (
+        ctx.path.startsWith("/_next/") ||
+        ctx.path === "/favicon.ico" ||
+        ctx.path.startsWith("/static/")
+      ) {
+        ctx.respond = false;
+        return handle(ctx.req, ctx.res);
+      }
+      return nextFn();
+    });
+    
     server.use(bodyParser());
     // Configure session for cross-site cookie support
     server.use(session({ 
