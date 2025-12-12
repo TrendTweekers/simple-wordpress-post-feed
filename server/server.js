@@ -59,6 +59,19 @@ app
     server.use(bodyParser());
     server.use(session({ sameSite: "none", secure: true }, server));
     server.keys = [Shopify.Context.API_SECRET_KEY];
+    
+    // CSP Middleware - Allow iframe embedding from Shopify domains
+    server.use(async (ctx, next) => {
+      const shop = ctx.query.shop;
+      if (shop) {
+        ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com;`);
+      } else {
+        // Fallback for non-embedded or errors
+        ctx.set('Content-Security-Policy', `frame-ancestors 'none';`);
+      }
+      await next();
+    });
+    
     server.use(
       createShopifyAuth({
         accessMode: "offline",
