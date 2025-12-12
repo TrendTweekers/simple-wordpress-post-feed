@@ -215,24 +215,6 @@ app
       await next();
     });
     
-    // ✅ EXPLICIT KOA ROUTES: Force /install/auth and /install/auth/callback to be handled by auth middleware
-    // These routes MUST be registered BEFORE router and Next.js handler
-    // Path normalization above ensures both /install/auth and /install/auth/ become /install/auth
-    const authPaths = new Set([
-      "/install/auth",
-      "/install/auth/callback",
-    ]);
-    
-    server.use(async (ctx, next) => {
-      // Check normalized path (after trailing slash removal)
-      if (authPaths.has(ctx.path)) {
-        console.log(`[AUTH ROUTE] Explicit route match: ${ctx.method} ${ctx.path} -> routing to Shopify auth middleware`);
-        // Path is already normalized, pass to auth middleware
-        return shopifyAuthMiddleware(ctx, next);
-      }
-      return next();
-    });
-    
     // ✅ CRITICAL: Logging middleware for /install/auth - track all auth requests
     server.use(async (ctx, next) => {
       if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
@@ -246,7 +228,7 @@ app
       await next();
     });
     
-    // ✅ CRITICAL: Register Shopify auth middleware - handles /install/auth
+    // ✅ CRITICAL: Register Shopify auth middleware FIRST - handles /install/auth
     // This MUST be before router routes to ensure /install/auth is handled by backend, not Next.js
     // Path normalization above ensures auth middleware always receives /install/auth (not /install/auth/)
     const shopifyAuthMiddleware = createShopifyAuth({
@@ -301,6 +283,24 @@ app
           }
         },
       });
+    
+    // ✅ EXPLICIT KOA ROUTES: Force /install/auth and /install/auth/callback to be handled by auth middleware
+    // These routes MUST be registered BEFORE router and Next.js handler
+    // Path normalization above ensures both /install/auth and /install/auth/ become /install/auth
+    const authPaths = new Set([
+      "/install/auth",
+      "/install/auth/callback",
+    ]);
+    
+    server.use(async (ctx, next) => {
+      // Check normalized path (after trailing slash removal)
+      if (authPaths.has(ctx.path)) {
+        console.log(`[AUTH ROUTE] Explicit route match: ${ctx.method} ${ctx.path} -> routing to Shopify auth middleware`);
+        // Path is already normalized, pass to auth middleware
+        return shopifyAuthMiddleware(ctx, next);
+      }
+      return next();
+    });
     
     // Mount auth middleware normally (handles other auth-related routes)
     server.use(shopifyAuthMiddleware);
