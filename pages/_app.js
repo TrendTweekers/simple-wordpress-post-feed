@@ -12,23 +12,24 @@ import AuthStep from "../components/authStep";
 
 const App = ({ Component, pageProps, shopOrigin, host })=> {
     const router = useRouter();
-    const { asPath } = router;
+    const { asPath, query } = router;
     const app = useAppBridge();
 
     // Handle App Bridge redirects for client-side navigation
     useEffect(() => {
       if (app) {
-        app.subscribe(Redirect.Action.APP, (payload) => {
+        const unsubscribe = app.subscribe(Redirect.Action.APP, (payload) => {
           router.push(payload.path);
         });
+        return () => unsubscribe();
       }
     }, [app, router]);
 
     const config = {
-      apiKey: SHOPIFY_API_KEY,
-      host,
-      shopOrigin,
-      forceRedirect: true,
+      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d',
+      host: host || query.host,
+      shopOrigin: shopOrigin || query.shop,
+      forceRedirect: true, // Forces top-level redirects if needed
     };
 
     return (
