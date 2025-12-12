@@ -9,6 +9,11 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
   try {
     serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
     console.log('Firebase credentials loaded from FIREBASE_SERVICE_ACCOUNT_KEY environment variable');
+    
+    // Debug logging
+    console.log('Service account email:', serviceAccount.client_email);
+    console.log('Project ID:', serviceAccount.project_id);
+    console.log('Private key starts with:', serviceAccount.private_key ? serviceAccount.private_key.substring(0, 50) : 'MISSING');
   } catch (error) {
     console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
     throw error;
@@ -17,6 +22,11 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
   // Development: Load from local file
   serviceAccount = require('./../../../ServiceAccountKey.json');
   console.log('Firebase credentials loaded from local ServiceAccountKey.json file');
+  
+  // Debug logging for development
+  console.log('Service account email:', serviceAccount.client_email);
+  console.log('Project ID:', serviceAccount.project_id);
+  console.log('Private key starts with:', serviceAccount.private_key ? serviceAccount.private_key.substring(0, 50) : 'MISSING');
 }
 
 admin.initializeApp({
