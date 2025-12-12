@@ -58,7 +58,30 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
           console.log("!!! unsuccesful upload settings :( !!!");
         }
       })
-      .catch((err) => err);
+      .catch((err) => {
+        // Handle 401/403 or {reauth: true} - redirect to reauth
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          const data = err.response?.data;
+          const needsReauth = data?.reauth === true || data?.code === "SHOPIFY_AUTH_REQUIRED" || data?.code === "NO_OFFLINE_SESSION";
+          if (needsReauth && data?.reauthUrl) {
+            const shop = new URLSearchParams(window.location.search).get("shop");
+            const host = new URLSearchParams(window.location.search).get("host");
+            const reauthUrl = data.reauthUrl || `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
+            console.log(`[AUTH] Reauth required in handleSubmit, redirecting to: ${reauthUrl}`);
+            // Use App Bridge Redirect if available
+            try {
+              const { Redirect } = require("@shopify/app-bridge/actions");
+              const app = require("@shopify/app-bridge").default;
+              const redirect = Redirect.create(app);
+              redirect.dispatch(Redirect.Action.REMOTE, reauthUrl);
+            } catch {
+              window.location.assign(reauthUrl);
+            }
+            return;
+          }
+        }
+        return err;
+      });
   };
 
   /** Link to the shop theme customizer */

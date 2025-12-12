@@ -144,18 +144,20 @@ const authStep = ({ config, Component, pageProps }) => {
         return;
       }
       
-      // Handle 401/403 - Shopify auth required - IMMEDIATE redirect using App Bridge
+      // Handle 401/403 or {reauth: true} - Shopify auth required - IMMEDIATE redirect using App Bridge
       if (response.status === 401 || response.status === 403) {
         const data = await response.json();
-        if (data.code === "SHOPIFY_AUTH_REQUIRED" && data.reauthUrl) {
-          console.log(`[AUTH] SHOPIFY_AUTH_REQUIRED detected, redirecting to: ${data.reauthUrl}`);
+        const needsReauth = data?.reauth === true || data?.code === "SHOPIFY_AUTH_REQUIRED" || data?.code === "NO_OFFLINE_SESSION";
+        
+        if (needsReauth && data.reauthUrl) {
+          console.log(`[AUTH] Reauth required detected, redirecting to: ${data.reauthUrl}`);
           // Immediate redirect using App Bridge - no spinner, no delay
           redirectToAuth(data.reauthUrl);
           return;
         }
         // Even if code doesn't match, redirect on 401/403
-        console.log(`[AUTH] 401/403 without SHOPIFY_AUTH_REQUIRED code, using fallback URL`);
-        const fallbackUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
+        console.log(`[AUTH] 401/403 without reauth flag, using fallback URL`);
+        const fallbackUrl = `/install/auth/toplevel?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
         redirectToAuth(fallbackUrl);
         return;
       }

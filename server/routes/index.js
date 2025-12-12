@@ -55,7 +55,15 @@ const getData = async (ctx) => {
     }
     
     // Use offline session for API calls (no token parameter = uses session)
-    const support = await supportBlocks(shop);
+    let support;
+    try {
+      support = await supportBlocks(shop);
+    } catch (error) {
+      // Handle Shopify auth errors
+      const handled = await handleShopifyAuthError(error, ctx, shop, host, `GET /admin/api/${API_VERSION}/themes.json (supportBlocks)`);
+      if (handled) return;
+      throw error; // Re-throw if not handled
+    }
 
     let disableUpdate = true;
     if (fsData?.version !== settings?.version && fsData?.version !== undefined) {
@@ -82,23 +90,15 @@ const getData = async (ctx) => {
     return data;
   } catch (error) {
     // Handle Shopify API errors (403/401)
-    const isAxiosError = error.isAxiosError || (error.response && error.response.status);
-    const status = error.response?.status;
     const shop = new URLSearchParams(ctx.request.header.referer).get("shop");
     const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
     
+    const isAxiosError = error.isAxiosError || (error.response && error.response.status);
+    const status = error.response?.status;
+    
     if (isAxiosError && (status === 401 || status === 403)) {
-      console.error(`Shopify API ${status} error in /api/data for shop ${shop}:`, error.message);
-      ctx.status = 401;
-      ctx.body = {
-        ok: false,
-        code: "SHOPIFY_AUTH_REQUIRED",
-        status: status,
-        shop: shop || null,
-        message: "Shopify token rejected (missing scope or needs reauth).",
-        reauthUrl: `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
-      };
-      return;
+      const handled = await handleShopifyAuthError(error, ctx, shop, host, `GET /api/data (supportBlocks)`);
+      if (handled) return;
     }
     
     // Other errors
@@ -116,47 +116,72 @@ const getData = async (ctx) => {
  * @param  {context} ctx
  */
 const uploadData = async (ctx) => {
-  const { settings } = await ctx.request.body;
-  const referer = new URLSearchParams(ctx.request.header.referer);
-  const shop = referer.get("shop");
-  console.log(`Upload data route ran for ${shop}`);
-  const fsData = await getFs(APP, shop);
-  const token = fsData?.token || null;
-  
-  if (!token) {
-    ctx.status = 401;
-    ctx.body = { error: "No access token found for shop" };
-    return;
+  try {
+    const { settings } = await ctx.request.body;
+    const referer = new URLSearchParams(ctx.request.header.referer);
+    const shop = referer.get("shop");
+    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    console.log(`Upload data route ran for ${shop}`);
+    
+    // ✅ ALWAYS load offline session from session storage
+    const session = await loadOfflineSession(shop);
+    if (!session || !session.accessToken) {
+      ctx.status = 401;
+      ctx.body = {
+        ok: false,
+        reauth: true,
+        code: "NO_OFFLINE_SESSION",
+        shop: shop || null,
+        message: "No offline session found for shop",
+        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      };
+      return;
+    }
+    
+    const token = session.accessToken;
+    const lengthOfSettings = Object.keys(settings).length;
+    const newData = { ...settings };
+    
+    for (const [i, key] of Object.keys(settings).entries()) {
+      const { id, value, type } = settings[key];
+      try {
+        if (id && value !== "") {
+          newData[key] = { id, value, type };
+          await updateMetafield(shop, token, id, value, type);
+        }
+        if (!id && value !== "") {
+          /**Create metafield if it was not existing */
+          const { id: newID } = await createMetafield(
+            shop,
+            token,
+            key,
+            value,
+            type
+          );
+          newData[key] = { id: newID, value, type };
+        }
+        if (id && value === "") {
+          await deleteMetafield(shop, token, id);
+          newData[key] = { id: "", value: "", type };
+        }
+      } catch (metafieldError) {
+        // Handle Shopify API errors
+        const handled = await handleShopifyAuthError(metafieldError, ctx, shop, host, `POST /admin/api/${API_VERSION}/metafields.json (uploadData)`);
+        if (handled) return;
+        throw metafieldError; // Re-throw if not handled
+      }
+    }
+    ctx.body = settings;
+  } catch (error) {
+    const shop = new URLSearchParams(ctx.request.header.referer).get("shop");
+    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    const handled = await handleShopifyAuthError(error, ctx, shop, host, `POST /api/data (uploadData)`);
+    if (!handled) {
+      console.error("Error in /api/data upload:", error);
+      ctx.status = 500;
+      ctx.body = { ok: false, error: "Internal server error" };
+    }
   }
-
-  const lengthOfSettings = Object.keys(settings).length;
-  const newData = { ...settings };
-  Object.keys(settings).forEach(async (key, i) => {
-    const { id, value, type } = settings[key];
-    if (id && value !== "") {
-      newData[key] = { id, value, type };
-      updateMetafield(shop, token, id, value, type);
-    }
-    if (!id && value !== "") {
-      /**Create metafield if it was not existing */
-      const { id: newID } = await createMetafield(
-        shop,
-        token,
-        key,
-        value,
-        type
-      );
-      newData[key] = { id: newID, value, type };
-    }
-    if (id && value === "") {
-      deleteMetafield(shop, token, id);
-      newData[key] = { id: "", value: "", type };
-    }
-    if (i === lengthOfSettings - 1) {
-      console.log(newData);
-    }
-  });
-  ctx.body = settings;
 };
 
 /** Upload data to metafields!@
@@ -334,101 +359,127 @@ const install = async (ctx) => {
         activeCharge = await checkCharge(shop, null, chargeID);
       }
     } catch (err) {
-      // If checkAppSubscription fails with auth error, re-throw
+      // If checkAppSubscription fails with auth error, handle it
       if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-        throw err;
+        const handled = await handleShopifyAuthError(err, ctx, shop, host, `GraphQL currentAppInstallation.activeSubscriptions (checkAppSubscription)`);
+        if (handled) return;
+        throw err; // Re-throw if not handled
       }
       // Otherwise, try legacy checkCharge if chargeID exists
       if (chargeID) {
-        activeCharge = await checkCharge(shop, null, chargeID);
+        try {
+          activeCharge = await checkCharge(shop, null, chargeID);
+        } catch (chargeErr) {
+          if (chargeErr.isAxiosError || (chargeErr.response && (chargeErr.response.status === 401 || chargeErr.response.status === 403))) {
+            const handled = await handleShopifyAuthError(chargeErr, ctx, shop, host, `GET /admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json (checkCharge)`);
+            if (handled) return;
+          }
+          throw chargeErr;
+        }
       }
     }
     
     if (activeCharge) {
       // Use offline session for API calls (no token parameter = uses session)
-      const development = await checkDevShop(shop);
-      const currentTheme = await checkTheme(shop);
-      const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
-      const { newThemeCapable } = await supportBlocks(shop);
-      const action = newThemeCapable ? "newtheme-install" : "install";
-      console.log(`${action} section route ran`);
+      let development, currentTheme, support;
+      try {
+        development = await checkDevShop(shop);
+        currentTheme = await checkTheme(shop);
+        const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
+        support = await supportBlocks(shop);
+        const { newThemeCapable } = support;
+        const action = newThemeCapable ? "newtheme-install" : "install";
+        console.log(`${action} section route ran`);
 
-      /** Always checking if the current theme is the same as in the DB */
-      // Only write theme if currentTheme is defined (not undefined)
-      if (theme !== currentTheme && currentTheme !== undefined && currentTheme !== null) {
-        writeFs(APP, shop, { theme: currentTheme });
-      }
-
-      /** Runs only first time when someone log in and plan is active */
-      if (activeCharge && plan === "") {
-        if (development) {
-          shopData.plan = "developer";
-        } else {
-          shopData.plan = "basic";
+        /** Always checking if the current theme is the same as in the DB */
+        // Only write theme if currentTheme is defined (not undefined)
+        if (theme !== currentTheme && currentTheme !== undefined && currentTheme !== null) {
+          writeFs(APP, shop, { theme: currentTheme });
         }
-        pushTopic(shop, theme.toString(), token, action);
 
-        ctx.status = 200;
-        const plan = { plan: shopData.plan };
-        await writeFs(APP, shop, plan);
-        ctx.body = { allowed: true };
-      } else if (activeCharge) {
-        ctx.status = 200;
-        ctx.body = { allowed: true };
-      } else if (longTrial) {
-        /** Runs when its normal store and got one year free */
-        const confirmationUrl = await getSubscriptionUrlLongTrial(
-          ctx,
-          token,
-          shop,
-          returnUrl,
-          true,
-          false
-        );
-        // If confirmationUrl is null, active subscription exists - allow access
-        if (!confirmationUrl) {
+        /** Runs only first time when someone log in and plan is active */
+        if (activeCharge && plan === "") {
+          if (development) {
+            shopData.plan = "developer";
+          } else {
+            shopData.plan = "basic";
+          }
+          // Note: pushTopic needs token, but we're using session - get from session if needed
+          const sessionToken = session?.accessToken;
+          if (sessionToken) {
+            pushTopic(shop, theme.toString(), sessionToken, action);
+          }
+
+          ctx.status = 200;
+          const plan = { plan: shopData.plan };
+          await writeFs(APP, shop, plan);
+          ctx.body = { allowed: true };
+        } else if (activeCharge) {
           ctx.status = 200;
           ctx.body = { allowed: true };
+        } else if (longTrial) {
+          /** Runs when its normal store and got one year free */
+          const sessionToken = session?.accessToken;
+          const confirmationUrl = await getSubscriptionUrlLongTrial(
+            ctx,
+            sessionToken,
+            shop,
+            returnUrl,
+            true,
+            false
+          );
+          // If confirmationUrl is null, active subscription exists - allow access
+          if (!confirmationUrl) {
+            ctx.status = 200;
+            ctx.body = { allowed: true };
+          } else {
+            ctx.status = 200;
+            ctx.body = { allowed: false, confirmationUrl };
+          }
+        } else if (development) {
+          /** Runs when its dev store */
+          const sessionToken = session?.accessToken;
+          const confirmationUrl = await getSubscriptionUrlDEV(
+            ctx,
+            sessionToken,
+            shop,
+            returnUrl,
+            true,
+            false
+          );
+          // If confirmationUrl is null, active subscription exists - allow access
+          if (!confirmationUrl) {
+            ctx.status = 200;
+            ctx.body = { allowed: true };
+          } else {
+            ctx.status = 200;
+            ctx.body = { allowed: false, confirmationUrl };
+          }
         } else {
-          ctx.status = 200;
-          ctx.body = { allowed: false, confirmationUrl };
+          /** Runs when its normal store */
+          const sessionToken = session?.accessToken;
+          const confirmationUrl = await getSubscriptionUrl(
+            ctx,
+            sessionToken,
+            shop,
+            returnUrl,
+            true,
+            false
+          );
+          // If confirmationUrl is null, active subscription exists - allow access
+          if (!confirmationUrl) {
+            ctx.status = 200;
+            ctx.body = { allowed: true };
+          } else {
+            ctx.status = 200;
+            ctx.body = { allowed: false, confirmationUrl };
+          }
         }
-      } else if (development) {
-        /** Runs when its dev store */
-        const confirmationUrl = await getSubscriptionUrlDEV(
-          ctx,
-          token,
-          shop,
-          returnUrl,
-          true,
-          false
-        );
-        // If confirmationUrl is null, active subscription exists - allow access
-        if (!confirmationUrl) {
-          ctx.status = 200;
-          ctx.body = { allowed: true };
-        } else {
-          ctx.status = 200;
-          ctx.body = { allowed: false, confirmationUrl };
-        }
-      } else {
-        /** Runs when its normal store */
-        const confirmationUrl = await getSubscriptionUrl(
-          ctx,
-          token,
-          shop,
-          returnUrl,
-          true,
-          false
-        );
-        // If confirmationUrl is null, active subscription exists - allow access
-        if (!confirmationUrl) {
-          ctx.status = 200;
-          ctx.body = { allowed: true };
-        } else {
-          ctx.status = 200;
-          ctx.body = { allowed: false, confirmationUrl };
-        }
+      } catch (apiError) {
+        // Handle Shopify API errors in checkDevShop, checkTheme, or supportBlocks
+        const handled = await handleShopifyAuthError(apiError, ctx, shop, host, `GET /admin/api/${API_VERSION}/... (checkDevShop/checkTheme/supportBlocks)`);
+        if (handled) return;
+        throw apiError; // Re-throw if not handled
       }
     } else {
       ctx.status = 200;
@@ -438,21 +489,12 @@ const install = async (ctx) => {
     // Handle Shopify API errors (axios errors)
     const isAxiosError = error.isAxiosError || (error.response && error.response.status);
     const status = error.response?.status;
+    const { shop, host } = ctx.request.query;
     
     if (isAxiosError && (status === 401 || status === 403)) {
-      // Shopify token rejected - needs reauth
-      const { shop, host } = ctx.request.query;
-      console.error(`Shopify API ${status} error for shop ${shop}:`, error.message);
-      ctx.status = 401;
-      ctx.body = {
-        ok: false,
-        code: "SHOPIFY_AUTH_REQUIRED",
-        status: status,
-        shop: shop || null,
-        message: "Shopify token rejected (missing scope or needs reauth).",
-        reauthUrl: `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
-      };
-      return;
+      // Use unified auth error handler
+      const handled = await handleShopifyAuthError(error, ctx, shop, host, `GET /api/install (various Shopify API calls)`);
+      if (handled) return;
     }
     
     // Other errors - return 500 with safe message
@@ -479,24 +521,37 @@ const cancelCharge = async (ctx) => {
 const downloadMetafield = async (ctx) => {
   const referer = new URLSearchParams(ctx.request.header.referer);
   const shop = referer.get("shop");
+  const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
   console.log("download metafield");
   try {
-    const shopData = await getFs(APP, shop);
-    const token = shopData?.token || null;
-    
-    if (!token) {
+    // ✅ ALWAYS load offline session from session storage
+    const session = await loadOfflineSession(shop);
+    if (!session || !session.accessToken) {
       ctx.status = 401;
-      ctx.body = { error: "No access token found for shop" };
+      ctx.body = {
+        ok: false,
+        reauth: true,
+        code: "NO_OFFLINE_SESSION",
+        shop: shop || null,
+        message: "No offline session found for shop",
+        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      };
       return;
     }
     
+    const token = session.accessToken;
     const data = await getMultipleMetafields(shop, token);
     console.log(`metafield data --> ${data}`);
     ctx.body = data;
     return data;
   } catch (err) {
-    console.log(err);
-    return (ctx.body = "ERROR");
+    // Handle Shopify API errors
+    const handled = await handleShopifyAuthError(err, ctx, shop, host, `GET /admin/api/${API_VERSION}/metafields.json (downloadMetafield)`);
+    if (!handled) {
+      console.error("Error in /api/meta:", err);
+      ctx.status = 500;
+      ctx.body = { ok: false, error: "Internal server error" };
+    }
   }
 };
 

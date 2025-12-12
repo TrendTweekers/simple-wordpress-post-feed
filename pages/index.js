@@ -159,13 +159,17 @@ const Index = ({ shopOrigin: shop }) => {
       const response = await axios(`/api/data`);
       return response.data;
     } catch (err) {
-      // Handle 401/403 - redirect to reauth using App Bridge
+      // Handle 401/403 or {reauth: true} - redirect to reauth using App Bridge
       if (err.response?.status === 401 || err.response?.status === 403) {
         const data = err.response?.data;
-        if (data?.code === "SHOPIFY_AUTH_REQUIRED" && data?.reauthUrl) {
-          console.log(`[AUTH] SHOPIFY_AUTH_REQUIRED in fetchShopData, redirecting to: ${data.reauthUrl}`);
+        const needsReauth = data?.reauth === true || data?.code === "SHOPIFY_AUTH_REQUIRED" || data?.code === "NO_OFFLINE_SESSION";
+        
+        if (needsReauth) {
+          const reauthUrl = data?.reauthUrl || `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(new URLSearchParams(window.location.search).get("host") || '')}`;
+          console.log(`[AUTH] Reauth required in fetchShopData, redirecting to: ${reauthUrl}`);
+          
           // Build absolute URL with host parameter preserved
-          const fullUrl = buildAuthUrl(data.reauthUrl);
+          const fullUrl = buildAuthUrl(reauthUrl);
           
           // Use App Bridge Redirect for embedded apps
           try {
@@ -177,8 +181,8 @@ const Index = ({ shopOrigin: shop }) => {
               console.warn(`[AUTH] App Bridge not available, using window.location.assign`);
               window.location.assign(fullUrl);
             }
-          } catch (err) {
-            console.error(`[AUTH] App Bridge redirect failed:`, err);
+          } catch (redirectErr) {
+            console.error(`[AUTH] App Bridge redirect failed:`, redirectErr);
             window.location.assign(fullUrl);
           }
           return null;

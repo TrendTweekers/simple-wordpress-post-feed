@@ -11,6 +11,20 @@ const initialSettings = initialState.settings;
 const { API_VERSION } = config;
 const { GRAPHQL_VERSION } = config;
 
+// Helper to extract endpoint from error for logging
+const getEndpointFromError = (err, shop, defaultEndpoint) => {
+  if (err.config?.url) {
+    return err.config.url;
+  }
+  if (err.request?.url) {
+    return err.request.url;
+  }
+  if (defaultEndpoint) {
+    return defaultEndpoint;
+  }
+  return `https://${shop}/admin/api/${API_VERSION}/...`;
+};
+
 // Helper to wrap Shopify REST client calls and handle 403/401 errors
 const safeShopifyRestCall = async (client, method, options) => {
   try {
