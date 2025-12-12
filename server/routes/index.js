@@ -332,9 +332,34 @@ const install = async (ctx) => {
       ctx.body = { allowed: false, confirmationUrl: `/auth/toplevel?shop=${shop}&host=${host}` };
     }
   } catch (error) {
+    // Handle Shopify API errors (axios errors)
+    const isAxiosError = error.isAxiosError || (error.response && error.response.status);
+    const status = error.response?.status;
+    
+    if (isAxiosError && (status === 401 || status === 403)) {
+      // Shopify token rejected - needs reauth
+      const { shop, host } = ctx.request.query;
+      console.error(`Shopify API ${status} error for shop ${shop}:`, error.message);
+      ctx.status = 401;
+      ctx.body = {
+        ok: false,
+        code: "SHOPIFY_AUTH_REQUIRED",
+        status: status,
+        shop: shop || null,
+        message: "Shopify token rejected (missing scope or needs reauth).",
+        reauthUrl: `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      };
+      return;
+    }
+    
+    // Other errors - return 500 with safe message
     console.error("Error in /api/install:", error);
     ctx.status = 500;
-    ctx.body = { error: error.message || "Internal server error" };
+    ctx.body = { 
+      ok: false,
+      error: "Internal server error",
+      message: error.message || "An unexpected error occurred"
+    };
   }
 };
 

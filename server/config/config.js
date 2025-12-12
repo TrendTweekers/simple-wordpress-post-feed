@@ -7,8 +7,8 @@ env.SCOPES = [
   "read_script_tags",
   "write_script_tags",
 ];
-env.API_VERSION = "2022-07";
-env.GRAPHQL_VERSION = "2022-07";
+env.API_VERSION = process.env.SHOPIFY_API_VERSION || "2024-10";
+env.GRAPHQL_VERSION = process.env.SHOPIFY_API_VERSION || "2024-10";
 env.port = 3000;
 
 /** Pub/Sub */

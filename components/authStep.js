@@ -92,6 +92,20 @@ const authStep = ({ config, Component, pageProps }) => {
         return;
       }
       
+      // Handle 401 - Shopify auth required
+      if (response.status === 401) {
+        const data = await response.json();
+        if (data.code === "SHOPIFY_AUTH_REQUIRED" && data.reauthUrl) {
+          // Redirect to reauth URL in top window (embedded app)
+          if (window.top !== window.self) {
+            window.top.location.href = data.reauthUrl;
+          } else {
+            window.location.href = data.reauthUrl;
+          }
+          return;
+        }
+      }
+      
       const data = await response.json();
       const { allowed: isAllowed, confirmationUrl: confirmUrl } = data;
       
