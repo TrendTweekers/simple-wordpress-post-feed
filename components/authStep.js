@@ -64,6 +64,7 @@ const authStep = ({ config, Component, pageProps }) => {
   const [allowed, setAllowed] = useState(false);
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
+  const [reconnecting, setReconnecting] = useState(false);
 
   // Create App Bridge instance
   const app = createApp({
@@ -92,16 +93,21 @@ const authStep = ({ config, Component, pageProps }) => {
         return;
       }
       
-      // Handle 401 - Shopify auth required
-      if (response.status === 401) {
+      // Handle 401/403 - Shopify auth required
+      if (response.status === 401 || response.status === 403) {
         const data = await response.json();
         if (data.code === "SHOPIFY_AUTH_REQUIRED" && data.reauthUrl) {
+          // Show reconnecting state
+          setReconnecting(true);
+          setLoading(false);
           // Redirect to reauth URL in top window (embedded app)
-          if (window.top !== window.self) {
-            window.top.location.href = data.reauthUrl;
-          } else {
-            window.location.href = data.reauthUrl;
-          }
+          setTimeout(() => {
+            if (window.top !== window.self) {
+              window.top.location.href = data.reauthUrl;
+            } else {
+              window.location.href = data.reauthUrl;
+            }
+          }, 500);
           return;
         }
       }
@@ -129,6 +135,16 @@ const authStep = ({ config, Component, pageProps }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin]);
   // console.log(apiKey, shopOrigin, host);
+  if (reconnecting) {
+    return (
+      <AppProvider>
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <Spinner />
+          <p style={{ marginTop: '1rem' }}>Reconnecting to Shopify...</p>
+        </div>
+      </AppProvider>
+    );
+  }
   if (loading) {
     return (
       <AppProvider>

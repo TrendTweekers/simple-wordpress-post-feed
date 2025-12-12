@@ -105,8 +105,22 @@ app
     
     console.log("✅ _next middleware mounted in", __filename);
     
-    // Serve static assets with koa-static + koa-mount - MUST be before any Next handler
+    // Serve static assets with koa-static + koa-mount - MUST be ABSOLUTE FIRST middleware
     const nextStaticPath = path.join(process.cwd(), ".next", "static");
+    
+    // Logging middleware for /_next/static requests (before static serving)
+    server.use(async (ctx, next) => {
+      if (ctx.path.startsWith("/_next/static")) {
+        const filePath = path.join(nextStaticPath, ctx.path.replace("/_next/static/", ""));
+        console.log(`[_next/static] ${ctx.method} ${ctx.path} -> ${filePath}`);
+        await next();
+        console.log(`[_next/static] ${ctx.method} ${ctx.path} -> status: ${ctx.status}`);
+        return;
+      }
+      await next();
+    });
+    
+    // Static serving middleware - MUST be before any other /_next handling
     server.use(
       mount(
         "/_next/static",
@@ -117,9 +131,11 @@ app
       )
     );
     
-    // MUST be first middleware - Let Next handle other _next paths (not /_next/static) and favicon
+    // Let Next handle other _next paths (not /_next/static) and favicon
     server.use(async (ctx, next) => {
       if (ctx.path.startsWith("/_next/static")) {
+        // Should never reach here if static middleware works
+        console.warn(`[_next/static] WARNING: Request not handled by static middleware: ${ctx.path}`);
         return next();
       }
       if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
