@@ -132,6 +132,28 @@ const Index = ({ shopOrigin: shop }) => {
   const app = useAppBridge();
   const redirect = app ? Redirect.create(app) : null;
 
+  /**
+   * Build absolute URL with host parameter preserved
+   */
+  const buildAuthUrl = (reauthUrl) => {
+    // Start with absolute URL
+    const url = new URL(reauthUrl, window.location.origin);
+    
+    // Ensure host exists (Shopify requires it) - get from current URL
+    const currentHost = new URLSearchParams(window.location.search).get("host");
+    if (!url.searchParams.get("host") && currentHost) {
+      url.searchParams.set("host", currentHost);
+    }
+    
+    // Ensure shop parameter exists
+    const currentShop = new URLSearchParams(window.location.search).get("shop");
+    if (!url.searchParams.get("shop") && currentShop) {
+      url.searchParams.set("shop", currentShop);
+    }
+    
+    return url.toString();
+  };
+
   const fetchShopData = async () => {
     try {
       const response = await axios(`/api/data`);
@@ -141,19 +163,18 @@ const Index = ({ shopOrigin: shop }) => {
       if (err.response?.status === 401 || err.response?.status === 403) {
         const data = err.response?.data;
         if (data?.code === "SHOPIFY_AUTH_REQUIRED" && data?.reauthUrl) {
-          const reauthUrl = data.reauthUrl.startsWith('http') 
-            ? data.reauthUrl 
-            : `${window.location.origin}${data.reauthUrl}`;
+          // Build absolute URL with host parameter preserved
+          const fullUrl = buildAuthUrl(data.reauthUrl);
           
           // Use App Bridge Redirect for embedded apps
           if (redirect) {
-            redirect.dispatch(Redirect.Action.REMOTE, reauthUrl);
+            redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
           } else {
             // Fallback if App Bridge not available (shouldn't happen in embedded app)
             if (window.top !== window.self) {
-              window.top.location.href = reauthUrl;
+              window.top.location.href = fullUrl;
             } else {
-              window.location.href = reauthUrl;
+              window.location.href = fullUrl;
             }
           }
           return null;

@@ -79,13 +79,33 @@ const authStep = ({ config, Component, pageProps }) => {
   const authenticatedFetch = userLoggedInFetch(app);
 
   /**
+   * Build absolute URL with host parameter preserved
+   */
+  const buildAuthUrl = (reauthUrl) => {
+    // Start with absolute URL
+    const url = new URL(reauthUrl, window.location.origin);
+    
+    // Ensure host exists (Shopify requires it) - get from current URL
+    const currentHost = new URLSearchParams(window.location.search).get("host");
+    if (!url.searchParams.get("host") && currentHost) {
+      url.searchParams.set("host", currentHost);
+    }
+    
+    // Ensure shop parameter exists
+    const currentShop = new URLSearchParams(window.location.search).get("shop");
+    if (!url.searchParams.get("shop") && currentShop) {
+      url.searchParams.set("shop", currentShop);
+    }
+    
+    return url.toString();
+  };
+
+  /**
    * Helper function to redirect using App Bridge (works reliably in embedded iframe)
    */
   const redirectToAuth = (reauthUrl) => {
-    // Ensure URL is absolute
-    const fullUrl = reauthUrl.startsWith('http') 
-      ? reauthUrl 
-      : `${TUNNEL_URL}${reauthUrl}`;
+    // Build absolute URL with host parameter
+    const fullUrl = buildAuthUrl(reauthUrl);
     
     // Use App Bridge Redirect for embedded apps
     redirect.dispatch(Redirect.Action.REMOTE, fullUrl);

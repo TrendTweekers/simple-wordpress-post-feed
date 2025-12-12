@@ -190,18 +190,8 @@ app
       await next();
     });
     
-    // ✅ REQUIRED: Next.js static assets - MUST BE FIRST ROUTE
-    router.get("/_next/(.*)", async (ctx) => {
-      ctx.respond = false;
-      await handle(ctx.req, ctx.res);
-    });
-    
-    // (Optional but safe) Static assets route
-    router.get("/static/(.*)", async (ctx) => {
-      ctx.respond = false;
-      await handle(ctx.req, ctx.res);
-    });
-    
+    // ✅ CRITICAL: Register Shopify auth middleware FIRST - handles /install/auth
+    // This MUST be before router routes to ensure /install/auth is handled by backend, not Next.js
     server.use(
       createShopifyAuth({
         accessMode: "offline",
@@ -242,6 +232,18 @@ app
         },
       })
     );
+    
+    // ✅ REQUIRED: Next.js static assets - MUST BE FIRST ROUTE
+    router.get("/_next/(.*)", async (ctx) => {
+      ctx.respond = false;
+      await handle(ctx.req, ctx.res);
+    });
+    
+    // (Optional but safe) Static assets route
+    router.get("/static/(.*)", async (ctx) => {
+      ctx.respond = false;
+      await handle(ctx.req, ctx.res);
+    });
     const handleRequest = async (ctx) => {
       // Attach shop and host to request for Next.js to access via ctx.query
       const shop = ctx.query.shop;
@@ -375,14 +377,32 @@ app
     );
 
     // ✅ MUST BE LAST: Catch-all for Next.js - handles pages, API routes, and any unmatched routes
+    // EXCLUDE /install/auth - it's handled by createShopifyAuth middleware above
     router.get("(.*)", async (ctx) => {
+      // Skip /install/auth - it's handled by createShopifyAuth middleware
+      if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
+        return; // Let auth middleware handle it
+      }
       ctx.respond = false;
       await handle(ctx.req, ctx.res);
     });
 
-    // Register all router routes (including catch-all)
-    server.use(router.allowedMethods());
+    // ✅ CRITICAL ORDERING: Register router routes BEFORE Next.js catch-all
+    // Router routes must be registered first so they take precedence
     server.use(router.routes());
+    server.use(router.allowedMethods());
+    
+    // ✅ FINAL: Next.js catch-all - only handles unmatched routes
+    // This runs AFTER router routes, so /install/auth won't reach here
+    server.use(async (ctx) => {
+      // Double-check: don't handle /install/auth here (should be caught by auth middleware)
+      if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
+        console.warn(`WARNING: /install/auth reached Next.js catch-all - this should not happen!`);
+        return;
+      }
+      await handle(ctx.req, ctx.res);
+      ctx.respond = false;
+    });
 
     server.listen(port, () => {
       console.log(`> Ready on http://localhost:${port}`);
