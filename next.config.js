@@ -10,6 +10,7 @@ const apiKey = JSON.stringify(SHOPIFY_API_KEY);
 module.exports = {
   assetPrefix: '',
   basePath: '',
+  useFileSystemPublicRoutes: true,
   webpack: (config) => {
     const env = { API_KEY: apiKey };
     config.plugins.push(new webpack.DefinePlugin(env));
