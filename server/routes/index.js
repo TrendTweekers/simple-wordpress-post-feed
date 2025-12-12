@@ -3,6 +3,7 @@
 
 const { getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
 const { checkTheme } = require("../lib/shopify/functions");
+const { loadOfflineSession } = require("../lib/shopify/session");
 const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const {
@@ -37,22 +38,24 @@ const getData = async (ctx) => {
     /** Checking version in settings DB */
     const settings = await getSettings(APP);
     const fsData = await getFs(APP, shop);
-    const token = fsData?.token || null;
     const theme = fsData?.theme || null;
     
-    if (!token) {
+    // ✅ ALWAYS load offline session from session storage (not from Firebase token)
+    const session = await loadOfflineSession(shop);
+    if (!session || !session.accessToken) {
       ctx.status = 401;
       ctx.body = {
         ok: false,
-        code: "SHOPIFY_AUTH_REQUIRED",
+        code: "NO_OFFLINE_SESSION",
         shop: shop || null,
-        message: "No access token found for shop",
-        reauthUrl: `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+        message: "No offline session found for shop",
+        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
       };
       return;
     }
     
-    const support = await supportBlocks(shop, token);
+    // Use offline session for API calls (no token parameter = uses session)
+    const support = await supportBlocks(shop);
 
     let disableUpdate = true;
     if (fsData?.version !== settings?.version && fsData?.version !== undefined) {
@@ -301,20 +304,34 @@ const install = async (ctx) => {
     const shopData = await getFs(APP, shop);
     
     // Safely extract properties with defaults
-    const token = shopData?.token || null;
     const chargeID = shopData?.chargeID || null;
     const plan = shopData?.plan || "";
     const theme = shopData?.theme || null;
     const longTrial = shopData?.longTrial || false;
     
+    // ✅ ALWAYS load offline session from session storage (not from Firebase token)
+    const session = await loadOfflineSession(shop);
+    if (!session || !session.accessToken) {
+      ctx.status = 401;
+      ctx.body = {
+        ok: false,
+        code: "NO_OFFLINE_SESSION",
+        shop: shop || null,
+        message: "No offline session found for shop",
+        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      };
+      return;
+    }
+    
     // ✅ Use checkAppSubscription (GraphQL) as source of truth - works even after re-auth
     // Falls back to checkCharge (REST) if chargeID exists for backward compatibility
+    // No token parameter = uses offline session
     let activeCharge = false;
     try {
-      activeCharge = await checkAppSubscription(shop, token);
+      activeCharge = await checkAppSubscription(shop);
       if (!activeCharge && chargeID) {
         // Fallback to REST API check for legacy charges
-        activeCharge = await checkCharge(shop, token, chargeID);
+        activeCharge = await checkCharge(shop, null, chargeID);
       }
     } catch (err) {
       // If checkAppSubscription fails with auth error, re-throw
@@ -323,15 +340,16 @@ const install = async (ctx) => {
       }
       // Otherwise, try legacy checkCharge if chargeID exists
       if (chargeID) {
-        activeCharge = await checkCharge(shop, token, chargeID);
+        activeCharge = await checkCharge(shop, null, chargeID);
       }
     }
     
     if (activeCharge) {
-      const development = await checkDevShop(shop, token);
-      const currentTheme = await checkTheme(shop, token);
+      // Use offline session for API calls (no token parameter = uses session)
+      const development = await checkDevShop(shop);
+      const currentTheme = await checkTheme(shop);
       const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
-      const { newThemeCapable } = await supportBlocks(shop, token);
+      const { newThemeCapable } = await supportBlocks(shop);
       const action = newThemeCapable ? "newtheme-install" : "install";
       console.log(`${action} section route ran`);
 

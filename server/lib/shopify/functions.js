@@ -2,6 +2,7 @@ import Shopify, { DataType } from "@shopify/shopify-api";
 import ApolloClient from "apollo-boost";
 
 import config from "../../config/config";
+import { loadOfflineSession } from "./session";
 
 import axios from "axios";
 import initialState from "../../../store/initialState";
@@ -41,13 +42,24 @@ const safeShopifyRestCall = async (client, method, options) => {
  * @param {string} token
  */
 
-const checkTheme = async (shop, token) => {
+const checkTheme = async (shop, token = null) => {
   try {
+    // Load offline session if token not provided
+    let accessToken = token;
+    let session = null;
+    if (!accessToken) {
+      session = await loadOfflineSession(shop);
+      if (!session || !session.accessToken) {
+        throw new Error('No offline session found');
+      }
+      accessToken = session.accessToken;
+    }
+    
     const results = await axios(
       `https://${shop}/admin/api/${API_VERSION}/themes.json`,
       {
         headers: {
-          "X-Shopify-Access-Token": token,
+          "X-Shopify-Access-Token": accessToken,
         },
       }
     ).then(({ data }) => {
@@ -56,8 +68,18 @@ const checkTheme = async (shop, token) => {
     });
     return results;
   } catch (err) {
-    // Re-throw 403/401 errors so they can be caught by route handlers
+    // Re-throw 403/401 errors so they can be caught by route handlers with enhanced logging
     if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      const xRequestId = err.response.headers?.['x-request-id'] || err.response.headers?.['X-Request-Id'] || 'none';
+      console.error(`[SHOPIFY API ${err.response.status}] checkTheme for ${shop}:`, {
+        status: err.response.status,
+        responseData: err.response.data,
+        xRequestId,
+        sessionId: session?.id || 'none',
+        sessionIsOnline: session?.isOnline || false,
+        sessionScope: session?.scope || 'none',
+        error: err.message
+      });
       throw err;
     }
     console.log(err);
@@ -106,21 +128,43 @@ const checkEmailId = async (shop, token) => {
  * @param  {string} token
  * @return {boolean}
  */
-const checkDevShop = async (shop, token) => {
-  if (token) {
+const checkDevShop = async (shop, token = null) => {
+  // Load offline session if token not provided
+  let accessToken = token;
+  let session = null;
+  if (!accessToken) {
+    session = await loadOfflineSession(shop);
+    if (!session || !session.accessToken) {
+      throw new Error('No offline session found');
+    }
+    accessToken = session.accessToken;
+  }
+  
+  if (accessToken) {
     try {
       const response = await fetch(
         `https://${shop}/admin/api/${API_VERSION}/shop.json`,
         {
           method: "GET",
           headers: {
-            "X-Shopify-Access-Token": token,
+            "X-Shopify-Access-Token": accessToken,
           },
         }
       );
       
-      // Handle 403/401 - throw error to trigger reauth
+      // Handle 403/401 - throw error to trigger reauth with enhanced logging
       if (response.status === 401 || response.status === 403) {
+        const xRequestId = response.headers.get('x-request-id') || response.headers.get('X-Request-Id') || 'none';
+        const responseData = await response.json().catch(() => ({}));
+        console.error(`[SHOPIFY API ${response.status}] checkDevShop for ${shop}:`, {
+          status: response.status,
+          responseData,
+          xRequestId,
+          sessionId: session?.id || 'none',
+          sessionIsOnline: session?.isOnline || false,
+          sessionScope: session?.scope || 'none'
+        });
+        
         const axiosError = new Error('Shopify API authentication failed');
         axiosError.isAxiosError = true;
         axiosError.response = {
@@ -152,11 +196,22 @@ const checkDevShop = async (shop, token) => {
 /** Check if there's an active AppSubscription using GraphQL (idempotent billing guard)
  * This is the source of truth - checks Shopify directly, not DB
  * @param  {string} shop
- * @param  {string} token
+ * @param  {string} token - Optional, will load from offline session if not provided
  * @return {boolean} true if active subscription exists, false otherwise
  */
-const checkAppSubscription = async (shop, token) => {
+const checkAppSubscription = async (shop, token = null) => {
   try {
+    // Load offline session if token not provided
+    let accessToken = token;
+    let session = null;
+    if (!accessToken) {
+      session = await loadOfflineSession(shop);
+      if (!session || !session.accessToken) {
+        throw new Error('No offline session found');
+      }
+      accessToken = session.accessToken;
+    }
+    
     const query = `{
       currentAppInstallation {
         activeSubscriptions {
@@ -168,7 +223,7 @@ const checkAppSubscription = async (shop, token) => {
       }
     }`;
 
-    const client = new Shopify.Clients.Graphql(shop, token);
+    const client = new Shopify.Clients.Graphql(shop, accessToken);
     const response = await client.query({ data: query });
     
     if (!response?.body?.data?.currentAppInstallation) {
@@ -189,8 +244,19 @@ const checkAppSubscription = async (shop, token) => {
     
     return hasActiveSubscription;
   } catch (err) {
-    // Handle GraphQL errors
+    // Handle GraphQL errors with enhanced logging
     if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      const xRequestId = err.response.headers?.['x-request-id'] || err.response.headers?.['X-Request-Id'] || 'none';
+      console.error(`[SHOPIFY API ${err.response.status}] checkAppSubscription for ${shop}:`, {
+        status: err.response.status,
+        responseData: err.response.body || err.response.data,
+        xRequestId,
+        sessionId: session?.id || 'none',
+        sessionIsOnline: session?.isOnline || false,
+        sessionScope: session?.scope || 'none',
+        error: err.message
+      });
+      
       const axiosError = new Error('Shopify API authentication failed');
       axiosError.isAxiosError = true;
       axiosError.response = {
@@ -211,20 +277,42 @@ const checkAppSubscription = async (shop, token) => {
  * @param  {string} chargeID
  * @return {boolean}
  */
-const checkCharge = async (shop, token, chargeID) => {
+const checkCharge = async (shop, token = null, chargeID) => {
   try {
+    // Load offline session if token not provided
+    let accessToken = token;
+    let session = null;
+    if (!accessToken) {
+      session = await loadOfflineSession(shop);
+      if (!session || !session.accessToken) {
+        throw new Error('No offline session found');
+      }
+      accessToken = session.accessToken;
+    }
+    
     const response = await fetch(
       `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
       {
         method: "GET",
         headers: {
-          "X-Shopify-Access-Token": token,
+          "X-Shopify-Access-Token": accessToken,
         },
       }
     );
     
-    // Handle 403/401 - throw error to trigger reauth
+    // Handle 403/401 - throw error to trigger reauth with enhanced logging
     if (response.status === 401 || response.status === 403) {
+      const xRequestId = response.headers.get('x-request-id') || response.headers.get('X-Request-Id') || 'none';
+      const responseData = await response.json().catch(() => ({}));
+      console.error(`[SHOPIFY API ${response.status}] checkCharge for ${shop}:`, {
+        status: response.status,
+        responseData,
+        xRequestId,
+        sessionId: session?.id || 'none',
+        sessionIsOnline: session?.isOnline || false,
+        sessionScope: session?.scope || 'none'
+      });
+      
       const axiosError = new Error('Shopify API authentication failed');
       axiosError.isAxiosError = true;
       axiosError.response = {
@@ -319,14 +407,25 @@ const createClient = (shop, accessToken) => {
 
 /** Support Blocks
  * @param  {string} shop
- * @param  {string} token
+ * @param  {string} token - Optional, will load from offline session if not provided
  * @returns {blocksupport}
  */
-const supportBlocks = async (shop, token) => {
+const supportBlocks = async (shop, token = null) => {
   try {
+    // Load offline session if token not provided
+    let accessToken = token;
+    let session = null;
+    if (!accessToken) {
+      session = await loadOfflineSession(shop);
+      if (!session || !session.accessToken) {
+        throw new Error('No offline session found');
+      }
+      accessToken = session.accessToken;
+    }
+    
     const clients = {
-      rest: new Shopify.Clients.Rest(shop, token),
-      graphQL: createClient(shop, token),
+      rest: new Shopify.Clients.Rest(shop, accessToken),
+      graphQL: createClient(shop, accessToken),
     };
 
     // Check if App Blocks are supported
@@ -459,12 +558,24 @@ const supportBlocks = async (shop, token) => {
   } catch (error) {
     console.log(error);
     
-    // Treat 403/401 as auth errors - throw to trigger reauth
+    // Treat 403/401 as auth errors - throw to trigger reauth with enhanced logging
     if (error.code === 403 || error.code === 401 || error.statusCode === 403 || error.statusCode === 401) {
+      const status = error.code || error.statusCode || 403;
+      const xRequestId = error.response?.headers?.['x-request-id'] || error.response?.headers?.['X-Request-Id'] || 'none';
+      console.error(`[SHOPIFY API ${status}] supportBlocks for ${shop}:`, {
+        status,
+        responseData: error.response?.body || error.response?.data || error.body || error.data,
+        xRequestId,
+        sessionId: session?.id || 'none',
+        sessionIsOnline: session?.isOnline || false,
+        sessionScope: session?.scope || 'none',
+        error: error.message || error
+      });
+      
       const axiosError = new Error(error.message || 'Shopify API authentication failed');
       axiosError.isAxiosError = true;
       axiosError.response = {
-        status: error.code || error.statusCode || 403
+        status
       };
       throw axiosError;
     }
