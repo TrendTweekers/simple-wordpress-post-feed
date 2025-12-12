@@ -76,18 +76,17 @@ app
     
     server.proxy = true;
     
-    // ✅ MUST BE FIRST: do not let any middleware touch these
-    // Handle Next.js static assets, favicon, and static files before ANY other middleware
-    server.use(async (ctx, nextFn) => {
+    // ✅ MUST BE FIRST: Handle Next.js static assets before ANY other middleware
+    // Must be ABOVE auth, bodyParser, CSP, router, BEFORE any redirects
+    server.use(async (ctx, next) => {
       if (
         ctx.path.startsWith("/_next/") ||
-        ctx.path === "/favicon.ico" ||
-        ctx.path.startsWith("/static/")
+        ctx.path === "/favicon.ico"
       ) {
         ctx.respond = false;
         return handle(ctx.req, ctx.res);
       }
-      return nextFn();
+      return next();
     });
     
     server.use(bodyParser());
@@ -100,12 +99,6 @@ app
       renew: true        // Renew session on activity
     }, server));
     server.keys = [Shopify.Context.API_SECRET_KEY];
-    
-    // Serve Next.js static assets (.next/static)
-    server.use(serve(path.join(process.cwd(), '.next/static'), {
-      maxage: 365 * 24 * 60 * 60 * 1000, // Cache for 1 year
-      gzip: true
-    }));
     
     // CSP Middleware - Allow iframe embedding from Shopify domains
     server.use(async (ctx, next) => {
