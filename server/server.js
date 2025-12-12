@@ -32,7 +32,7 @@ import {
   cancelCharge,
   downloadMetafield,
 } from "./routes/";
-import { checkDevShop, checkCharge } from "./lib/shopify/functions";
+import { checkDevShop, checkCharge, checkAppSubscription } from "./lib/shopify/functions";
 
 const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL } = env;
 
@@ -209,6 +209,19 @@ app
           }
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
+          
+          // ✅ IDEMPOTENT BILLING GUARD: Check Shopify first before creating subscription
+          const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
+          
+          if (hasActiveSubscription) {
+            console.log(`[BILLING GUARD] Active subscription exists for ${shop} after OAuth - skipping charge creation`);
+            // Redirect to Shopify app launcher - no billing needed
+            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
+            ctx.redirect(appLauncherUrl);
+            return;
+          }
+          
+          console.log(`[BILLING GUARD] No active subscription found for ${shop} after OAuth - creating charge`);
           const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${host}&shop=${shop}`;
           
           // Get subscription URL (billing confirmation) if needed
@@ -329,11 +342,27 @@ app
         
         // Shop exists in Firebase with valid token, check if charge is active
         console.log(`Shop data found for ${shop}, checking charge status`);
-        const activeCharge = await checkCharge(
-          shop,
-          storeDB.token,
-          storeDB?.chargeID
-        );
+        
+        // ✅ Use checkAppSubscription (GraphQL) as source of truth - works even after re-auth
+        let activeCharge = false;
+        try {
+          activeCharge = await checkAppSubscription(shop, storeDB.token);
+          if (!activeCharge && storeDB?.chargeID) {
+            // Fallback to REST API check for legacy charges
+            activeCharge = await checkCharge(shop, storeDB.token, storeDB.chargeID);
+          }
+        } catch (err) {
+          // If checkAppSubscription fails with auth error, redirect to reauth
+          if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
+            console.log(`Auth error checking charge for ${shop}, redirecting to toplevel auth`);
+            ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
+            return;
+          }
+          // Otherwise, try legacy checkCharge if chargeID exists
+          if (storeDB?.chargeID) {
+            activeCharge = await checkCharge(shop, storeDB.token, storeDB.chargeID);
+          }
+        }
         
         if (activeCharge) {
           console.log(`Active charge found for ${shop}, rendering app`);

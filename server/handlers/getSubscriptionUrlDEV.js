@@ -23,6 +23,17 @@ const getSubscriptionUrlDEV = async (
   getUrl = false,
   webhook = true
 ) => {
+  // ✅ IDEMPOTENT BILLING GUARD: Check Shopify first - never charge twice
+  const { checkAppSubscription } = require("../lib/shopify/functions");
+  const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
+  
+  if (hasActiveSubscription) {
+    console.log(`[BILLING GUARD] Active subscription exists for ${shop} - skipping dev charge creation`);
+    return null; // Return null to indicate no new charge needed
+  }
+  
+  console.log(`[BILLING GUARD] No active subscription found for ${shop} - creating new dev charge`);
+  
   const settingsData = await getFs("settings", APP);
   const trial = settingsData?.trial || 0;
   const price = settingsData?.price || 0;

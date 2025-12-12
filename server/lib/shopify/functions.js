@@ -149,7 +149,63 @@ const checkDevShop = async (shop, token) => {
   }
 };
 
-/** This function checking if the charge is active or not
+/** Check if there's an active AppSubscription using GraphQL (idempotent billing guard)
+ * This is the source of truth - checks Shopify directly, not DB
+ * @param  {string} shop
+ * @param  {string} token
+ * @return {boolean} true if active subscription exists, false otherwise
+ */
+const checkAppSubscription = async (shop, token) => {
+  try {
+    const query = `{
+      currentAppInstallation {
+        activeSubscriptions {
+          id
+          status
+          name
+          test
+        }
+      }
+    }`;
+
+    const client = new Shopify.Clients.Graphql(shop, token);
+    const response = await client.query({ data: query });
+    
+    if (!response?.body?.data?.currentAppInstallation) {
+      console.log(`No app installation found for ${shop}`);
+      return false;
+    }
+    
+    const subscriptions = response.body.data.currentAppInstallation.activeSubscriptions || [];
+    
+    // Check if any subscription is ACTIVE (status can be ACTIVE, PENDING, etc.)
+    const hasActiveSubscription = subscriptions.some(
+      (sub) => sub.status === "ACTIVE"
+    );
+    
+    if (hasActiveSubscription) {
+      console.log(`Active subscription found for ${shop}:`, subscriptions.filter(s => s.status === "ACTIVE").map(s => s.name));
+    }
+    
+    return hasActiveSubscription;
+  } catch (err) {
+    // Handle GraphQL errors
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      const axiosError = new Error('Shopify API authentication failed');
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        status: err.response.status
+      };
+      throw axiosError;
+    }
+    console.error(`Error checking AppSubscription for ${shop}:`, err.message || err);
+    return false;
+  }
+};
+
+/** This function checking if the charge is active or not (REST API - legacy)
+ * NOTE: This checks RecurringApplicationCharge, but app uses AppSubscription
+ * Kept for backward compatibility, but should use checkAppSubscription instead
  * @param  {string} shop
  * @param  {string} token
  * @param  {string} chargeID
@@ -430,5 +486,6 @@ module.exports.checkTheme = checkTheme;
 module.exports.checkEmailId = checkEmailId;
 module.exports.checkDevShop = checkDevShop;
 module.exports.checkCharge = checkCharge;
+module.exports.checkAppSubscription = checkAppSubscription;
 module.exports.deleteCharge = deleteCharge;
 module.exports.supportBlocks = supportBlocks;

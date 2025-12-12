@@ -7,6 +7,7 @@ const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const {
   checkCharge,
+  checkAppSubscription,
   checkDevShop,
   deleteCharge,
   supportBlocks,
@@ -306,7 +307,26 @@ const install = async (ctx) => {
     const theme = shopData?.theme || null;
     const longTrial = shopData?.longTrial || false;
     
-    const activeCharge = await checkCharge(shop, token, chargeID);
+    // ✅ Use checkAppSubscription (GraphQL) as source of truth - works even after re-auth
+    // Falls back to checkCharge (REST) if chargeID exists for backward compatibility
+    let activeCharge = false;
+    try {
+      activeCharge = await checkAppSubscription(shop, token);
+      if (!activeCharge && chargeID) {
+        // Fallback to REST API check for legacy charges
+        activeCharge = await checkCharge(shop, token, chargeID);
+      }
+    } catch (err) {
+      // If checkAppSubscription fails with auth error, re-throw
+      if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
+        throw err;
+      }
+      // Otherwise, try legacy checkCharge if chargeID exists
+      if (chargeID) {
+        activeCharge = await checkCharge(shop, token, chargeID);
+      }
+    }
+    
     if (activeCharge) {
       const development = await checkDevShop(shop, token);
       const currentTheme = await checkTheme(shop, token);
@@ -347,8 +367,14 @@ const install = async (ctx) => {
           true,
           false
         );
-        ctx.status = 200;
-        ctx.body = { allowed: false, confirmationUrl };
+        // If confirmationUrl is null, active subscription exists - allow access
+        if (!confirmationUrl) {
+          ctx.status = 200;
+          ctx.body = { allowed: true };
+        } else {
+          ctx.status = 200;
+          ctx.body = { allowed: false, confirmationUrl };
+        }
       } else if (development) {
         /** Runs when its dev store */
         const confirmationUrl = await getSubscriptionUrlDEV(
@@ -359,8 +385,14 @@ const install = async (ctx) => {
           true,
           false
         );
-        ctx.status = 200;
-        ctx.body = { allowed: false, confirmationUrl };
+        // If confirmationUrl is null, active subscription exists - allow access
+        if (!confirmationUrl) {
+          ctx.status = 200;
+          ctx.body = { allowed: true };
+        } else {
+          ctx.status = 200;
+          ctx.body = { allowed: false, confirmationUrl };
+        }
       } else {
         /** Runs when its normal store */
         const confirmationUrl = await getSubscriptionUrl(
@@ -371,8 +403,14 @@ const install = async (ctx) => {
           true,
           false
         );
-        ctx.status = 200;
-        ctx.body = { allowed: false, confirmationUrl };
+        // If confirmationUrl is null, active subscription exists - allow access
+        if (!confirmationUrl) {
+          ctx.status = 200;
+          ctx.body = { allowed: true };
+        } else {
+          ctx.status = 200;
+          ctx.body = { allowed: false, confirmationUrl };
+        }
       }
     } else {
       ctx.status = 200;
