@@ -64,7 +64,6 @@ const authStep = ({ config, Component, pageProps }) => {
   const [allowed, setAllowed] = useState(false);
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
-  const [reconnecting, setReconnecting] = useState(false);
 
   // Create App Bridge instance
   const app = createApp({
@@ -73,8 +72,24 @@ const authStep = ({ config, Component, pageProps }) => {
     host,
   });
 
+  // Create App Bridge Redirect instance for embedded redirects
+  const redirect = Redirect.create(app);
+
   // Use authenticated fetch from App Bridge (no cookies needed)
   const authenticatedFetch = userLoggedInFetch(app);
+
+  /**
+   * Helper function to redirect using App Bridge (works reliably in embedded iframe)
+   */
+  const redirectToAuth = (reauthUrl) => {
+    // Ensure URL is absolute
+    const fullUrl = reauthUrl.startsWith('http') 
+      ? reauthUrl 
+      : `${TUNNEL_URL}${reauthUrl}`;
+    
+    // Use App Bridge Redirect for embedded apps
+    redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
+  };
 
   /**
    * Make install route run and returning if the shop allowed to log in or not, if not, returning an existing confirmation url or a new one
@@ -93,21 +108,18 @@ const authStep = ({ config, Component, pageProps }) => {
         return;
       }
       
-      // Handle 401/403 - Shopify auth required - IMMEDIATE redirect, no spinner
+      // Handle 401/403 - Shopify auth required - IMMEDIATE redirect using App Bridge
       if (response.status === 401 || response.status === 403) {
         const data = await response.json();
         if (data.code === "SHOPIFY_AUTH_REQUIRED" && data.reauthUrl) {
-          // Immediate redirect - do not show spinner
-          const reauthUrl = data.reauthUrl.startsWith('http') 
-            ? data.reauthUrl 
-            : `${TUNNEL_URL}${data.reauthUrl}`;
-          if (window.top !== window.self) {
-            window.top.location.href = reauthUrl;
-          } else {
-            window.location.href = reauthUrl;
-          }
+          // Immediate redirect using App Bridge - no spinner, no delay
+          redirectToAuth(data.reauthUrl);
           return;
         }
+        // Even if code doesn't match, redirect on 401/403
+        const fallbackUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
+        redirectToAuth(fallbackUrl);
+        return;
       }
       
       const data = await response.json();
@@ -124,29 +136,21 @@ const authStep = ({ config, Component, pageProps }) => {
       }
     } catch (err) {
       console.error('Error checking install status:', err);
-      // On error, force reauth
+      // On error, force reauth using App Bridge
       const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
-      if (window.top !== window.self) {
-        window.top.location.href = reauthUrl;
-      } else {
-        window.location.href = reauthUrl;
-      }
+      redirectToAuth(reauthUrl);
     }
   };
 
   useEffect(() => {
     makeInstall();
     
-    // Boot timeout failsafe - if app doesn't initialize in 3 seconds, force reauth
+    // Boot timeout failsafe - if app doesn't initialize in 3 seconds, force reauth using App Bridge
     const timeout = setTimeout(() => {
       if (!allowed && loading) {
         console.warn('Boot timeout - forcing reauth');
         const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
-        if (window.top !== window.self) {
-          window.top.location.href = reauthUrl;
-        } else {
-          window.location.href = reauthUrl;
-        }
+        redirectToAuth(reauthUrl);
       }
     }, 3000);
     
@@ -154,16 +158,6 @@ const authStep = ({ config, Component, pageProps }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin]);
   // console.log(apiKey, shopOrigin, host);
-  if (reconnecting) {
-    return (
-      <AppProvider>
-        <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <Spinner />
-          <p style={{ marginTop: '1rem' }}>Reconnecting to Shopify...</p>
-        </div>
-      </AppProvider>
-    );
-  }
   if (loading) {
     return (
       <AppProvider>

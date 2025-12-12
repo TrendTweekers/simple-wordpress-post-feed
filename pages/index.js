@@ -1,6 +1,8 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Store } from "../store/store";
 import axios from "axios";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { Redirect } from "@shopify/app-bridge/actions";
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
@@ -125,23 +127,34 @@ const Index = ({ shopOrigin: shop }) => {
   const {
     support: { newThemeCapable },
   } = data;
+  
+  // Get App Bridge instance for redirects
+  const app = useAppBridge();
+  const redirect = app ? Redirect.create(app) : null;
 
   const fetchShopData = async () => {
     try {
       const response = await axios(`/api/data`);
       return response.data;
     } catch (err) {
-      // Handle 401/403 - redirect to reauth
+      // Handle 401/403 - redirect to reauth using App Bridge
       if (err.response?.status === 401 || err.response?.status === 403) {
         const data = err.response?.data;
         if (data?.code === "SHOPIFY_AUTH_REQUIRED" && data?.reauthUrl) {
           const reauthUrl = data.reauthUrl.startsWith('http') 
             ? data.reauthUrl 
             : `${window.location.origin}${data.reauthUrl}`;
-          if (window.top !== window.self) {
-            window.top.location.href = reauthUrl;
+          
+          // Use App Bridge Redirect for embedded apps
+          if (redirect) {
+            redirect.dispatch(Redirect.Action.REMOTE, reauthUrl);
           } else {
-            window.location.href = reauthUrl;
+            // Fallback if App Bridge not available (shouldn't happen in embedded app)
+            if (window.top !== window.self) {
+              window.top.location.href = reauthUrl;
+            } else {
+              window.location.href = reauthUrl;
+            }
           }
           return null;
         }
