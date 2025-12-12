@@ -8,6 +8,8 @@ import next from "next";
 import bodyParser from "koa-bodyparser";
 import Router from "@koa/router";
 import session from "koa-session";
+import serve from "koa-static";
+import path from "path";
 import { Shopify, ApiVersion } from "@shopify/shopify-api";
 // import createShopifyAuth,{verifyRequest}  from "@shopify/koa-shopify-auth";
 import { createShopifyAuth, verifyRequest } from "simple-koa-shopify-auth";
@@ -77,6 +79,12 @@ app
       renew: true        // Renew session on activity
     }, server));
     server.keys = [Shopify.Context.API_SECRET_KEY];
+    
+    // Serve Next.js static assets (.next/static)
+    server.use(serve(path.join(process.cwd(), '.next/static'), {
+      maxage: 365 * 24 * 60 * 60 * 1000, // Cache for 1 year
+      gzip: true
+    }));
     
     // CSP Middleware - Allow iframe embedding from Shopify domains
     server.use(async (ctx, next) => {
