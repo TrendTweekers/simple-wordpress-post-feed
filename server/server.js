@@ -76,17 +76,30 @@ app
     
     server.proxy = true;
     
-    // ✅ MUST BE FIRST: Handle Next.js static assets before ANY other middleware
-    // Must be ABOVE auth, bodyParser, CSP, router, BEFORE any redirects
+    // MUST be first middleware - Let Next handle all its static assets with ZERO auth/guards
     server.use(async (ctx, next) => {
-      if (
-        ctx.path.startsWith("/_next/") ||
-        ctx.path === "/favicon.ico"
-      ) {
+      if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
         ctx.respond = false;
-        return handle(ctx.req, ctx.res);
+        await handle(ctx.req, ctx.res);
+        return;
       }
-      return next();
+      await next();
+    });
+    
+    // Only enforce shop/host for HTML document requests, never for assets
+    server.use(async (ctx, next) => {
+      const isDocument =
+        ctx.method === "GET" &&
+        (ctx.get("sec-fetch-dest") === "document" || ctx.accepts("html"));
+      
+      // Only protect the main HTML page render
+      if (isDocument && !ctx.query.shop && !ctx.query.host) {
+        ctx.status = 400;
+        ctx.body = "Open this app from Shopify Admin (missing shop/host).";
+        return;
+      }
+      
+      await next();
     });
     
     server.use(bodyParser());
@@ -165,20 +178,14 @@ app
       })
     );
     const handleRequest = async (ctx) => {
-      // Ensure host and shop are present in query
+      // Attach shop and host to request for Next.js to access via ctx.query
       const shop = ctx.query.shop;
       const host = ctx.query.host;
       
-      if (!shop || !host) {
-        console.log('Missing shop or host in handleRequest, redirecting to toplevel auth');
-        ctx.redirect(`/auth/toplevel?shop=${shop || ''}&host=${host || ''}`);
-        return;
+      if (shop && host) {
+        ctx.req.query = { shop, host };
+        ctx.req.url = `/?shop=${shop}&host=${host}`;
       }
-      
-      // Attach to request for Next.js to access via ctx.query
-      // This ensures Next.js getInitialProps can read these values
-      ctx.req.query = { shop, host };
-      ctx.req.url = `/?shop=${shop}&host=${host}`;
       
       await handle(ctx.req, ctx.res);
       ctx.respond = false;
