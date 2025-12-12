@@ -48,7 +48,8 @@ Shopify.Context.initialize({
 });
 
 const port = parseInt(process.env.PORT, 10) || 3000;
-const dev = process.env.NODE_ENV !== "production";
+// Force production mode - don't rely on NODE_ENV (prevents "assets exist but Next still 404s" bugs)
+const dev = false;
 const app = next({ dev });
 const handle = app.getRequestHandler();
 
