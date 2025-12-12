@@ -55,6 +55,17 @@ app
   .then(() => {
     const server = new Koa();
     const router = new Router();
+    
+    // Global error handler to suppress EPIPE errors (common in web servers)
+    server.on('error', (err, ctx) => {
+      if (err.code === 'EPIPE') {
+        // Client disconnected - ignore this common error
+        return;
+      }
+      // Log other errors normally
+      console.error('Server error:', err);
+    });
+    
     server.proxy = true;
     server.use(bodyParser());
     // Configure session for cross-site cookie support
