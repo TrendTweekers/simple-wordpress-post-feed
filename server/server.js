@@ -106,6 +106,87 @@ app
     console.log("✅ _next middleware mounted in", __filename);
     console.log("✅ Custom Koa server starting - auth routes will be handled by Koa, not Next.js");
     
+    // ✅ REQUIRED: Body parser and session MUST be before Shopify auth middleware
+    server.use(bodyParser());
+    // Configure session for cross-site cookie support
+    server.use(session({ 
+      sameSite: "none",  // Required for cross-site (iframe) cookies
+      secure: true,       // Requires HTTPS (Railway handles this)
+      httpOnly: true,    // Prevents XSS attacks
+      maxAge: 86400000,  // 24 hours
+      renew: true        // Renew session on activity
+    }, server));
+    server.keys = [Shopify.Context.API_SECRET_KEY];
+    
+    // ✅ CRITICAL: Create Shopify auth middleware EARLY (required for hard guard below)
+    const shopifyAuthMiddleware = createShopifyAuth({
+      accessMode: "offline",
+      authRoute: "/install/auth",
+      authCallbackPath: "/install/auth/callback",
+      returnHeader: false,
+      async afterAuth(ctx) {
+          console.log(`after auth ran`);
+          const { shop, accessToken } = ctx.state.shopify;
+          const { host } = ctx.query;
+          if (!accessToken) {
+            // This can happen if the browser interferes with the auth flow
+            ctx.response.status = 500;
+            ctx.response.body = "Failed to get access token! Please try again.";
+            return;
+          }
+          /** Check if its a development shop */
+          const isDev = await checkDevShop(shop, accessToken);
+          
+          // ✅ IDEMPOTENT BILLING GUARD: Check Shopify first before creating subscription
+          const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
+          
+          if (hasActiveSubscription) {
+            console.log(`[BILLING GUARD] Active subscription exists for ${shop} after OAuth - skipping charge creation`);
+            // Redirect to Shopify app launcher - no billing needed
+            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
+            ctx.redirect(appLauncherUrl);
+            return;
+          }
+          
+          console.log(`[BILLING GUARD] No active subscription found for ${shop} after OAuth - creating charge`);
+          const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${host}&shop=${shop}`;
+          
+          // Get subscription URL (billing confirmation) if needed
+          let confirmationUrl = null;
+          if (isDev) {
+            // if not active or development we run the install function
+            confirmationUrl = await getSubscriptionUrlDEV(ctx, accessToken, shop, returnUrl, true);
+          } else {
+            confirmationUrl = await getSubscriptionUrl(ctx, accessToken, shop, returnUrl, true);
+          }
+          
+          // If billing confirmation is needed, redirect to it
+          // Otherwise, redirect to Shopify app launcher
+          if (confirmationUrl) {
+            ctx.redirect(confirmationUrl);
+          } else {
+            // Redirect to Shopify app launcher to ensure proper embedding
+            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
+            ctx.redirect(appLauncherUrl);
+          }
+        },
+      });
+    
+    // ✅ HARD GUARD: Intercept /install/auth routes BEFORE everything else
+    // This ensures these routes NEVER reach Next.js or any other middleware
+    server.use(async (ctx, next) => {
+      if (ctx.path === "/install/auth" || ctx.path === "/install/auth/" || 
+          ctx.path === "/install/auth/callback" || ctx.path === "/install/auth/callback/") {
+        console.log("[AUTH-GUARD]", ctx.method, ctx.path, ctx.querystring);
+        // Normalize path (remove trailing slash) before passing to auth middleware
+        if (ctx.path.endsWith("/") && ctx.path.length > 1) {
+          ctx.path = ctx.path.slice(0, -1);
+        }
+        return shopifyAuthMiddleware(ctx, next);
+      }
+      return next();
+    });
+    
     // ✅ EARLY LOGGER: Track ALL /install/auth requests BEFORE any middleware
     server.use(async (ctx, next) => {
       if (ctx.path.startsWith("/install/auth")) {
@@ -199,18 +280,17 @@ app
       await next();
     });
     
-    // ✅ PATH NORMALIZATION: Remove trailing slashes (except root) BEFORE auth middleware
-    // This ensures /install/auth/ and /install/auth are handled identically
-    // MUST happen before Shopify auth middleware to prevent redirect loops
+    // ✅ PATH NORMALIZATION: Remove trailing slashes (except root and auth routes)
+    // Auth routes are already handled by hard guard above, so skip them here
     server.use(async (ctx, next) => {
-      const originalPath = ctx.path;
+      // Skip auth routes - they're already handled by hard guard
+      if (ctx.path === "/install/auth" || ctx.path === "/install/auth/" || 
+          ctx.path === "/install/auth/callback" || ctx.path === "/install/auth/callback/") {
+        return next();
+      }
       // Normalize: remove trailing slash if path length > 1 (preserve root "/")
       if (ctx.path.length > 1 && ctx.path.endsWith("/")) {
         ctx.path = ctx.path.slice(0, -1);
-        // Log normalization for auth routes
-        if (originalPath.startsWith("/install/auth")) {
-          console.log(`[PATH NORM] Normalized ${originalPath} -> ${ctx.path} (before auth middleware)`);
-        }
       }
       await next();
     });
@@ -226,80 +306,6 @@ app
         return;
       }
       await next();
-    });
-    
-    // ✅ CRITICAL: Register Shopify auth middleware FIRST - handles /install/auth
-    // This MUST be before router routes to ensure /install/auth is handled by backend, not Next.js
-    // Path normalization above ensures auth middleware always receives /install/auth (not /install/auth/)
-    const shopifyAuthMiddleware = createShopifyAuth({
-      accessMode: "offline",
-      authRoute: "/install/auth",
-      authCallbackPath: "/install/auth/callback",
-      returnHeader: false,
-      async afterAuth(ctx) {
-          console.log(`after auth ran`);
-          const { shop, accessToken } = ctx.state.shopify;
-          const { host } = ctx.query;
-          if (!accessToken) {
-            // This can happen if the browser interferes with the auth flow
-            ctx.response.status = 500;
-            ctx.response.body = "Failed to get access token! Please try again.";
-            return;
-          }
-          /** Check if its a development shop */
-          const isDev = await checkDevShop(shop, accessToken);
-          
-          // ✅ IDEMPOTENT BILLING GUARD: Check Shopify first before creating subscription
-          const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
-          
-          if (hasActiveSubscription) {
-            console.log(`[BILLING GUARD] Active subscription exists for ${shop} after OAuth - skipping charge creation`);
-            // Redirect to Shopify app launcher - no billing needed
-            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
-            ctx.redirect(appLauncherUrl);
-            return;
-          }
-          
-          console.log(`[BILLING GUARD] No active subscription found for ${shop} after OAuth - creating charge`);
-          const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${host}&shop=${shop}`;
-          
-          // Get subscription URL (billing confirmation) if needed
-          let confirmationUrl = null;
-          if (isDev) {
-            // if not active or development we run the install function
-            confirmationUrl = await getSubscriptionUrlDEV(ctx, accessToken, shop, returnUrl, true);
-          } else {
-            confirmationUrl = await getSubscriptionUrl(ctx, accessToken, shop, returnUrl, true);
-          }
-          
-          // If billing confirmation is needed, redirect to it
-          // Otherwise, redirect to Shopify app launcher
-          if (confirmationUrl) {
-            ctx.redirect(confirmationUrl);
-          } else {
-            // Redirect to Shopify app launcher to ensure proper embedding
-            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
-            ctx.redirect(appLauncherUrl);
-          }
-        },
-      });
-    
-    // ✅ EXPLICIT KOA ROUTES: Force /install/auth and /install/auth/callback to be handled by auth middleware
-    // These routes MUST be registered BEFORE router and Next.js handler
-    // Path normalization above ensures both /install/auth and /install/auth/ become /install/auth
-    const authPaths = new Set([
-      "/install/auth",
-      "/install/auth/callback",
-    ]);
-    
-    server.use(async (ctx, next) => {
-      // Check normalized path (after trailing slash removal)
-      if (authPaths.has(ctx.path)) {
-        console.log(`[AUTH ROUTE] Explicit route match: ${ctx.method} ${ctx.path} -> routing to Shopify auth middleware`);
-        // Path is already normalized, pass to auth middleware
-        return shopifyAuthMiddleware(ctx, next);
-      }
-      return next();
     });
     
     // Mount auth middleware normally (handles other auth-related routes)
