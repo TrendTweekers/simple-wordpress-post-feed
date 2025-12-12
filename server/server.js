@@ -109,8 +109,28 @@ app
     router.get("/auth/toplevel", async (ctx) => {
       const { shop, host } = ctx.query;
       if (shop && host) {
-        // Redirect to OAuth flow in top-level window to break out of iframe
-        ctx.redirect(`/install/auth?shop=${shop}&host=${host}`);
+        // Return HTML that breaks out of iframe and redirects in top-level window
+        const authUrl = `/install/auth?shop=${shop}&host=${host}`;
+        ctx.type = 'text/html';
+        ctx.body = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Redirecting...</title>
+        </head>
+        <body>
+          <script>
+            // Break out of iframe and redirect in top-level window
+            if (window.top !== window.self) {
+              window.top.location.href = '${authUrl}';
+            } else {
+              window.location.href = '${authUrl}';
+            }
+          </script>
+          <p>Redirecting to authentication...</p>
+        </body>
+      </html>
+    `;
       } else {
         ctx.status = 400;
         ctx.body = "Missing shop or host parameter";
