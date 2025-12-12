@@ -149,6 +149,31 @@ app
       })
     );
     const handleRequest = async (ctx) => {
+      // Ensure host and shop parameters are included in URL for Next.js
+      const shop = ctx.query.shop;
+      const host = ctx.query.host;
+      
+      // Reconstruct URL with query parameters if they exist
+      if (shop || host) {
+        const urlParts = ctx.req.url.split('?');
+        const pathname = urlParts[0];
+        const existingParams = new URLSearchParams(urlParts[1] || '');
+        
+        // Add host parameter if we have it and it's missing
+        if (host && !existingParams.has('host')) {
+          existingParams.set('host', host);
+        }
+        
+        // Add shop parameter if we have it and it's missing
+        if (shop && !existingParams.has('shop')) {
+          existingParams.set('shop', shop);
+        }
+        
+        // Update the request URL with the modified query string
+        const queryString = existingParams.toString();
+        ctx.req.url = queryString ? `${pathname}?${queryString}` : pathname;
+      }
+      
       await handle(ctx.req, ctx.res);
       ctx.respond = false;
       ctx.res.statusCode = 200;
