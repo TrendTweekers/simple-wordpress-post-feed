@@ -76,6 +76,8 @@ app
     
     server.proxy = true;
     
+    console.log("✅ _next middleware mounted in", __filename);
+    
     // MUST be first middleware - Let Next handle all its static assets with ZERO auth/guards
     server.use(async (ctx, next) => {
       if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
@@ -114,7 +116,12 @@ app
     server.keys = [Shopify.Context.API_SECRET_KEY];
     
     // CSP Middleware - Allow iframe embedding from Shopify domains
+    // Wrap to skip _next and favicon (prevents accidental ordering mistakes)
     server.use(async (ctx, next) => {
+      if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
+        return next();
+      }
+      
       const shop = ctx.query.shop || ctx.request.query.shop; // Fallback for query param
       if (shop) {
         ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com;`);
