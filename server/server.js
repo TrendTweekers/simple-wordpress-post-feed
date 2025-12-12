@@ -104,6 +104,15 @@ app
     server.proxy = true;
     
     console.log("✅ _next middleware mounted in", __filename);
+    console.log("✅ Custom Koa server starting - auth routes will be handled by Koa, not Next.js");
+    
+    // ✅ EARLY LOGGER: Track ALL /install/auth requests BEFORE any middleware
+    server.use(async (ctx, next) => {
+      if (ctx.path.startsWith("/install/auth")) {
+        console.log(`[EARLY LOG] ${ctx.method} ${ctx.path} - shop=${ctx.query.shop || 'none'}, host=${ctx.query.host || 'none'}`);
+      }
+      await next();
+    });
     
     // Serve static assets with koa-static + koa-mount - MUST be ABSOLUTE FIRST middleware
     const nextStaticPath = path.join(process.cwd(), ".next", "static");
@@ -273,30 +282,30 @@ app
         },
       });
     
-    // ✅ HARD ROUTE GUARD: Force /install/auth and /install/auth/callback to be handled by auth middleware
-    // This wrapper ensures these routes NEVER reach router or Next.js handlers
-    // Explicitly handle BOTH paths with and without trailing slashes to prevent Next.js redirect loops
+    // ✅ EXPLICIT KOA ROUTES: Force /install/auth and /install/auth/callback to be handled by auth middleware
+    // These routes MUST be registered BEFORE router and Next.js handler
+    // Use Set for O(1) lookup performance
+    const authPaths = new Set([
+      "/install/auth",
+      "/install/auth/",
+      "/install/auth/callback",
+      "/install/auth/callback/",
+    ]);
+    
     server.use(async (ctx, next) => {
-      const path = ctx.path;
-      // Normalize path for comparison (remove trailing slash)
-      const normalizedPath = path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+      const originalPath = ctx.path;
       
-      // Explicitly check both original and normalized paths
-      if (
-        path === "/install/auth" || 
-        path === "/install/auth/" ||
-        path === "/install/auth/callback" ||
-        path === "/install/auth/callback/" ||
-        normalizedPath === "/install/auth" ||
-        normalizedPath === "/install/auth/callback"
-      ) {
-        console.log(`[AUTH GUARD] Routing ${path} (normalized: ${normalizedPath}) to Shopify auth middleware`);
-        // Normalize ctx.path before passing to auth middleware
-        if (path !== normalizedPath) {
-          ctx.path = normalizedPath;
+      // Check if this is an auth path (with or without trailing slash)
+      if (authPaths.has(ctx.path)) {
+        console.log(`[AUTH ROUTE] Explicit route match: ${ctx.method} ${originalPath} -> routing to Shopify auth middleware`);
+        // Normalize path (remove trailing slash) before passing to auth middleware
+        if (ctx.path.endsWith("/") && ctx.path.length > 1) {
+          ctx.path = ctx.path.slice(0, -1);
+          console.log(`[AUTH ROUTE] Normalized path: ${originalPath} -> ${ctx.path}`);
         }
         return shopifyAuthMiddleware(ctx, next);
       }
+      
       return next();
     });
     
