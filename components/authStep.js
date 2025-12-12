@@ -102,13 +102,29 @@ const authStep = ({ config, Component, pageProps }) => {
 
   /**
    * Helper function to redirect using App Bridge (works reliably in embedded iframe)
+   * Falls back to window.location.assign if App Bridge isn't ready
    */
   const redirectToAuth = (reauthUrl) => {
     // Build absolute URL with host parameter
     const fullUrl = buildAuthUrl(reauthUrl);
     
-    // Use App Bridge Redirect for embedded apps
-    redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
+    console.log(`[AUTH] Redirecting to: ${fullUrl}`);
+    
+    try {
+      // Use App Bridge Redirect for embedded apps
+      if (redirect) {
+        redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
+        console.log(`[AUTH] App Bridge redirect dispatched`);
+      } else {
+        // Fallback if App Bridge redirect isn't available
+        console.warn(`[AUTH] App Bridge redirect not available, using window.location.assign`);
+        window.location.assign(fullUrl);
+      }
+    } catch (err) {
+      // Fallback on error
+      console.error(`[AUTH] App Bridge redirect failed:`, err);
+      window.location.assign(fullUrl);
+    }
   };
 
   /**
@@ -132,11 +148,13 @@ const authStep = ({ config, Component, pageProps }) => {
       if (response.status === 401 || response.status === 403) {
         const data = await response.json();
         if (data.code === "SHOPIFY_AUTH_REQUIRED" && data.reauthUrl) {
+          console.log(`[AUTH] SHOPIFY_AUTH_REQUIRED detected, redirecting to: ${data.reauthUrl}`);
           // Immediate redirect using App Bridge - no spinner, no delay
           redirectToAuth(data.reauthUrl);
           return;
         }
         // Even if code doesn't match, redirect on 401/403
+        console.log(`[AUTH] 401/403 without SHOPIFY_AUTH_REQUIRED code, using fallback URL`);
         const fallbackUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
         redirectToAuth(fallbackUrl);
         return;

@@ -190,14 +190,26 @@ app
       await next();
     });
     
+    // ✅ CRITICAL: Logging middleware for /install/auth - track all auth requests
+    server.use(async (ctx, next) => {
+      if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
+        console.log(`[AUTH] /install/auth hit: method=${ctx.method}, shop=${ctx.query.shop}, host=${ctx.query.host}`);
+        const startTime = Date.now();
+        await next();
+        const duration = Date.now() - startTime;
+        console.log(`[AUTH] /install/auth response: status=${ctx.status}, Location=${ctx.response.get('Location') || 'none'}, duration=${duration}ms`);
+        return;
+      }
+      await next();
+    });
+    
     // ✅ CRITICAL: Register Shopify auth middleware FIRST - handles /install/auth
     // This MUST be before router routes to ensure /install/auth is handled by backend, not Next.js
-    server.use(
-      createShopifyAuth({
-        accessMode: "offline",
-        authRoute: "/install/auth",
-        returnHeader: false,
-        async afterAuth(ctx) {
+    const shopifyAuthMiddleware = createShopifyAuth({
+      accessMode: "offline",
+      authRoute: "/install/auth",
+      returnHeader: false,
+      async afterAuth(ctx) {
           console.log(`after auth ran`);
           const { shop, accessToken } = ctx.state.shopify;
           const { host } = ctx.query;
@@ -243,8 +255,18 @@ app
             ctx.redirect(appLauncherUrl);
           }
         },
-      })
-    );
+      });
+    
+    // Mount auth middleware - explicitly handles /install/auth and callbacks
+    server.use(shopifyAuthMiddleware);
+    
+    // ✅ EXPLICIT ROUTE: Ensure /install/auth is explicitly handled (shouldn't reach here if auth middleware works)
+    router.get("/install/auth", async (ctx) => {
+      console.error(`[ERROR] /install/auth reached router handler - auth middleware should have handled this!`);
+      // This should never execute if auth middleware is working correctly
+      ctx.status = 500;
+      ctx.body = "Auth middleware error - /install/auth should be handled by createShopifyAuth";
+    });
     
     // ✅ REQUIRED: Next.js static assets - MUST BE FIRST ROUTE
     router.get("/_next/(.*)", async (ctx) => {
@@ -410,7 +432,10 @@ app
     router.get("(.*)", async (ctx) => {
       // Skip /install/auth - it's handled by createShopifyAuth middleware
       if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
-        return; // Let auth middleware handle it
+        console.error(`[ERROR] /install/auth reached router catch-all - auth middleware should have handled this!`);
+        ctx.status = 500;
+        ctx.body = "Auth middleware error - /install/auth should be handled by createShopifyAuth";
+        return;
       }
       ctx.respond = false;
       await handle(ctx.req, ctx.res);
@@ -426,7 +451,9 @@ app
     server.use(async (ctx) => {
       // Double-check: don't handle /install/auth here (should be caught by auth middleware)
       if (ctx.path === "/install/auth" || ctx.path.startsWith("/install/auth")) {
-        console.warn(`WARNING: /install/auth reached Next.js catch-all - this should not happen!`);
+        console.error(`[ERROR] /install/auth reached Next.js catch-all - auth middleware failed!`);
+        ctx.status = 500;
+        ctx.body = "Auth middleware error - /install/auth should be handled by createShopifyAuth";
         return;
       }
       await handle(ctx.req, ctx.res);

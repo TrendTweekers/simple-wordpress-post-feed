@@ -163,19 +163,23 @@ const Index = ({ shopOrigin: shop }) => {
       if (err.response?.status === 401 || err.response?.status === 403) {
         const data = err.response?.data;
         if (data?.code === "SHOPIFY_AUTH_REQUIRED" && data?.reauthUrl) {
+          console.log(`[AUTH] SHOPIFY_AUTH_REQUIRED in fetchShopData, redirecting to: ${data.reauthUrl}`);
           // Build absolute URL with host parameter preserved
           const fullUrl = buildAuthUrl(data.reauthUrl);
           
           // Use App Bridge Redirect for embedded apps
-          if (redirect) {
-            redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
-          } else {
-            // Fallback if App Bridge not available (shouldn't happen in embedded app)
-            if (window.top !== window.self) {
-              window.top.location.href = fullUrl;
+          try {
+            if (redirect) {
+              redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
+              console.log(`[AUTH] App Bridge redirect dispatched from fetchShopData`);
             } else {
-              window.location.href = fullUrl;
+              // Fallback if App Bridge not available
+              console.warn(`[AUTH] App Bridge not available, using window.location.assign`);
+              window.location.assign(fullUrl);
             }
+          } catch (err) {
+            console.error(`[AUTH] App Bridge redirect failed:`, err);
+            window.location.assign(fullUrl);
           }
           return null;
         }
