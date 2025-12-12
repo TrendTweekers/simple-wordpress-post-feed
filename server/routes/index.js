@@ -242,81 +242,99 @@ const update = async (ctx) => {
  * @return {object} allowed:boolean and confirmationUrl:string
  */
 const install = async (ctx) => {
-  const { shop, host } = await ctx.request.query;
-  const shopData = await getFs(APP, shop);
-  
-  // Safely extract properties with defaults
-  const token = shopData?.token || null;
-  const chargeID = shopData?.chargeID || null;
-  const plan = shopData?.plan || "";
-  const theme = shopData?.theme || null;
-  const longTrial = shopData?.longTrial || false;
-  
-  const activeCharge = await checkCharge(shop, token, chargeID);
-  if (activeCharge) {
-    const development = await checkDevShop(shop, token);
-    const currentTheme = await checkTheme(shop, token);
-    const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
-    const { newThemeCapable } = await supportBlocks(shop, token);
-    const action = newThemeCapable ? "newtheme-install" : "install";
-    console.log(`${action} section route ran`);
-
-    /** Always checking if the current theme is the same as in the DB */
-    if (theme !== currentTheme) {
-      writeFs(APP, shop, { theme: currentTheme });
+  try {
+    const { shop, host } = await ctx.request.query;
+    
+    if (!shop) {
+      ctx.status = 400;
+      ctx.body = { error: "Missing shop parameter" };
+      return;
     }
+    
+    const shopData = await getFs(APP, shop);
+    
+    // Safely extract properties with defaults
+    const token = shopData?.token || null;
+    const chargeID = shopData?.chargeID || null;
+    const plan = shopData?.plan || "";
+    const theme = shopData?.theme || null;
+    const longTrial = shopData?.longTrial || false;
+    
+    const activeCharge = await checkCharge(shop, token, chargeID);
+    if (activeCharge) {
+      const development = await checkDevShop(shop, token);
+      const currentTheme = await checkTheme(shop, token);
+      const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
+      const { newThemeCapable } = await supportBlocks(shop, token);
+      const action = newThemeCapable ? "newtheme-install" : "install";
+      console.log(`${action} section route ran`);
 
-    /** Runs only first time when someone log in and plan is active */
-    if (activeCharge && plan === "") {
-      if (development) {
-        shopData.plan = "developer";
-      } else {
-        shopData.plan = "basic";
+      /** Always checking if the current theme is the same as in the DB */
+      if (theme !== currentTheme) {
+        writeFs(APP, shop, { theme: currentTheme });
       }
-      pushTopic(shop, theme.toString(), token, action);
 
-      ctx.status = 200;
-      const plan = { plan: shopData.plan };
-      await writeFs(APP, shop, plan);
-      ctx.body = { allowed: true };
-    } else if (activeCharge) {
-      ctx.body = { allowed: true };
-    } else if (longTrial) {
-      /** Runs when its normal store and got one year free */
-      const confirmationUrl = await getSubscriptionUrlLongTrial(
-        ctx,
-        token,
-        shop,
-        returnUrl,
-        true,
-        false
-      );
-      ctx.body = { allowed: false, confirmationUrl };
-    } else if (development) {
-      /** Runs when its dev store */
-      const confirmationUrl = await getSubscriptionUrlDEV(
-        ctx,
-        token,
-        shop,
-        returnUrl,
-        true,
-        false
-      );
-      ctx.body = { allowed: false, confirmationUrl };
+      /** Runs only first time when someone log in and plan is active */
+      if (activeCharge && plan === "") {
+        if (development) {
+          shopData.plan = "developer";
+        } else {
+          shopData.plan = "basic";
+        }
+        pushTopic(shop, theme.toString(), token, action);
+
+        ctx.status = 200;
+        const plan = { plan: shopData.plan };
+        await writeFs(APP, shop, plan);
+        ctx.body = { allowed: true };
+      } else if (activeCharge) {
+        ctx.status = 200;
+        ctx.body = { allowed: true };
+      } else if (longTrial) {
+        /** Runs when its normal store and got one year free */
+        const confirmationUrl = await getSubscriptionUrlLongTrial(
+          ctx,
+          token,
+          shop,
+          returnUrl,
+          true,
+          false
+        );
+        ctx.status = 200;
+        ctx.body = { allowed: false, confirmationUrl };
+      } else if (development) {
+        /** Runs when its dev store */
+        const confirmationUrl = await getSubscriptionUrlDEV(
+          ctx,
+          token,
+          shop,
+          returnUrl,
+          true,
+          false
+        );
+        ctx.status = 200;
+        ctx.body = { allowed: false, confirmationUrl };
+      } else {
+        /** Runs when its normal store */
+        const confirmationUrl = await getSubscriptionUrl(
+          ctx,
+          token,
+          shop,
+          returnUrl,
+          true,
+          false
+        );
+        ctx.status = 200;
+        ctx.body = { allowed: false, confirmationUrl };
+      }
     } else {
-      /** Runs when its normal store */
-      const confirmationUrl = await getSubscriptionUrl(
-        ctx,
-        token,
-        shop,
-        returnUrl,
-        true,
-        false
-      );
-      ctx.body = { allowed: false, confirmationUrl };
+      ctx.status = 200;
+      ctx.body = { allowed: false, confirmationUrl: `/auth/toplevel?shop=${shop}&host=${host}` };
     }
-  } else {
-    ctx.body = { allowed: false, confirmationUrl: `/auth/toplevel?shop=${shop}&host=${host}` };
+  } catch (error) {
+    console.error("Error in /api/install:", error);
+    ctx.status = 500;
+    ctx.body = { error: error.message || "Internal server error" };
   }
 };
 
