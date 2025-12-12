@@ -173,11 +173,15 @@ app
       });
     
     // ✅ HARD GUARD: Intercept /install/auth routes BEFORE everything else
-    // This ensures these routes NEVER reach Next.js or any other middleware
+    // This ensures these routes NEVER reach Next.js, router, or any other middleware
     server.use(async (ctx, next) => {
-      if (ctx.path === "/install/auth" || ctx.path === "/install/auth/" || 
-          ctx.path === "/install/auth/callback" || ctx.path === "/install/auth/callback/") {
-        console.log("[AUTH-GUARD]", ctx.method, ctx.path, ctx.querystring);
+      if (
+        ctx.path === "/install/auth" ||
+        ctx.path === "/install/auth/" ||
+        ctx.path === "/install/auth/callback" ||
+        ctx.path === "/install/auth/callback/"
+      ) {
+        console.log("[AUTH-GUARD HIT]", ctx.method, ctx.path, ctx.querystring);
         // Normalize path (remove trailing slash) before passing to auth middleware
         if (ctx.path.endsWith("/") && ctx.path.length > 1) {
           ctx.path = ctx.path.slice(0, -1);
@@ -187,7 +191,10 @@ app
       return next();
     });
     
-    // ✅ EARLY LOGGER: Track ALL /install/auth requests BEFORE any middleware
+    // Mount auth middleware normally (handles other auth-related routes)
+    server.use(shopifyAuthMiddleware);
+    
+    // ✅ EARLY LOGGER: Track ALL /install/auth requests
     server.use(async (ctx, next) => {
       if (ctx.path.startsWith("/install/auth")) {
         console.log(`[EARLY LOG] ${ctx.method} ${ctx.path} - shop=${ctx.query.shop || 'none'}, host=${ctx.query.host || 'none'}`);
@@ -252,17 +259,6 @@ app
       await next();
     });
     
-    server.use(bodyParser());
-    // Configure session for cross-site cookie support
-    server.use(session({ 
-      sameSite: "none",  // Required for cross-site (iframe) cookies
-      secure: true,       // Requires HTTPS (Railway handles this)
-      httpOnly: true,    // Prevents XSS attacks
-      maxAge: 86400000,  // 24 hours
-      renew: true        // Renew session on activity
-    }, server));
-    server.keys = [Shopify.Context.API_SECRET_KEY];
-    
     // CSP Middleware - Allow iframe embedding from Shopify domains
     // Wrap to skip _next and favicon (prevents accidental ordering mistakes)
     server.use(async (ctx, next) => {
@@ -307,9 +303,6 @@ app
       }
       await next();
     });
-    
-    // Mount auth middleware normally (handles other auth-related routes)
-    server.use(shopifyAuthMiddleware);
     
     // ✅ REQUIRED: Next.js static assets - MUST BE FIRST ROUTE
     router.get("/_next/(.*)", async (ctx) => {
