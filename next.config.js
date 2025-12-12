@@ -8,6 +8,7 @@ const { SHOPIFY_API_KEY } = APIconfig;
 const apiKey = JSON.stringify(SHOPIFY_API_KEY);
 
 module.exports = {
+  // ✅ CRITICAL: assetPrefix must be empty string - bad assetPrefix causes blank screen
   assetPrefix: '',
   basePath: '',
   useFileSystemPublicRoutes: true,
