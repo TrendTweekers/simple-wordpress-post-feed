@@ -106,19 +106,7 @@ app
     console.log("✅ _next middleware mounted in", __filename);
     console.log("✅ Custom Koa server starting - auth routes will be handled by Koa, not Next.js");
     
-    // ✅ REQUIRED: Body parser and session MUST be before Shopify auth middleware
-    server.use(bodyParser());
-    // Configure session for cross-site cookie support
-    server.use(session({ 
-      sameSite: "none",  // Required for cross-site (iframe) cookies
-      secure: true,       // Requires HTTPS (Railway handles this)
-      httpOnly: true,    // Prevents XSS attacks
-      maxAge: 86400000,  // 24 hours
-      renew: true        // Renew session on activity
-    }, server));
-    server.keys = [Shopify.Context.API_SECRET_KEY];
-    
-    // ✅ CRITICAL: Create Shopify auth middleware EARLY (required for hard guard below)
+    // ✅ CRITICAL: Create Shopify auth middleware FIRST (required for hard intercept below)
     const shopifyAuthMiddleware = createShopifyAuth({
       accessMode: "offline",
       authPath: "/install/auth",
@@ -172,24 +160,34 @@ app
         },
       });
     
-    // ✅ HARD GUARD: Intercept /install/auth routes BEFORE everything else
+    // ✅ HARD INTERCEPT: Normalize path and intercept /install/auth routes BEFORE EVERYTHING
     // This ensures these routes NEVER reach Next.js, router, or any other middleware
     server.use(async (ctx, next) => {
-      if (
-        ctx.path === "/install/auth" ||
-        ctx.path === "/install/auth/" ||
-        ctx.path === "/install/auth/callback" ||
-        ctx.path === "/install/auth/callback/"
-      ) {
-        console.log("[AUTH-GUARD HIT]", ctx.method, ctx.path, ctx.querystring);
-        // Normalize path (remove trailing slash) before passing to auth middleware
-        if (ctx.path.endsWith("/") && ctx.path.length > 1) {
-          ctx.path = ctx.path.slice(0, -1);
-        }
-        return shopifyAuthMiddleware(ctx, next);
+      // Normalize path by stripping trailing slashes
+      const p = ctx.path.replace(/\/+$/, "");
+      
+      // Hard intercept: if normalized path matches auth routes, return auth middleware with noop next
+      if (p === "/install/auth" || p === "/install/auth/callback") {
+        console.log("[AUTH-GUARD] intercept", ctx.method, ctx.path, ctx.querystring);
+        // Normalize ctx.path for auth middleware
+        ctx.path = p;
+        // Return auth middleware with noop next to prevent fallthrough
+        return shopifyAuthMiddleware(ctx, async () => {});
       }
       return next();
     });
+    
+    // ✅ REQUIRED: Body parser and session MUST be before Shopify auth middleware
+    server.use(bodyParser());
+    // Configure session for cross-site cookie support
+    server.use(session({ 
+      sameSite: "none",  // Required for cross-site (iframe) cookies
+      secure: true,       // Requires HTTPS (Railway handles this)
+      httpOnly: true,    // Prevents XSS attacks
+      maxAge: 86400000,  // 24 hours
+      renew: true        // Renew session on activity
+    }, server));
+    server.keys = [Shopify.Context.API_SECRET_KEY];
     
     // Mount auth middleware normally (handles other auth-related routes)
     server.use(shopifyAuthMiddleware);
