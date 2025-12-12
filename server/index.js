@@ -1,4 +1,4 @@
-console.log("BOOT: Koa server/index.js is running");
+console.log("BOOT: KOA server/index.js is running");
 console.log("BOOT: Koa server/index.js starting, NODE_ENV=", process.env.NODE_ENV);
 console.log("BOOT: Custom Koa server will handle all routes including /install/auth");
 
