@@ -11,6 +11,7 @@ module.exports = {
   assetPrefix: '',
   basePath: '',
   useFileSystemPublicRoutes: true,
+  trailingSlash: true, // Helps with static exports/paths
   webpack: (config) => {
     const env = { API_KEY: apiKey };
     config.plugins.push(new webpack.DefinePlugin(env));
