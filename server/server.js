@@ -62,6 +62,14 @@ app
     console.log("HAS .next/static:", fs.existsSync(".next/static"));
     console.log("HAS .next/static/chunks:", fs.existsSync(".next/static/chunks"));
     
+    // Proof logs - verify BUILD_ID and chunks
+    const buildIdPath = path.join(process.cwd(), ".next", "BUILD_ID");
+    console.log("BUILD_ID exists:", fs.existsSync(buildIdPath));
+    if (fs.existsSync(buildIdPath)) {
+      console.log("BUILD_ID:", fs.readFileSync(buildIdPath, "utf8").trim());
+    }
+    console.log("chunks count:", fs.existsSync(".next/static/chunks") ? fs.readdirSync(".next/static/chunks").length : 0);
+    
     const server = new Koa();
     const router = new Router();
     
