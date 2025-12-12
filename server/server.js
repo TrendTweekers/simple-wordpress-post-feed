@@ -149,34 +149,22 @@ app
       })
     );
     const handleRequest = async (ctx) => {
-      // Ensure host and shop parameters are included in URL for Next.js
+      // Ensure host and shop are present in query
       const shop = ctx.query.shop;
       const host = ctx.query.host;
       
-      // Reconstruct URL with query parameters if they exist
-      if (shop || host) {
-        const urlParts = ctx.req.url.split('?');
-        const pathname = urlParts[0];
-        const existingParams = new URLSearchParams(urlParts[1] || '');
-        
-        // Add host parameter if we have it and it's missing
-        if (host && !existingParams.has('host')) {
-          existingParams.set('host', host);
-        }
-        
-        // Add shop parameter if we have it and it's missing
-        if (shop && !existingParams.has('shop')) {
-          existingParams.set('shop', shop);
-        }
-        
-        // Update the request URL with the modified query string
-        const queryString = existingParams.toString();
-        ctx.req.url = queryString ? `${pathname}?${queryString}` : pathname;
+      if (!shop || !host) {
+        console.log('Missing shop or host in handleRequest, redirecting to toplevel auth');
+        ctx.redirect(`/auth/toplevel?shop=${shop || ''}&host=${host || ''}`);
+        return;
       }
+      
+      // Pass shop and host as query params to Next.js
+      // Explicitly set the URL query string so React can access it from window.location.search
+      ctx.req.url = `/?shop=${shop}&host=${host}`;
       
       await handle(ctx.req, ctx.res);
       ctx.respond = false;
-      ctx.res.statusCode = 200;
     };
 
     // Handle Shopify embedded app toplevel redirect for OAuth
