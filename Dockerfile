@@ -8,6 +8,8 @@ RUN npm install --legacy-peer-deps --no-audit --no-fund
 COPY . .
 RUN mkdir -p public
 RUN npm run build
+# If using standalone output, copy static files into standalone directory
+RUN if [ -d ".next/standalone" ]; then mkdir -p .next/standalone/.next && cp -R .next/static .next/standalone/.next/static || true; fi
 
 FROM node:18-alpine
 

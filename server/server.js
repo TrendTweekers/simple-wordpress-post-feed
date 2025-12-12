@@ -70,6 +70,23 @@ app
     }
     console.log("chunks count:", fs.existsSync(".next/static/chunks") ? fs.readdirSync(".next/static/chunks").length : 0);
     
+    // Runtime debug log - check static chunks directories
+    const chunksPath = path.join(process.cwd(), ".next/static/chunks");
+    const standaloneChunksPath = path.join(process.cwd(), ".next/standalone/.next/static/chunks");
+    console.log(`\n=== Static Chunks Debug ===`);
+    console.log(`Regular chunks path exists: ${fs.existsSync(chunksPath)}`);
+    if (fs.existsSync(chunksPath)) {
+      const files = fs.readdirSync(chunksPath).slice(0, 30);
+      console.log(`Regular chunks files (first 30):`, files);
+    }
+    console.log(`Standalone chunks path exists: ${fs.existsSync(standaloneChunksPath)}`);
+    if (fs.existsSync(standaloneChunksPath)) {
+      const files = fs.readdirSync(standaloneChunksPath).slice(0, 30);
+      console.log(`Standalone chunks files (first 30):`, files);
+    }
+    console.log(`process.cwd():`, process.cwd());
+    console.log(`===========================\n`);
+    
     const server = new Koa();
     const router = new Router();
     
@@ -87,9 +104,21 @@ app
     
     console.log("✅ _next middleware mounted in", __filename);
     
-    // MUST be first middleware - Let Next handle all its static assets with ZERO auth/guards
+    // Explicit static serving for /_next/static - serve directly from filesystem
+    // Check both regular and standalone paths
+    const staticBasePath = fs.existsSync(path.join(process.cwd(), ".next/standalone/.next/static"))
+      ? path.join(process.cwd(), ".next/standalone/.next/static")
+      : path.join(process.cwd(), ".next/static");
+    
+    server.use(serve(staticBasePath, {
+      prefix: "/_next/static",
+      maxage: 365 * 24 * 60 * 60 * 1000, // 1 year cache
+      gzip: true
+    }));
+    
+    // MUST be first middleware - Let Next handle other _next paths (not /_next/static) and favicon
     server.use(async (ctx, next) => {
-      if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
+      if ((ctx.path.startsWith("/_next/") && !ctx.path.startsWith("/_next/static")) || ctx.path === "/favicon.ico") {
         ctx.respond = false;
         await handle(ctx.req, ctx.res);
         return;
