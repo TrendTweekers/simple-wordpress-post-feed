@@ -98,6 +98,16 @@ app
       await next();
     });
     
+    // Exempt static assets from auth (serve early, before auth middleware)
+    server.use(async (ctx, next) => {
+      if (ctx.path.startsWith('/_next/')) {
+        await handle(ctx.req, ctx.res);
+        ctx.respond = false;
+        return;
+      }
+      await next();
+    });
+    
     server.use(
       createShopifyAuth({
         accessMode: "offline",
