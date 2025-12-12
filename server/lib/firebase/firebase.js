@@ -1,45 +1,15 @@
 const admin = require('firebase-admin');
 
-// Load Firebase credentials from environment variable or local file
-// Updated: Force redeploy
-let serviceAccount;
+// Load Firebase credentials from environment variable
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 
-if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-  // Production: Load from environment variable
-  try {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    console.log('Firebase credentials loaded from FIREBASE_SERVICE_ACCOUNT_KEY environment variable');
-    
-    // Debug logging
-    console.log('Service account email:', serviceAccount.client_email);
-    console.log('Project ID:', serviceAccount.project_id);
-    console.log('Private key starts with:', serviceAccount.private_key ? serviceAccount.private_key.substring(0, 50) : 'MISSING');
-    
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      projectId: 'pluginmaker',
-      databaseURL: 'https://pluginmaker.firebaseio.com'
-    });
-  } catch (error) {
-    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT_KEY:', error);
-    throw error;
-  }
-} else {
-  // Development: Load from local file
-  serviceAccount = require('./../../../ServiceAccountKey.json');
-  console.log('Firebase credentials loaded from local ServiceAccountKey.json file');
-  
-  // Debug logging for development
-  console.log('Service account email:', serviceAccount.client_email);
-  console.log('Project ID:', serviceAccount.project_id);
-  console.log('Private key starts with:', serviceAccount.private_key ? serviceAccount.private_key.substring(0, 50) : 'MISSING');
-  
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: 'pluginmaker',
-    databaseURL: 'https://pluginmaker.firebaseio.com'
-  });
-}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  projectId: 'pluginmaker'
+});
+
+// Add this test log after init
+console.log('Firebase initialized with new key ID:', serviceAccount.private_key_id);
 
 const db = admin.firestore();
 
