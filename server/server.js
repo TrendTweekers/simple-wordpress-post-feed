@@ -302,33 +302,6 @@ app
         },
       });
     
-    // ✅ EXPLICIT KOA ROUTES: Force /install/auth and /install/auth/callback to be handled by auth middleware
-    // These routes MUST be registered BEFORE router and Next.js handler
-    // Use Set for O(1) lookup performance
-    const authPaths = new Set([
-      "/install/auth",
-      "/install/auth/",
-      "/install/auth/callback",
-      "/install/auth/callback/",
-    ]);
-    
-    server.use(async (ctx, next) => {
-      const originalPath = ctx.path;
-      
-      // Check if this is an auth path (with or without trailing slash)
-      if (authPaths.has(ctx.path)) {
-        console.log(`[AUTH ROUTE] Explicit route match: ${ctx.method} ${originalPath} -> routing to Shopify auth middleware`);
-        // Normalize path (remove trailing slash) before passing to auth middleware
-        if (ctx.path.endsWith("/") && ctx.path.length > 1) {
-          ctx.path = ctx.path.slice(0, -1);
-          console.log(`[AUTH ROUTE] Normalized path: ${originalPath} -> ${ctx.path}`);
-        }
-        return shopifyAuthMiddleware(ctx, next);
-      }
-      
-      return next();
-    });
-    
     // Mount auth middleware normally (handles other auth-related routes)
     server.use(shopifyAuthMiddleware);
     
