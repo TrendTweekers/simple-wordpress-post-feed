@@ -6,6 +6,8 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   projectId: 'pluginmaker'
+}, {
+  ignoreUndefinedProperties: true
 });
 
 // Add this test log after init
@@ -79,7 +81,13 @@ const deleteFs = (app, shop) => {
  */
 const writeFs = (app, shop, data) => {
   const docRef = db.collection(app).doc(shop);
-  const writeData = docRef.update(data, { merge: false });
+  
+  // Sanitize: remove keys with undefined values before writing
+  const clean = Object.fromEntries(
+    Object.entries(data).filter(([, v]) => v !== undefined)
+  );
+  
+  const writeData = docRef.update(clean, { merge: true });
 
   return writeData;
 };

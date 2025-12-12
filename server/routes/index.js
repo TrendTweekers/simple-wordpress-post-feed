@@ -270,7 +270,8 @@ const install = async (ctx) => {
       console.log(`${action} section route ran`);
 
       /** Always checking if the current theme is the same as in the DB */
-      if (theme !== currentTheme) {
+      // Only write theme if currentTheme is defined (not undefined)
+      if (theme !== currentTheme && currentTheme !== undefined && currentTheme !== null) {
         writeFs(APP, shop, { theme: currentTheme });
       }
 
