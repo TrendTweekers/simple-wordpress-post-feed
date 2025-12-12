@@ -55,6 +55,12 @@ const handle = app.getRequestHandler();
 app
   .prepare()
   .then(() => {
+    // Runtime sanity checks - verify .next directory exists
+    const fs = require("fs");
+    console.log("HAS .next:", fs.existsSync(".next"));
+    console.log("HAS .next/static:", fs.existsSync(".next/static"));
+    console.log("HAS .next/static/chunks:", fs.existsSync(".next/static/chunks"));
+    
     const server = new Koa();
     const router = new Router();
     
