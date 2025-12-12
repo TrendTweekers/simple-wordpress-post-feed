@@ -8,6 +8,8 @@ const { SHOPIFY_API_KEY } = APIconfig;
 const apiKey = JSON.stringify(SHOPIFY_API_KEY);
 
 module.exports = {
+  assetPrefix: '',
+  basePath: '',
   webpack: (config) => {
     const env = { API_KEY: apiKey };
     config.plugins.push(new webpack.DefinePlugin(env));
