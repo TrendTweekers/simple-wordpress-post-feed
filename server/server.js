@@ -98,14 +98,16 @@ app
       await next();
     });
     
-    // Exempt static assets from auth (serve early, before auth middleware)
-    server.use(async (ctx, next) => {
-      if (ctx.path.startsWith('/_next/')) {
-        await handle(ctx.req, ctx.res);
-        ctx.respond = false;
-        return;
-      }
-      await next();
+    // ✅ REQUIRED: Next.js static assets - MUST BE FIRST ROUTE
+    router.get("/_next/(.*)", async (ctx) => {
+      ctx.respond = false;
+      await handle(ctx.req, ctx.res);
+    });
+    
+    // (Optional but safe) Static assets route
+    router.get("/static/(.*)", async (ctx) => {
+      ctx.respond = false;
+      await handle(ctx.req, ctx.res);
     });
     
     server.use(
@@ -276,10 +278,6 @@ app
       .post("/swpf/customers/redact", webhook, customerRedact)
       .post("/swpf/uninstall", webhook, uninstall)
       .post("/api/cancel", cancelCharge);
-
-    // Next.js static assets routes
-    router.get("(/_next/static/.*)", handleRequest);
-    router.get("/_next/webpack-hmr", handleRequest);
     
     // GraphQL proxy route
     router.post(
@@ -290,16 +288,15 @@ app
       }
     );
 
-    // Register all router routes BEFORE Next.js catch-all
+    // ✅ MUST BE LAST: Catch-all for Next.js - handles pages, API routes, and any unmatched routes
+    router.get("(.*)", async (ctx) => {
+      ctx.respond = false;
+      await handle(ctx.req, ctx.res);
+    });
+
+    // Register all router routes (including catch-all)
     server.use(router.allowedMethods());
     server.use(router.routes());
-    
-    // Catch-all for Next.js - handles pages, API routes, and any unmatched routes
-    // This must come AFTER all custom routes are registered
-    server.use(async (ctx) => {
-      await handle(ctx.req, ctx.res);
-      ctx.respond = false; // Let Next.js handle the response
-    });
 
     server.listen(port, () => {
       console.log(`> Ready on http://localhost:${port}`);
