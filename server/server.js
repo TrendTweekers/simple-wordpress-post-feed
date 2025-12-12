@@ -253,15 +253,11 @@ app
       .post("/swpf/uninstall", webhook, uninstall)
       .post("/api/cancel", cancelCharge);
 
-    // Static content is clear
+    // Next.js static assets routes
     router.get("(/_next/static/.*)", handleRequest);
-    // Webpack content is clear
     router.get("/_next/webpack-hmr", handleRequest);
-    // Everything else must have sessions
-    router.get("(.*)", verifyRequest(), handleRequest);
-
-    server.use(router.allowedMethods());
-    server.use(router.routes());
+    
+    // GraphQL proxy route
     router.post(
       "/graphql",
       verifyRequest({ returnHeader: true }),
@@ -270,7 +266,16 @@ app
       }
     );
 
+    // Register all router routes BEFORE Next.js catch-all
+    server.use(router.allowedMethods());
     server.use(router.routes());
+    
+    // Catch-all for Next.js - handles pages, API routes, and any unmatched routes
+    // This must come AFTER all custom routes are registered
+    server.use(async (ctx) => {
+      await handle(ctx.req, ctx.res);
+      ctx.respond = false; // Let Next.js handle the response
+    });
 
     server.listen(port, () => {
       console.log(`> Ready on http://localhost:${port}`);
