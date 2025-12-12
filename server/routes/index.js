@@ -27,39 +27,85 @@ const { APP, TUNNEL_URL } = config;
  * @param  {context} ctx
  */
 const getData = async (ctx) => {
-  const referer = new URLSearchParams(ctx.request.header.referer);
-  const shop = referer.get("shop");
-  console.log(`GET DATA LOG ${shop}`);
+  try {
+    const referer = new URLSearchParams(ctx.request.header.referer);
+    const shop = referer.get("shop");
+    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    console.log(`GET DATA LOG ${shop}`);
 
-  /** Checking version in settings DB */
-  const settings = await getSettings(APP);
-  const fsData = await getFs(APP, shop);
-  const token = fsData?.token || null;
-  const theme = fsData?.theme || null;
-  const support = await supportBlocks(shop, token);
+    /** Checking version in settings DB */
+    const settings = await getSettings(APP);
+    const fsData = await getFs(APP, shop);
+    const token = fsData?.token || null;
+    const theme = fsData?.theme || null;
+    
+    if (!token) {
+      ctx.status = 401;
+      ctx.body = {
+        ok: false,
+        code: "SHOPIFY_AUTH_REQUIRED",
+        shop: shop || null,
+        message: "No access token found for shop",
+        reauthUrl: `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      };
+      return;
+    }
+    
+    const support = await supportBlocks(shop, token);
 
-  let disableUpdate = true;
-  if (fsData?.version !== settings?.version && fsData?.version !== undefined) {
-    disableUpdate = false;
+    let disableUpdate = true;
+    if (fsData?.version !== settings?.version && fsData?.version !== undefined) {
+      disableUpdate = false;
+    }
+    const data = {
+      shop,
+      version: fsData?.version,
+      latestVersion: settings?.version,
+      clean: fsData?.clean,
+      theme: fsData?.theme,
+      disableUpdate,
+      longTrial: fsData?.longTrial || false,
+      chargeID: fsData?.chargeID || null,
+      support,
+    };
+    if (data.version === undefined) {
+      data.version = settings.version;
+    }
+
+    console.log("LOGGING FS DATA FROM ROUTE");
+    ctx.status = 200;
+    ctx.body = data;
+    return data;
+  } catch (error) {
+    // Handle Shopify API errors (403/401)
+    const isAxiosError = error.isAxiosError || (error.response && error.response.status);
+    const status = error.response?.status;
+    const shop = new URLSearchParams(ctx.request.header.referer).get("shop");
+    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    
+    if (isAxiosError && (status === 401 || status === 403)) {
+      console.error(`Shopify API ${status} error in /api/data for shop ${shop}:`, error.message);
+      ctx.status = 401;
+      ctx.body = {
+        ok: false,
+        code: "SHOPIFY_AUTH_REQUIRED",
+        status: status,
+        shop: shop || null,
+        message: "Shopify token rejected (missing scope or needs reauth).",
+        reauthUrl: `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      };
+      return;
+    }
+    
+    // Other errors
+    console.error("Error in /api/data:", error);
+    ctx.status = 500;
+    ctx.body = {
+      ok: false,
+      error: "Internal server error",
+      message: error.message || "An unexpected error occurred"
+    };
   }
-  const data = {
-    shop,
-    version: fsData?.version,
-    latestVersion: settings?.version,
-    clean: fsData?.clean,
-    theme: fsData?.theme,
-    disableUpdate,
-    longTrial: fsData?.longTrial || false,
-    chargeID: fsData?.chargeID || null,
-    support,
-  };
-  if (data.version === undefined) {
-    data.version = settings.version;
-  }
-
-  console.log("LOGGING FS DATA FROM ROUTE");
-  ctx.body = data;
-  return data;
 };
 
 /** Upload data to metafields!@

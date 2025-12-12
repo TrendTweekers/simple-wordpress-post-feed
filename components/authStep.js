@@ -93,21 +93,19 @@ const authStep = ({ config, Component, pageProps }) => {
         return;
       }
       
-      // Handle 401/403 - Shopify auth required
+      // Handle 401/403 - Shopify auth required - IMMEDIATE redirect, no spinner
       if (response.status === 401 || response.status === 403) {
         const data = await response.json();
         if (data.code === "SHOPIFY_AUTH_REQUIRED" && data.reauthUrl) {
-          // Show reconnecting state
-          setReconnecting(true);
-          setLoading(false);
-          // Redirect to reauth URL in top window (embedded app)
-          setTimeout(() => {
-            if (window.top !== window.self) {
-              window.top.location.href = data.reauthUrl;
-            } else {
-              window.location.href = data.reauthUrl;
-            }
-          }, 500);
+          // Immediate redirect - do not show spinner
+          const reauthUrl = data.reauthUrl.startsWith('http') 
+            ? data.reauthUrl 
+            : `${TUNNEL_URL}${data.reauthUrl}`;
+          if (window.top !== window.self) {
+            window.top.location.href = reauthUrl;
+          } else {
+            window.location.href = reauthUrl;
+          }
           return;
         }
       }
@@ -126,12 +124,33 @@ const authStep = ({ config, Component, pageProps }) => {
       }
     } catch (err) {
       console.error('Error checking install status:', err);
-      setLoading(false);
+      // On error, force reauth
+      const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
+      if (window.top !== window.self) {
+        window.top.location.href = reauthUrl;
+      } else {
+        window.location.href = reauthUrl;
+      }
     }
   };
 
   useEffect(() => {
     makeInstall();
+    
+    // Boot timeout failsafe - if app doesn't initialize in 3 seconds, force reauth
+    const timeout = setTimeout(() => {
+      if (!allowed && loading) {
+        console.warn('Boot timeout - forcing reauth');
+        const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
+        if (window.top !== window.self) {
+          window.top.location.href = reauthUrl;
+        } else {
+          window.location.href = reauthUrl;
+        }
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin]);
   // console.log(apiKey, shopOrigin, host);

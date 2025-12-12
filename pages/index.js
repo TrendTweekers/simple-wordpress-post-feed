@@ -126,17 +126,50 @@ const Index = ({ shopOrigin: shop }) => {
     support: { newThemeCapable },
   } = data;
 
-  const fetchShopData = () => axios(`/api/data`).then(({ data }) => data);
+  const fetchShopData = async () => {
+    try {
+      const response = await axios(`/api/data`);
+      return response.data;
+    } catch (err) {
+      // Handle 401/403 - redirect to reauth
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        const data = err.response?.data;
+        if (data?.code === "SHOPIFY_AUTH_REQUIRED" && data?.reauthUrl) {
+          const reauthUrl = data.reauthUrl.startsWith('http') 
+            ? data.reauthUrl 
+            : `${window.location.origin}${data.reauthUrl}`;
+          if (window.top !== window.self) {
+            window.top.location.href = reauthUrl;
+          } else {
+            window.location.href = reauthUrl;
+          }
+          return null;
+        }
+      }
+      throw err;
+    }
+  };
+  
   const getMetaData = () => axios(`/api/meta`).then(({ data }) => data);
 
   const getSettings = async () => {
     dispatch({ type: types.LOADING, payload: true });
-    const metaData = await getMetaData();
-    const shopData = await fetchShopData();
+    try {
+      const metaData = await getMetaData();
+      const shopData = await fetchShopData();
+      
+      if (!shopData) {
+        // Redirect was triggered
+        return;
+      }
 
-    dispatch({ type: types.FETCH_METADATA, payload: metaData });
-    dispatch({ type: types.FETCH_DATA, payload: shopData });
-    dispatch({ type: types.LOADING, payload: false });
+      dispatch({ type: types.FETCH_METADATA, payload: metaData });
+      dispatch({ type: types.FETCH_DATA, payload: shopData });
+      dispatch({ type: types.LOADING, payload: false });
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+      dispatch({ type: types.LOADING, payload: false });
+    }
   };
 
   /** Override current theme setting, showing new Theme 2.0 settings */

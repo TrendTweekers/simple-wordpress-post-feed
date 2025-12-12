@@ -10,6 +10,25 @@ const initialSettings = initialState.settings;
 const { API_VERSION } = config;
 const { GRAPHQL_VERSION } = config;
 
+// Helper to wrap Shopify REST client calls and handle 403/401 errors
+const safeShopifyRestCall = async (client, method, options) => {
+  try {
+    const response = await client[method](options);
+    return response;
+  } catch (err) {
+    // Convert Shopify API 403/401 errors to axios-like errors for consistent handling
+    if (err.code === 403 || err.code === 401 || err.statusCode === 403 || err.statusCode === 401) {
+      const axiosError = new Error(err.message || 'Shopify API authentication failed');
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        status: err.code || err.statusCode || 403
+      };
+      throw axiosError;
+    }
+    throw err;
+  }
+};
+
 /**
  * Containing functions used to retrive and work data from Shopify
  * # checkBlogs - fetch blog data
@@ -33,13 +52,17 @@ const checkTheme = async (shop, token) => {
       }
     ).then(({ data }) => {
       const mainTheme = data.themes.filter((theme) => theme.role === "main");
-      return mainTheme[0].id;
+      return mainTheme[0]?.id;
     });
     return results;
   } catch (err) {
+    // Re-throw 403/401 errors so they can be caught by route handlers
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      throw err;
+    }
     console.log(err);
+    return null;
   }
-  return console.log("check main theme end");
 };
 
 /**
@@ -85,23 +108,41 @@ const checkEmailId = async (shop, token) => {
  */
 const checkDevShop = async (shop, token) => {
   if (token) {
-    const devShop = await fetch(
-      `https://${shop}/admin/api/${API_VERSION}/shop.json`,
-      {
-        method: "GET",
-        headers: {
-          "X-Shopify-Access-Token": token,
-        },
-      }
-    )
-      .then((response) => response.json())
-      .then(({ shop: { plan_name } }) => {
-        if (plan_name === "affiliate" || plan_name === "partner_test") {
-          return true;
+    try {
+      const response = await fetch(
+        `https://${shop}/admin/api/${API_VERSION}/shop.json`,
+        {
+          method: "GET",
+          headers: {
+            "X-Shopify-Access-Token": token,
+          },
         }
-        return false;
-      });
-    return devShop;
+      );
+      
+      // Handle 403/401 - throw error to trigger reauth
+      if (response.status === 401 || response.status === 403) {
+        const axiosError = new Error('Shopify API authentication failed');
+        axiosError.isAxiosError = true;
+        axiosError.response = {
+          status: response.status
+        };
+        throw axiosError;
+      }
+      
+      const data = await response.json();
+      const { shop: { plan_name } } = data;
+      if (plan_name === "affiliate" || plan_name === "partner_test") {
+        return true;
+      }
+      return false;
+    } catch (err) {
+      // Re-throw auth errors
+      if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
+        throw err;
+      }
+      console.log(err);
+      return false;
+    }
   } else {
     console.log("no token");
     return false;
@@ -116,7 +157,7 @@ const checkDevShop = async (shop, token) => {
  */
 const checkCharge = async (shop, token, chargeID) => {
   try {
-    const active = await fetch(
+    const response = await fetch(
       `https://${shop}/admin/api/${API_VERSION}/recurring_application_charges/${chargeID}.json`,
       {
         method: "GET",
@@ -124,16 +165,27 @@ const checkCharge = async (shop, token, chargeID) => {
           "X-Shopify-Access-Token": token,
         },
       }
-    )
-      .then((response) => response.json())
-      .then(({ recurring_application_charge: { status } }) => {
-        if (status === "active") {
-          return true;
-        }
-        return false;
-      });
+    );
+    
+    // Handle 403/401 - throw error to trigger reauth
+    if (response.status === 401 || response.status === 403) {
+      const axiosError = new Error('Shopify API authentication failed');
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        status: response.status
+      };
+      throw axiosError;
+    }
+    
+    const data = await response.json();
+    const { recurring_application_charge: { status } } = data;
+    const active = status === "active";
     return active;
   } catch (err) {
+    // Re-throw auth errors
+    if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
+      throw err;
+    }
     console.log(err);
     return false;
   }
@@ -235,21 +287,23 @@ const supportBlocks = async (shop, token) => {
     ];
 
     // Use `client.get` to request list of themes on store
-    const {
-      body: { themes },
-    } = await clients.rest.get({
+    const themesResponse = await safeShopifyRestCall(clients.rest, 'get', {
       path: "themes",
     });
+    const themes = themesResponse.body.themes;
 
     // Find the published theme
     const publishedTheme = themes.find((theme) => theme.role === "main");
+    
+    if (!publishedTheme) {
+      throw new Error("No published theme found");
+    }
 
     // Get list of assets contained within the published theme
-    const {
-      body: { assets },
-    } = await clients.rest.get({
+    const assetsResponse = await safeShopifyRestCall(clients.rest, 'get', {
       path: `themes/${publishedTheme.id}/assets`,
     });
+    const assets = assetsResponse.body.assets;
 
     // Check if template JSON files exist for the template specified in APP_BLOCK_TEMPLATES
     const templateJSONFiles = assets.filter((file) => {
@@ -269,14 +323,11 @@ const supportBlocks = async (shop, token) => {
     // Get bodies of template JSONs
     const templateJSONAssetContents = await Promise.all(
       templateJSONFiles.map(async (file) => {
-        const {
-          body: { asset },
-        } = await clients.rest.get({
+        const response = await safeShopifyRestCall(clients.rest, 'get', {
           path: `themes/${publishedTheme.id}/assets`,
           query: { "asset[key]": file.key },
         });
-
-        return asset;
+        return response.body.asset;
       })
     );
 
@@ -296,12 +347,11 @@ const supportBlocks = async (shop, token) => {
       await Promise.all(
         templateMainSections.map(async (file, index) => {
           let acceptsAppBlock = false;
-          const {
-            body: { asset },
-          } = await clients.rest.get({
+          const response = await safeShopifyRestCall(clients.rest, 'get', {
             path: `themes/${publishedTheme.id}/assets`,
             query: { "asset[key]": file.key },
           });
+          const asset = response.body.asset;
 
           const match = asset.value.match(
             /\{\%\s+schema\s+\%\}([\s\S]*?)\{\%\s+endschema\s+\%\}/m
@@ -352,6 +402,18 @@ const supportBlocks = async (shop, token) => {
     return response;
   } catch (error) {
     console.log(error);
+    
+    // Treat 403/401 as auth errors - throw to trigger reauth
+    if (error.code === 403 || error.code === 401 || error.statusCode === 403 || error.statusCode === 401) {
+      const axiosError = new Error(error.message || 'Shopify API authentication failed');
+      axiosError.isAxiosError = true;
+      axiosError.response = {
+        status: error.code || error.statusCode || 403
+      };
+      throw axiosError;
+    }
+    
+    // For other errors, return default response
     const response = {
       theme: 99999,
       supportsSe: false,
