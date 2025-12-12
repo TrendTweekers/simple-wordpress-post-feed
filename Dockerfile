@@ -23,14 +23,12 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
 
-# 🔴 THIS IS THE CRITICAL PART - Copy .next from builder stage
+# 🔴 THIS IS THE CRITICAL PART - Copy only what's needed at runtime
 COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/store ./store
 COPY --from=builder /app/next.config.js ./next.config.js
-COPY --from=builder /app/pages ./pages
-COPY --from=builder /app/components ./components
-COPY --from=builder /app/styles.scss ./styles.scss
 
 EXPOSE 8080
 CMD ["node", "server/index.js"]
