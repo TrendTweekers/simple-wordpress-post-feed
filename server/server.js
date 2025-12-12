@@ -57,7 +57,14 @@ app
     const router = new Router();
     server.proxy = true;
     server.use(bodyParser());
-    server.use(session({ sameSite: "none", secure: true }, server));
+    // Configure session for cross-site cookie support
+    server.use(session({ 
+      sameSite: "none",  // Required for cross-site (iframe) cookies
+      secure: true,       // Requires HTTPS (Railway handles this)
+      httpOnly: true,    // Prevents XSS attacks
+      maxAge: 86400000,  // 24 hours
+      renew: true        // Renew session on activity
+    }, server));
     server.keys = [Shopify.Context.API_SECRET_KEY];
     
     // CSP Middleware - Allow iframe embedding from Shopify domains

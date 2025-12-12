@@ -5,7 +5,6 @@ import ApolloClient from "apollo-boost";
 import { AppProvider } from "@shopify/polaris";
 import { StoreProvider } from "../store/store";
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useAppBridge, Provider } from "@shopify/app-bridge-react";
 import { authenticatedFetch } from "@shopify/app-bridge-utils";
 import { Redirect } from "@shopify/app-bridge/actions";
@@ -66,43 +65,55 @@ const authStep = ({ config, Component, pageProps }) => {
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Create App Bridge instance
+  const app = createApp({
+    apiKey,
+    shopOrigin,
+    host,
+  });
+
+  // Use authenticated fetch from App Bridge (no cookies needed)
+  const authenticatedFetch = userLoggedInFetch(app);
+
   /**
    * Make install route run and returning if the shop allowed to log in or not, if not, returning an existing confirmation url or a new one
+   * Uses authenticated fetch instead of axios to avoid cookie dependency
    */
-  const makeInstall = () => {
-    axios(`/api/install`, {
-      params: {
-        shop: shopOrigin,
-        host,
-      },
-    })
-      .then((res) => {
-        const {
-          data: { allowed, confirmationUrl },
-        } = res;
-        if (allowed) {
-          setAllowed(true);
-          setLoading(false);
-        } else {
-          console.log("not allowed");
-          setAllowed(false);
-          setConfirmationUrl(`${TUNNEL_URL}${confirmationUrl}`);
-          setLoading(false);
-        }
-      })
-      .catch((err) => console.log(err));
+  const makeInstall = async () => {
+    try {
+      const url = `/api/install?shop=${encodeURIComponent(shopOrigin)}&host=${encodeURIComponent(host)}`;
+      const response = await authenticatedFetch(url, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      if (!response) {
+        // Redirect was triggered by authenticatedFetch
+        return;
+      }
+      
+      const data = await response.json();
+      const { allowed: isAllowed, confirmationUrl: confirmUrl } = data;
+      
+      if (isAllowed) {
+        setAllowed(true);
+        setLoading(false);
+      } else {
+        console.log("not allowed");
+        setAllowed(false);
+        setConfirmationUrl(`${TUNNEL_URL}${confirmUrl}`);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Error checking install status:', err);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     makeInstall();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin]);
-
-  const app = createApp({
-    apiKey,
-    shopOrigin,
-    host,
-  });
   // console.log(apiKey, shopOrigin, host);
   if (loading) {
     return (
