@@ -29,11 +29,15 @@ const handleShopifyAuthError = async (err, ctx, shop, host, endpoint = "unknown"
   const responseData = err.response?.data || err.response?.body || err.body || err.data || {};
   const responseDataStr = JSON.stringify(responseData).substring(0, 200); // Truncate to 200 chars
   
-  // Log the exact endpoint and error
+  // Extract x-request-id header if available
+  const xRequestId = err.response?.headers?.['x-request-id'] || err.response?.headers?.['X-Request-Id'] || err.headers?.['x-request-id'] || err.headers?.['X-Request-Id'] || 'none';
+  
+  // Log the exact endpoint and error with full details
   console.error(`[SHOPIFY API ${status}] ${endpoint} for ${shop}:`, {
     endpoint,
     status,
     responseData: responseDataStr,
+    xRequestId,
     error: err.message || err
   });
   

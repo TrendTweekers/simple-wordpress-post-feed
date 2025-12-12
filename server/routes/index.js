@@ -188,38 +188,59 @@ const uploadData = async (ctx) => {
  * @param  {context} ctx
  */
 const deleteAllMeta = async (ctx) => {
-  const { settings } = await ctx.request.body;
-  const referer = new URLSearchParams(ctx.request.header.referer);
-  const shop = referer.get("shop");
-  console.log(`Delete all meta ${shop}`);
-  const fsData = await getFs(APP, shop);
-  const token = fsData?.token || null;
-  
-  if (!token) {
-    ctx.status = 401;
-    ctx.body = { error: "No access token found for shop" };
-    return;
-  }
-
-  const lengthOfSettings = Object.keys(settings).length;
-  const deletePromise = new Promise((resolve, reject) => {
+  try {
+    const { settings } = await ctx.request.body;
+    const referer = new URLSearchParams(ctx.request.header.referer);
+    const shop = referer.get("shop");
+    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    console.log(`Delete all meta ${shop}`);
+    
+    // ✅ ALWAYS load offline session from session storage
+    const session = await loadOfflineSession(shop);
+    if (!session || !session.accessToken) {
+      ctx.status = 401;
+      ctx.body = {
+        ok: false,
+        reauth: true,
+        code: "NO_OFFLINE_SESSION",
+        shop: shop || null,
+        message: "No offline session found for shop",
+        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      };
+      return;
+    }
+    
+    const token = session.accessToken;
+    const lengthOfSettings = Object.keys(settings).length;
     const newData = { ...settings };
-    Object.keys(settings).forEach(async (key, i) => {
+    
+    for (const [i, key] of Object.keys(settings).entries()) {
       const { id, type } = settings[key];
       if (id) {
-        deleteMetafield(shop, token, id);
-        newData[key] = { id: "", value: "", type };
+        try {
+          await deleteMetafield(shop, token, id);
+          newData[key] = { id: "", value: "", type };
+        } catch (metafieldError) {
+          // Handle Shopify API errors
+          const handled = await handleShopifyAuthError(metafieldError, ctx, shop, host, `DELETE /admin/api/${API_VERSION}/metafields/${id}.json (deleteAllMeta)`);
+          if (handled) return;
+          throw metafieldError; // Re-throw if not handled
+        }
       }
-      if (i === lengthOfSettings - 1) {
-        resolve(newData);
-      }
-    });
-  });
-  deletePromise.then((deletedData) => {
-    console.log("promise finished");
-    console.log(deletedData);
-    return (ctx.body = deletedData);
-  });
+    }
+    
+    console.log("deleted");
+    ctx.body = newData;
+  } catch (error) {
+    const shop = new URLSearchParams(ctx.request.header.referer).get("shop");
+    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    const handled = await handleShopifyAuthError(error, ctx, shop, host, `POST /api/deletedata (deleteAllMeta)`);
+    if (!handled) {
+      console.error("Error in /api/deletedata:", error);
+      ctx.status = 500;
+      ctx.body = { ok: false, error: "Internal server error" };
+    }
+  }
 };
 
 /** This is for shopify to redact everything GDPR mandatory webhook
