@@ -121,7 +121,7 @@ app
     // ✅ CRITICAL: Create Shopify auth middleware EARLY (required for hard guard below)
     const shopifyAuthMiddleware = createShopifyAuth({
       accessMode: "offline",
-      authRoute: "/install/auth",
+      authPath: "/install/auth",
       authCallbackPath: "/install/auth/callback",
       returnHeader: false,
       async afterAuth(ctx) {
