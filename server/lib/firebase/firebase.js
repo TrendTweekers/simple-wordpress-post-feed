@@ -30,7 +30,8 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
 }
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(serviceAccount),
+  projectId: 'pluginmaker'
 });
 
 const db = admin.firestore();
