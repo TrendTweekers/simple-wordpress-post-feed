@@ -98,11 +98,8 @@ const handleTypeError = async (err, ctx, shop, host, endpoint = "unknown") => {
  */
 const shopifyApiWrapper = async (apiCall, shop, ctx, host, endpoint = "unknown") => {
   try {
-    // Load offline session
+    // Load offline session (will throw 401 error if missing)
     const session = await loadOfflineSession(shop);
-    if (!session || !session.accessToken) {
-      throw new Error('No offline session found');
-    }
     
     // Execute the API call with the session
     return await apiCall(session);

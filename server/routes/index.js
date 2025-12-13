@@ -26,6 +26,26 @@ const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
 const { APP, TUNNEL_URL, API_VERSION } = config;
 
+/**
+ * Helper function to load offline session with error handling
+ * Wraps loadOfflineSession and handles 401 errors by calling handleShopifyAuthError
+ */
+const loadSessionWithErrorHandling = async (shop, ctx, host, endpoint = "unknown") => {
+  try {
+    return await loadOfflineSession(shop);
+  } catch (sessionError) {
+    // Handle session load errors (401) - will trigger reauth
+    if (sessionError.status === 401 || sessionError.status === 403) {
+      const handled = await handleShopifyAuthError(sessionError, ctx, shop, host, endpoint);
+      if (handled) {
+        // Return null to indicate redirect was triggered
+        return null;
+      }
+    }
+    throw sessionError; // Re-throw if not handled
+  }
+};
+
 /** Getting all the data from DB
  * @param  {context} ctx
  */
@@ -42,18 +62,8 @@ const getData = async (ctx) => {
     const theme = fsData?.theme || null;
     
     // ✅ ALWAYS load offline session from session storage (not from Firebase token)
-    const session = await loadOfflineSession(shop);
-    if (!session || !session.accessToken) {
-      ctx.status = 401;
-      ctx.body = {
-        ok: false,
-        code: "NO_OFFLINE_SESSION",
-        shop: shop || null,
-        message: "No offline session found for shop",
-        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
-      };
-      return;
-    }
+    const session = await loadSessionWithErrorHandling(shop, ctx, host, `GET /api/data (loadOfflineSession)`);
+    if (!session) return; // Redirect was triggered
     
     // Use offline session for API calls (no token parameter = uses session)
     let support;
@@ -90,15 +100,16 @@ const getData = async (ctx) => {
     ctx.body = data;
     return data;
   } catch (error) {
-    // Handle Shopify API errors (403/401)
+    // Handle Shopify API errors (403/401) and session load errors
     const shop = new URLSearchParams(ctx.request.header.referer).get("shop");
     const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
     
     const isAxiosError = error.isAxiosError || (error.response && error.response.status);
-    const status = error.response?.status;
+    const status = error.response?.status || error.status;
+    const isAuthError = status === 401 || status === 403;
     
-    if (isAxiosError && (status === 401 || status === 403)) {
-      const handled = await handleShopifyAuthError(error, ctx, shop, host, `GET /api/data (supportBlocks)`);
+    if ((isAxiosError || isAuthError) && isAuthError) {
+      const handled = await handleShopifyAuthError(error, ctx, shop, host, `GET /api/data`);
       if (handled) return;
     }
     
@@ -125,19 +136,8 @@ const uploadData = async (ctx) => {
     console.log(`Upload data route ran for ${shop}`);
     
     // ✅ ALWAYS load offline session from session storage
-    const session = await loadOfflineSession(shop);
-    if (!session || !session.accessToken) {
-      ctx.status = 401;
-      ctx.body = {
-        ok: false,
-        reauth: true,
-        code: "NO_OFFLINE_SESSION",
-        shop: shop || null,
-        message: "No offline session found for shop",
-        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
-      };
-      return;
-    }
+    const session = await loadSessionWithErrorHandling(shop, ctx, host, `POST /api/data (uploadData)`);
+    if (!session) return; // Redirect was triggered
     
     const token = session.accessToken;
     const lengthOfSettings = Object.keys(settings).length;
@@ -197,19 +197,8 @@ const deleteAllMeta = async (ctx) => {
     console.log(`Delete all meta ${shop}`);
     
     // ✅ ALWAYS load offline session from session storage
-    const session = await loadOfflineSession(shop);
-    if (!session || !session.accessToken) {
-      ctx.status = 401;
-      ctx.body = {
-        ok: false,
-        reauth: true,
-        code: "NO_OFFLINE_SESSION",
-        shop: shop || null,
-        message: "No offline session found for shop",
-        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
-      };
-      return;
-    }
+    const session = await loadSessionWithErrorHandling(shop, ctx, host, `POST /api/deletedata (deleteAllMeta)`);
+    if (!session) return; // Redirect was triggered
     
     const token = session.accessToken;
     const lengthOfSettings = Object.keys(settings).length;
@@ -357,18 +346,8 @@ const install = async (ctx) => {
     const longTrial = shopData?.longTrial || false;
     
     // ✅ ALWAYS load offline session from session storage (not from Firebase token)
-    const session = await loadOfflineSession(shop);
-    if (!session || !session.accessToken) {
-      ctx.status = 401;
-      ctx.body = {
-        ok: false,
-        code: "NO_OFFLINE_SESSION",
-        shop: shop || null,
-        message: "No offline session found for shop",
-        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
-      };
-      return;
-    }
+    const session = await loadSessionWithErrorHandling(shop, ctx, host, `GET /api/install (install)`);
+    if (!session) return; // Redirect was triggered
     
     // ✅ Use checkAppSubscription (GraphQL) as source of truth - works even after re-auth
     // Falls back to checkCharge (REST) if chargeID exists for backward compatibility
@@ -547,19 +526,8 @@ const downloadMetafield = async (ctx) => {
   console.log("download metafield");
   try {
     // ✅ ALWAYS load offline session from session storage
-    const session = await loadOfflineSession(shop);
-    if (!session || !session.accessToken) {
-      ctx.status = 401;
-      ctx.body = {
-        ok: false,
-        reauth: true,
-        code: "NO_OFFLINE_SESSION",
-        shop: shop || null,
-        message: "No offline session found for shop",
-        reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
-      };
-      return;
-    }
+    const session = await loadSessionWithErrorHandling(shop, ctx, host, `GET /api/meta (downloadMetafield)`);
+    if (!session) return; // Redirect was triggered
     
     const token = session.accessToken;
     const data = await getMultipleMetafields(shop, token);
