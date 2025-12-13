@@ -18,7 +18,7 @@ import { createShopifyAuth, verifyRequest } from "simple-koa-shopify-auth";
 import getSubscriptionUrlDEV from "./handlers/getSubscriptionUrlDEV";
 import getSubscriptionUrl from "./handlers/getSubscriptionUrl";
 import env from "./config/config";
-import { getFs } from "./lib/firebase/firebase";
+import { getFs, writeFs } from "./lib/firebase/firebase";
 import {
   getData,
   uploadData,
@@ -436,43 +436,88 @@ app
           storeDB = null;
         }
         
-        // Check if shop data exists and has required token
-        // storeDB can be false (document doesn't exist), null, or undefined
-        if (!storeDB || storeDB === false || !storeDB.token) {
-          console.log(`No valid shop data found for ${shop} (storeDB: ${JSON.stringify(storeDB)}), redirecting to toplevel auth`);
-          // Redirect to toplevel auth to break out of iframe for OAuth
+        // storeDB is the Firebase doc result
+        if (!storeDB) {
+          console.log(`[SHOP GUARD] No Firebase record for ${shop} -> toplevel auth`);
           const { ensureHost } = require("./lib/shopify/host");
           const finalHost = ensureHost(shop, host);
           const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
           ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
           return;
         }
+
+        // ✅ Legacy installs: record exists but may not match your new schema.
+        // DO NOT force OAuth again.
+        console.log(`[SHOP GUARD] Firebase record exists for ${shop} -> allowing app load (legacy ok)`);
         
-        // Shop exists in Firebase with valid token, check if charge is active
+        // Optional: auto-migrate the legacy record once
+        try {
+          await writeFs(APP, shop, {
+            shop,
+            legacy: true,
+            lastSeenAt: Date.now(),
+            host: host || null,
+            migratedAt: Date.now(),
+          });
+          console.log(`[SHOP GUARD] Migrated legacy record for ${shop}`);
+        } catch (e) {
+          console.log(`[SHOP GUARD] Legacy migrate failed (non-blocking):`, e?.message || e);
+        }
+        
+        // Shop exists in Firebase (legacy or new), check if charge is active
         console.log(`Shop data found for ${shop}, checking charge status`);
         
         // ✅ Use checkAppSubscription (GraphQL) as source of truth - works even after re-auth
+        // For legacy records without token, try to load session from session storage
         let activeCharge = false;
-        try {
-          activeCharge = await checkAppSubscription(shop, storeDB.token);
-          if (!activeCharge && storeDB?.chargeID) {
-            // Fallback to REST API check for legacy charges
-            activeCharge = await checkCharge(shop, storeDB.token, storeDB.chargeID);
+        let tokenToUse = storeDB.token;
+        
+        // If no token in Firebase, try to load from session storage (for legacy installs)
+        if (!tokenToUse) {
+          try {
+            const { loadOfflineSession } = require("./lib/shopify/session");
+            const { shopifyApi } = require("./lib/shopify/shopify");
+            const session = await loadOfflineSession(shop, shopifyApi);
+            if (session && session.accessToken) {
+              tokenToUse = session.accessToken;
+              console.log(`[SHOP GUARD] Loaded token from session storage for legacy record ${shop}`);
+            }
+          } catch (sessionError) {
+            console.log(`[SHOP GUARD] Could not load session for legacy record ${shop}, will redirect if charge check fails`);
           }
-        } catch (err) {
-          // If checkAppSubscription fails with auth error, redirect to reauth
-          if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-            console.log(`Auth error checking charge for ${shop}, redirecting to toplevel auth`);
-            const { ensureHost } = require("./lib/shopify/host");
-            const finalHost = ensureHost(shop, host);
-            const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
-            ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
-            return;
+        }
+        
+        // Only check charge if we have a token
+        if (tokenToUse) {
+          try {
+            activeCharge = await checkAppSubscription(shop, tokenToUse);
+            if (!activeCharge && storeDB?.chargeID) {
+              // Fallback to REST API check for legacy charges
+              activeCharge = await checkCharge(shop, tokenToUse, storeDB.chargeID);
+            }
+          } catch (err) {
+            // If checkAppSubscription fails with auth error, redirect to reauth
+            if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
+              console.log(`Auth error checking charge for ${shop}, redirecting to toplevel auth`);
+              const { ensureHost } = require("./lib/shopify/host");
+              const finalHost = ensureHost(shop, host);
+              const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+              ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
+              return;
+            }
+            // Otherwise, try legacy checkCharge if chargeID exists
+            if (storeDB?.chargeID) {
+              activeCharge = await checkCharge(shop, tokenToUse, storeDB.chargeID);
+            }
           }
-          // Otherwise, try legacy checkCharge if chargeID exists
-          if (storeDB?.chargeID) {
-            activeCharge = await checkCharge(shop, storeDB.token, storeDB.chargeID);
-          }
+        } else {
+          // No token available, redirect to auth
+          console.log(`[SHOP GUARD] No token available for ${shop} (legacy record), redirecting to toplevel auth`);
+          const { ensureHost } = require("./lib/shopify/host");
+          const finalHost = ensureHost(shop, host);
+          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
+          return;
         }
         
         if (activeCharge) {
