@@ -1,6 +1,6 @@
 const { handleShopifyAuthError } = require("./authError");
-const { loadOfflineSession } = require("./session");
-const { Shopify } = require("@shopify/shopify-api");
+const { loadOfflineSession, getOfflineIdSafe } = require("./session");
+const { shopifyApi, sessionStorage } = require("./shopify");
 const admin = require("firebase-admin");
 const config = require("../../config/config");
 
@@ -28,8 +28,8 @@ const handleTypeError = async (err, ctx, shop, host, endpoint = "unknown") => {
   
   // Delete offline session from Shopify session storage
   try {
-    const sessionId = Shopify.Utils.session.getOfflineId(shop);
-    await Shopify.Context.SESSION_STORAGE.deleteSession(sessionId);
+    const sessionId = getOfflineIdSafe(shop, shopifyApi);
+    await sessionStorage.deleteSession(sessionId);
     console.log(`[SESSION ERROR] Deleted offline session for ${shop} (sessionId: ${sessionId})`);
   } catch (deleteError) {
     console.error(`[SESSION ERROR] Failed to delete session for ${shop}:`, deleteError);

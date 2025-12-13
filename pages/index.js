@@ -162,6 +162,19 @@ const Index = ({ shopOrigin: shop }) => {
       dispatch({ type: types.LOADING, payload: false });
     } catch (err) {
       console.error('Error fetching settings:', err);
+      // If 401 error, ensure top-level redirect
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        const data = err.response?.data || {};
+        const reauthUrl = data?.reauthUrl || `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(new URLSearchParams(window.location.search).get("host") || '')}`;
+        const fullUrl = buildAuthUrl(reauthUrl);
+        // Force top-level redirect for embedded iframe
+        if (typeof window !== "undefined" && window.top) {
+          window.top.location.href = fullUrl;
+        } else {
+          window.location.href = fullUrl;
+        }
+        return;
+      }
       dispatch({ type: types.LOADING, payload: false });
     }
   };
