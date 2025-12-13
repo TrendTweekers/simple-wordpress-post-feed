@@ -58,20 +58,38 @@ const safeShopifyRestCall = async (client, method, options) => {
  */
 
 const checkTheme = async (shop, token = null) => {
+  // --- ALWAYS define session in this scope ---
+  // Defensive shop extraction for multiple entrypoints (Koa/Next handlers)
+  const shopArg = shop ||
+    (typeof ctx !== "undefined" && ctx.query && ctx.query.shop) ||
+    (typeof req !== "undefined" && req.query && req.query.shop) ||
+    null;
+
+  if (!shopArg) {
+    const err = new Error("Missing shop");
+    err.status = 400;
+    throw err;
+  }
+
+  let session = null;
   try {
-    // Load offline session if token not provided
-    let accessToken = token;
-    let session = null;
-    if (!accessToken) {
-      session = await loadOfflineSession(shop, shopifyApi);
-      if (!session || !session.accessToken) {
-        throw new Error('No offline session found');
-      }
-      accessToken = session.accessToken;
-    }
+    session = await loadOfflineSession(shopArg, shopifyApi);
+  } catch (e) {
+    session = null;
+  }
+
+  if (!session || !session.accessToken) {
+    const err = new Error(`Offline session missing for ${shopArg}`);
+    err.status = 401;
+    throw err;
+  }
+
+  try {
+    // Use token if provided, otherwise use session accessToken
+    let accessToken = token || session.accessToken;
     
     const results = await axios(
-      `https://${shop}/admin/api/${API_VERSION}/themes.json`,
+      `https://${shopArg}/admin/api/${API_VERSION}/themes.json`,
       {
         headers: {
           "X-Shopify-Access-Token": accessToken,
@@ -86,7 +104,7 @@ const checkTheme = async (shop, token = null) => {
     // Re-throw 403/401 errors so they can be caught by route handlers with enhanced logging
     if (err.response && (err.response.status === 401 || err.response.status === 403)) {
       const xRequestId = err.response.headers?.['x-request-id'] || err.response.headers?.['X-Request-Id'] || 'none';
-      console.error(`[SHOPIFY API ${err.response.status}] checkTheme for ${shop}:`, {
+      console.error(`[SHOPIFY API ${err.response.status}] checkTheme for ${shopArg}:`, {
         status: err.response.status,
         responseData: err.response.data,
         xRequestId,
