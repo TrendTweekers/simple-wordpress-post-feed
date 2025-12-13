@@ -215,18 +215,28 @@ const checkDevShop = async (shop, token = null) => {
  * @return {boolean} true if active subscription exists, false otherwise
  */
 const checkAppSubscription = async (shop, token = null) => {
-  // Ensure we always have a session in scope
-  let session = null;
+  // --- ALWAYS define session in this scope ---
+  // Defensive shop extraction for multiple entrypoints (Koa/Next handlers)
+  const shopArg = shop ||
+    (typeof ctx !== "undefined" && ctx.query && ctx.query.shop) ||
+    (typeof req !== "undefined" && req.query && req.query.shop) ||
+    null;
 
+  if (!shopArg) {
+    const err = new Error("Missing shop");
+    err.status = 400;
+    throw err;
+  }
+
+  let session = null;
   try {
-    // preferred: your existing session loader (uses sessionStorage)
-    session = await loadOfflineSession(shop, shopifyApi);
+    session = await loadOfflineSession(shopArg, shopifyApi);
   } catch (e) {
     session = null;
   }
 
-  if (!session) {
-    const err = new Error(`Offline session missing for ${shop}`);
+  if (!session || !session.accessToken) {
+    const err = new Error(`Offline session missing for ${shopArg}`);
     err.status = 401;
     throw err;
   }
@@ -246,11 +256,11 @@ const checkAppSubscription = async (shop, token = null) => {
       }
     }`;
 
-    const client = new Shopify.Clients.Graphql(shop, accessToken);
+    const client = new Shopify.Clients.Graphql(shopArg, accessToken);
     const response = await client.query({ data: query });
     
     if (!response?.body?.data?.currentAppInstallation) {
-      console.log(`No app installation found for ${shop}`);
+      console.log(`No app installation found for ${shopArg}`);
       return false;
     }
     
@@ -262,7 +272,7 @@ const checkAppSubscription = async (shop, token = null) => {
     );
     
     if (hasActiveSubscription) {
-      console.log(`Active subscription found for ${shop}:`, subscriptions.filter(s => s.status === "ACTIVE").map(s => s.name));
+      console.log(`Active subscription found for ${shopArg}:`, subscriptions.filter(s => s.status === "ACTIVE").map(s => s.name));
     }
     
     return hasActiveSubscription;
@@ -270,7 +280,7 @@ const checkAppSubscription = async (shop, token = null) => {
     // Handle GraphQL errors with enhanced logging
     if (err.response && (err.response.status === 401 || err.response.status === 403)) {
       const xRequestId = err.response.headers?.['x-request-id'] || err.response.headers?.['X-Request-Id'] || 'none';
-      console.error(`[SHOPIFY API ${err.response.status}] checkAppSubscription for ${shop}:`, {
+      console.error(`[SHOPIFY API ${err.response.status}] checkAppSubscription for ${shopArg}:`, {
         status: err.response.status,
         responseData: err.response.body || err.response.data,
         xRequestId,
@@ -287,7 +297,7 @@ const checkAppSubscription = async (shop, token = null) => {
       };
       throw axiosError;
     }
-    console.error(`Error checking AppSubscription for ${shop}:`, err.message || err);
+    console.error(`Error checking AppSubscription for ${shopArg}:`, err.message || err);
     return false;
   }
 };
