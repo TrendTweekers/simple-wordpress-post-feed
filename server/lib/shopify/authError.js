@@ -103,22 +103,9 @@ const handleShopifyAuthError = async (err, ctx, shop, host, endpoint = "unknown"
     };
     return true;
   } else {
-    // Return HTML that breaks out of iframe for HTML requests
-    const authUrl = `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(finalHost || '')}`;
-    ctx.status = 401;
-    ctx.type = "html";
-    ctx.body = `<!doctype html>
-<html><head><meta charset="utf-8"></head>
-<body>
-<script>
-  (function () {
-    var url = ${JSON.stringify(authUrl)};
-    if (window.top) window.top.location.href = url;
-    else window.location.href = url;
-  })();
-</script>
-Redirecting…
-</body></html>`;
+    // Redirect to /auth/toplevel which uses App Bridge for proper iframe breakout
+    const toplevelUrl = `/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(finalHost || '')}&redirectTo=${encodeURIComponent(`/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(finalHost || '')}`)}`;
+    ctx.redirect(toplevelUrl);
     return true;
   }
 };

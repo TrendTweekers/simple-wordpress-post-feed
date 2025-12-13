@@ -337,36 +337,9 @@ app
       ctx.respond = false;
     };
 
-    // Handle Shopify embedded app toplevel redirect for OAuth
-    router.get("/auth/toplevel", async (ctx) => {
-      const { shop, host } = ctx.query;
-      const { ensureHost } = require("./lib/shopify/host");
-      
-      if (!shop) {
-        ctx.status = 400;
-        ctx.body = "Missing shop parameter";
-        return;
-      }
-      
-      // Ensure host is present (generate if missing)
-      const finalHost = ensureHost(shop, host);
-      const authUrl = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
-      
-      // Return HTML that breaks out of iframe and redirects in top-level window
-      ctx.type = 'text/html';
-      ctx.body = `<!doctype html>
-<html><head><meta charset="utf-8"></head>
-<body>
-<script>
-  (function () {
-    var url = ${JSON.stringify(authUrl)};
-    if (window.top) window.top.location.href = url;
-    else window.location.href = url;
-  })();
-</script>
-Redirecting…
-</body></html>`;
-    });
+    // Handle Shopify embedded app toplevel redirect for OAuth (using App Bridge)
+    const authToplevel = require("./routes/authToplevel");
+    server.use(authToplevel.routes()).use(authToplevel.allowedMethods());
 
     router.get("/", async (ctx) => {
       const shop = ctx.query.shop;

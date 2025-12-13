@@ -162,20 +162,16 @@ const Index = ({ shopOrigin: shop }) => {
       dispatch({ type: types.LOADING, payload: false });
     } catch (err) {
       console.error('Error fetching settings:', err);
-      // If 401 error, ensure top-level redirect
+      // If 401 error, redirect to /auth/toplevel which uses App Bridge
       if (err.response?.status === 401 || err.response?.status === 403) {
         const data = err.response?.data || {};
         const urlParams = new URLSearchParams(window.location.search);
         const shopParam = shop || urlParams.get("shop") || '';
         const hostParam = urlParams.get("host") || (shopParam ? btoa(`${shopParam}/admin`) : '');
         const reauthUrl = data?.reauthUrl || `/install/auth?shop=${encodeURIComponent(shopParam)}&host=${encodeURIComponent(hostParam)}`;
-        const fullUrl = buildAuthUrl(reauthUrl);
-        // Force top-level redirect for embedded iframe
-        if (typeof window !== "undefined" && window.top) {
-          window.top.location.href = fullUrl;
-        } else {
-          window.location.href = fullUrl;
-        }
+        // Redirect to /auth/toplevel which uses App Bridge for proper iframe breakout
+        const toplevelUrl = `/auth/toplevel?shop=${encodeURIComponent(shopParam)}&host=${encodeURIComponent(hostParam)}&redirectTo=${encodeURIComponent(reauthUrl)}`;
+        window.location.href = toplevelUrl;
         return;
       }
       dispatch({ type: types.LOADING, payload: false });
