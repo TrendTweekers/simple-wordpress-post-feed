@@ -15,6 +15,7 @@ const initialState = {
   longTrial: false,
   chargeID: "",
   support: false,
+  themeAccess: true,
   settings: {
     hostedOnWP: {
       id: "",

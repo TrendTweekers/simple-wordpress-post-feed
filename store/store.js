@@ -32,6 +32,7 @@ function reducer(data, action) {
         disableUpdate: action.payload.latestVersion,
         chargeID: action.payload.chargeID,
         support: action.payload.support,
+        themeAccess: action.payload.themeAccess !== false, // Default to true if not explicitly set to false
       };
     case types.RESET_DATA:
       return {

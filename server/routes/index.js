@@ -91,6 +91,7 @@ const getData = async (ctx) => {
       longTrial: fsData?.longTrial || false,
       chargeID: fsData?.chargeID || null,
       support,
+      themeAccess: fsData?.themeAccess !== false, // Default to true if not explicitly set to false
     };
     if (data.version === undefined) {
       data.version = settings.version;
@@ -384,9 +385,17 @@ const install = async (ctx) => {
     if (activeCharge) {
       // Use offline session for API calls (no token parameter = uses session)
       let development, currentTheme, support;
+      let themeAccess = true; // Default to true, will be set to false if checkTheme returns null due to 403
       try {
         development = await checkDevShop(shop);
         currentTheme = await checkTheme(shop);
+        // If checkTheme returns null, it means 403 (theme access denied)
+        if (currentTheme === null) {
+          themeAccess = false;
+          console.log(`[INSTALL] Theme access denied for ${shop} - read_themes scope not granted`);
+          // Save themeAccess flag to Firebase
+          await writeFs(APP, shop, { themeAccess: false });
+        }
         const returnUrl = `${TUNNEL_URL}?shop=${shop}&host=${host}`;
         support = await supportBlocks(shop);
         const { newThemeCapable } = support;
@@ -415,10 +424,10 @@ const install = async (ctx) => {
           ctx.status = 200;
           const plan = { plan: shopData.plan };
           await writeFs(APP, shop, plan);
-          ctx.body = { allowed: true };
+          ctx.body = { allowed: true, themeAccess };
         } else if (activeCharge) {
           ctx.status = 200;
-          ctx.body = { allowed: true };
+          ctx.body = { allowed: true, themeAccess };
         } else if (longTrial) {
           /** Runs when its normal store and got one year free */
           const sessionToken = session?.accessToken;
@@ -433,7 +442,7 @@ const install = async (ctx) => {
           // If confirmationUrl is null, active subscription exists - allow access
           if (!confirmationUrl) {
             ctx.status = 200;
-            ctx.body = { allowed: true };
+            ctx.body = { allowed: true, themeAccess };
           } else {
             ctx.status = 200;
             ctx.body = { allowed: false, confirmationUrl };
@@ -452,7 +461,7 @@ const install = async (ctx) => {
           // If confirmationUrl is null, active subscription exists - allow access
           if (!confirmationUrl) {
             ctx.status = 200;
-            ctx.body = { allowed: true };
+            ctx.body = { allowed: true, themeAccess };
           } else {
             ctx.status = 200;
             ctx.body = { allowed: false, confirmationUrl };
@@ -471,7 +480,7 @@ const install = async (ctx) => {
           // If confirmationUrl is null, active subscription exists - allow access
           if (!confirmationUrl) {
             ctx.status = 200;
-            ctx.body = { allowed: true };
+            ctx.body = { allowed: true, themeAccess };
           } else {
             ctx.status = 200;
             ctx.body = { allowed: false, confirmationUrl };

@@ -164,7 +164,14 @@ const authStep = ({ config, Component, pageProps }) => {
       }
       
       const data = await response.json();
-      const { allowed: isAllowed, confirmationUrl: confirmUrl } = data;
+      const { allowed: isAllowed, confirmationUrl: confirmUrl, themeAccess } = data;
+      
+      // Store themeAccess in localStorage or pass to store if needed
+      if (themeAccess === false) {
+        localStorage.setItem('themeAccess', 'false');
+      } else {
+        localStorage.removeItem('themeAccess');
+      }
       
       if (isAllowed) {
         setAllowed(true);

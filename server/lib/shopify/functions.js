@@ -101,10 +101,16 @@ const checkTheme = async (shop, token = null) => {
     });
     return results;
   } catch (err) {
-    // Re-throw 403/401 errors so they can be caught by route handlers with enhanced logging
-    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+    // Handle 403 as theme access denied (read_themes scope not granted) - return null instead of throwing
+    if (err.response && err.response.status === 403) {
+      console.log(`[THEME ACCESS] 403 Forbidden for ${shopArg} - read_themes scope not granted`);
+      return null; // Return null to indicate theme access is not available
+    }
+    
+    // Re-throw 401 errors (authentication issues) so they can be caught by route handlers
+    if (err.response && err.response.status === 401) {
       const xRequestId = err.response.headers?.['x-request-id'] || err.response.headers?.['X-Request-Id'] || 'none';
-      console.error(`[SHOPIFY API ${err.response.status}] checkTheme for ${shopArg}:`, {
+      console.error(`[SHOPIFY API 401] checkTheme for ${shopArg}:`, {
         status: err.response.status,
         responseData: err.response.data,
         xRequestId,
