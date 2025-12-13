@@ -19,11 +19,12 @@ const {
   createMetafield,
   deleteMetafield,
 } = require("../lib/shopify/metafields");
+const { handleShopifyAuthError } = require("../lib/shopify/authError");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrlLongTrial = require("../handlers/getSubscriptionUrlLongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
-const { APP, TUNNEL_URL } = config;
+const { APP, TUNNEL_URL, API_VERSION } = config;
 
 /** Getting all the data from DB
  * @param  {context} ctx

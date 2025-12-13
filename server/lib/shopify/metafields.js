@@ -23,18 +23,25 @@ const createMetafield = async (shop, token, key, value, type) => {
     },
   };
   console.log(`metafield creation ${JSON.stringify(data)}`);
-  const response = await axios({
-    method: "post",
-    url: `https://${shop}/admin/api/${API_VERSION}/metafields.json`,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Access-Token": token,
-    },
-    data,
-  })
-    .then(({ data }) => data)
-    .catch((err) => console.log(err));
-  return response.metafield;
+  try {
+    const response = await axios({
+      method: "post",
+      url: `https://${shop}/admin/api/${API_VERSION}/metafields.json`,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": token,
+      },
+      data,
+    });
+    return response.data.metafield;
+  } catch (err) {
+    // Re-throw 401/403 errors so they can be caught by route handlers
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      throw err;
+    }
+    console.error(`Error creating metafield for ${shop}:`, err.message || err);
+    throw err;
+  }
 };
 
 /** Create Metafields separately for all settings based on initial settings
@@ -95,18 +102,15 @@ const getMetafield = async (shop, token, metafieldID) => {
         "Content-Type": "application/json",
         "X-Shopify-Access-Token": token,
       },
-    })
-      .then(
-        ({
-          data: {
-            metafield: { value },
-          },
-        }) => value
-      )
-      .catch((err) => console.log(err));
-    return response;
+    });
+    return response.data.metafield.value;
   } catch (err) {
-    console.log(err);
+    // Re-throw 401/403 errors so they can be caught by route handlers
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      throw err;
+    }
+    console.error(`Error getting metafield for ${shop}:`, err.message || err);
+    throw err;
   }
 };
 
@@ -131,25 +135,27 @@ const getMultipleMetafields = async (shop, token) => {
         "Content-Type": "application/json",
         "X-Shopify-Access-Token": token,
       },
-    })
-      .then(({ data: { metafields } }) => {
-        const objectVersion = metafields.reduce(
-          (obj, item) => (
-            (obj[item.key] = {
-              value: item.value,
-              id: item.id,
-              type: item.type,
-            }),
-            obj
-          ),
-          {}
-        );
-        return objectVersion;
-      })
-      .catch((err) => console.log(err));
-    return response;
+    });
+    const metafields = response.data.metafields;
+    const objectVersion = metafields.reduce(
+      (obj, item) => (
+        (obj[item.key] = {
+          value: item.value,
+          id: item.id,
+          type: item.type,
+        }),
+        obj
+      ),
+      {}
+    );
+    return objectVersion;
   } catch (err) {
-    console.log(err);
+    // Re-throw 401/403 errors so they can be caught by route handlers
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      throw err;
+    }
+    console.error(`Error getting metafields for ${shop}:`, err.message || err);
+    throw err;
   }
 };
 
@@ -177,12 +183,15 @@ const updateMetafield = async (shop, token, id, value, type) => {
         "X-Shopify-Access-Token": token,
       },
       data: updateData,
-    })
-      .then(({ data: { metafield } }) => metafield)
-      .catch((err) => console.log(err));
-    return response;
+    });
+    return response.data.metafield;
   } catch (err) {
-    console.log(err);
+    // Re-throw 401/403 errors so they can be caught by route handlers
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      throw err;
+    }
+    console.error(`Error updating metafield for ${shop}:`, err.message || err);
+    throw err;
   }
 };
 
@@ -204,12 +213,15 @@ const deleteMetafield = async (shop, token, metafieldID) => {
         "Content-Type": "application/json",
         "X-Shopify-Access-Token": token,
       },
-    })
-      .then(({ data }) => data)
-      .catch((err) => console.log(err));
-    return response;
+    });
+    return response.data;
   } catch (err) {
-    console.log(err);
+    // Re-throw 401/403 errors so they can be caught by route handlers
+    if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      throw err;
+    }
+    console.error(`Error deleting metafield for ${shop}:`, err.message || err);
+    throw err;
   }
 };
 
