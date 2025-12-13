@@ -165,7 +165,10 @@ const Index = ({ shopOrigin: shop }) => {
       // If 401 error, ensure top-level redirect
       if (err.response?.status === 401 || err.response?.status === 403) {
         const data = err.response?.data || {};
-        const reauthUrl = data?.reauthUrl || `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(new URLSearchParams(window.location.search).get("host") || '')}`;
+        const urlParams = new URLSearchParams(window.location.search);
+        const shopParam = shop || urlParams.get("shop") || '';
+        const hostParam = urlParams.get("host") || (shopParam ? btoa(`${shopParam}/admin`) : '');
+        const reauthUrl = data?.reauthUrl || `/install/auth?shop=${encodeURIComponent(shopParam)}&host=${encodeURIComponent(hostParam)}`;
         const fullUrl = buildAuthUrl(reauthUrl);
         // Force top-level redirect for embedded iframe
         if (typeof window !== "undefined" && window.top) {

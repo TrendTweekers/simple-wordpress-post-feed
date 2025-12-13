@@ -157,7 +157,8 @@ const authStep = ({ config, Component, pageProps }) => {
         }
         // Even if code doesn't match, redirect on 401/403
         console.log(`[AUTH] 401/403 without reauth flag, using fallback URL`);
-        const fallbackUrl = `/install/auth/toplevel?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
+        const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
+        const fallbackUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
         redirectToAuth(fallbackUrl);
         return;
       }
@@ -177,7 +178,8 @@ const authStep = ({ config, Component, pageProps }) => {
     } catch (err) {
       console.error('Error checking install status:', err);
       // On error, force reauth using App Bridge
-      const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
+      const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
+      const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
       redirectToAuth(reauthUrl);
     }
   };
@@ -189,7 +191,8 @@ const authStep = ({ config, Component, pageProps }) => {
     const timeout = setTimeout(() => {
       if (!allowed && loading) {
         console.warn('Boot timeout - forcing reauth');
-        const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(host || '')}`;
+        const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
+        const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
         redirectToAuth(reauthUrl);
       }
     }, 3000);

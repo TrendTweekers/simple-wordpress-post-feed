@@ -1,6 +1,7 @@
 const { handleShopifyAuthError } = require("./authError");
 const { loadOfflineSession, getOfflineIdSafe } = require("./session");
 const { shopifyApi, getSessionStorageSafe } = require("./shopify");
+const { ensureHost } = require("./host");
 const admin = require("firebase-admin");
 const config = require("../../config/config");
 
@@ -60,6 +61,9 @@ const handleTypeError = async (err, ctx, shop, host, endpoint = "unknown") => {
     }
   }
   
+  // Ensure host is present
+  const finalHost = ensureHost(shop, host);
+  
   // Determine if this is an API request (JSON) or HTML request
   const isApiRequest = ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json");
   
@@ -72,13 +76,26 @@ const handleTypeError = async (err, ctx, shop, host, endpoint = "unknown") => {
       code: "SESSION_LOAD_FAILED",
       shop: shop || null,
       message: "Session load failed - reauthentication required",
-      reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+      reauthUrl: `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(finalHost || '')}`
     };
     return true;
   } else {
-    // Return 302 redirect for HTML requests
-    const redirectUrl = `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
-    ctx.redirect(redirectUrl);
+    // Return HTML that breaks out of iframe for HTML requests
+    const authUrl = `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(finalHost || '')}`;
+    ctx.status = 401;
+    ctx.type = "html";
+    ctx.body = `<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script>
+  (function () {
+    var url = ${JSON.stringify(authUrl)};
+    if (window.top) window.top.location.href = url;
+    else window.location.href = url;
+  })();
+</script>
+Redirecting…
+</body></html>`;
     return true;
   }
 };

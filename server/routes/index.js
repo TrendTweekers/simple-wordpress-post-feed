@@ -484,8 +484,10 @@ const install = async (ctx) => {
         throw apiError; // Re-throw if not handled
       }
     } else {
+      const { ensureHost } = require("../lib/shopify/host");
+      const finalHost = ensureHost(shop, host);
       ctx.status = 200;
-      ctx.body = { allowed: false, confirmationUrl: `/auth/toplevel?shop=${shop}&host=${host}` };
+      ctx.body = { allowed: false, confirmationUrl: `/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}` };
     }
   } catch (error) {
     // Handle Shopify API errors (axios errors)

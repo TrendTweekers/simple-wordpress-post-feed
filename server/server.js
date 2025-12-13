@@ -340,33 +340,32 @@ app
     // Handle Shopify embedded app toplevel redirect for OAuth
     router.get("/auth/toplevel", async (ctx) => {
       const { shop, host } = ctx.query;
-      if (shop && host) {
-        // Return HTML that breaks out of iframe and redirects in top-level window
-        const authUrl = `/install/auth?shop=${shop}&host=${host}`;
-        ctx.type = 'text/html';
-        ctx.body = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Redirecting...</title>
-        </head>
-        <body>
-          <script>
-            // Break out of iframe and redirect in top-level window
-            if (window.top !== window.self) {
-              window.top.location.href = '${authUrl}';
-            } else {
-              window.location.href = '${authUrl}';
-            }
-          </script>
-          <p>Redirecting to authentication...</p>
-        </body>
-      </html>
-    `;
-      } else {
+      const { ensureHost } = require("./lib/shopify/host");
+      
+      if (!shop) {
         ctx.status = 400;
-        ctx.body = "Missing shop or host parameter";
+        ctx.body = "Missing shop parameter";
+        return;
       }
+      
+      // Ensure host is present (generate if missing)
+      const finalHost = ensureHost(shop, host);
+      const authUrl = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+      
+      // Return HTML that breaks out of iframe and redirects in top-level window
+      ctx.type = 'text/html';
+      ctx.body = `<!doctype html>
+<html><head><meta charset="utf-8"></head>
+<body>
+<script>
+  (function () {
+    var url = ${JSON.stringify(authUrl)};
+    if (window.top) window.top.location.href = url;
+    else window.location.href = url;
+  })();
+</script>
+Redirecting…
+</body></html>`;
     });
 
     router.get("/", async (ctx) => {
@@ -402,7 +401,9 @@ app
         if (!storeDB || storeDB === false || !storeDB.token) {
           console.log(`No valid shop data found for ${shop} (storeDB: ${JSON.stringify(storeDB)}), redirecting to toplevel auth`);
           // Redirect to toplevel auth to break out of iframe for OAuth
-          ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
+          const { ensureHost } = require("./lib/shopify/host");
+          const finalHost = ensureHost(shop, host);
+          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
           return;
         }
         
@@ -421,7 +422,9 @@ app
           // If checkAppSubscription fails with auth error, redirect to reauth
           if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
             console.log(`Auth error checking charge for ${shop}, redirecting to toplevel auth`);
-            ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
+            const { ensureHost } = require("./lib/shopify/host");
+            const finalHost = ensureHost(shop, host);
+            ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
             return;
           }
           // Otherwise, try legacy checkCharge if chargeID exists
@@ -436,7 +439,9 @@ app
         } else {
           console.log(`Charge not active for ${shop}, redirecting to toplevel auth`);
           // Redirect to toplevel auth to break out of iframe for OAuth
-          ctx.redirect(`/auth/toplevel?shop=${shop}&host=${host}`);
+          const { ensureHost } = require("./lib/shopify/host");
+          const finalHost = ensureHost(shop, host);
+          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
         }
       } else if (shop) {
         // Non-embedded request, handle normally
