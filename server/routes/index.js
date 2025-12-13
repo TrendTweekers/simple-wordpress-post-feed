@@ -4,6 +4,7 @@
 const { getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
 const { checkTheme } = require("../lib/shopify/functions");
 const { loadOfflineSession } = require("../lib/shopify/session");
+const { shopifyApi } = require("../lib/shopify/shopify");
 const config = require("../config/config");
 const { pushTopic } = require("../lib/pubsub/pubsub");
 const {
@@ -32,7 +33,7 @@ const { APP, TUNNEL_URL, API_VERSION } = config;
  */
 const loadSessionWithErrorHandling = async (shop, ctx, host, endpoint = "unknown") => {
   try {
-    return await loadOfflineSession(shop);
+    return await loadOfflineSession(shop, shopifyApi);
   } catch (sessionError) {
     // Handle session load errors (401) - will trigger reauth
     if (sessionError.status === 401 || sessionError.status === 403) {

@@ -1,4 +1,4 @@
-const { shopifyApi, getSessionStorageSafe } = require("./shopify");
+const { getSessionStorageSafe } = require("./shopify");
 
 /**
  * Safely get offline session ID, handling both newer and older Shopify API versions
@@ -37,12 +37,19 @@ function getOfflineIdSafe(shop, shopifyApiInstance) {
 /**
  * Load offline session for a shop from Shopify session storage
  * @param {string} shop - Shop domain (e.g., "example.myshopify.com")
+ * @param {object} shopifyApi - Initialized Shopify API instance
  * @returns {Promise<Session>} - Shopify session object
  * @throws {Error} - Throws 401 error if session is missing (for reauth wrapper to catch)
  */
-async function loadOfflineSession(shop) {
+async function loadOfflineSession(shop, shopifyApi) {
   if (!shop) {
     const err = new Error("loadOfflineSession called without shop");
+    err.status = 401;
+    throw err;
+  }
+
+  if (!shopifyApi) {
+    const err = new Error("loadOfflineSession called without shopifyApi");
     err.status = 401;
     throw err;
   }
@@ -60,9 +67,9 @@ async function loadOfflineSession(shop) {
   console.log(`[SESSION] Loading offline session for ${shop} (id=${offlineId})`);
 
   // Get session storage safely (checks multiple sources)
-  const sessionStorage = getSessionStorageSafe(shopifyApi);
-  if (!sessionStorage) {
-    const err = new Error('Session storage missing');
+  const storage = getSessionStorageSafe(shopifyApi);
+  if (!storage) {
+    const err = new Error("Session storage missing after init");
     err.status = 401;
     console.error(`[SESSION] ${err.message} for ${shop}`);
     throw err;
@@ -71,7 +78,7 @@ async function loadOfflineSession(shop) {
   // Load session from storage (wrap in try-catch to prevent TypeError)
   let session;
   try {
-    session = await sessionStorage.loadSession(offlineId);
+    session = await storage.loadSession(offlineId);
   } catch (err) {
     // If loadSession throws (e.g., TypeError), treat as missing session
     console.error(`[SESSION] Error loading session for ${shop} (id=${offlineId}):`, err.message || err);

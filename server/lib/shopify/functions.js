@@ -3,6 +3,7 @@ import ApolloClient from "apollo-boost";
 
 import config from "../../config/config";
 import { loadOfflineSession } from "./session";
+const { shopifyApi } = require("./shopify");
 
 import axios from "axios";
 import initialState from "../../../store/initialState";
@@ -62,7 +63,7 @@ const checkTheme = async (shop, token = null) => {
     let accessToken = token;
     let session = null;
     if (!accessToken) {
-      session = await loadOfflineSession(shop);
+      session = await loadOfflineSession(shop, shopifyApi);
       if (!session || !session.accessToken) {
         throw new Error('No offline session found');
       }
@@ -147,7 +148,7 @@ const checkDevShop = async (shop, token = null) => {
   let accessToken = token;
   let session = null;
   if (!accessToken) {
-    session = await loadOfflineSession(shop);
+    session = await loadOfflineSession(shop, shopifyApi);
     if (!session || !session.accessToken) {
       throw new Error('No offline session found');
     }
@@ -219,7 +220,7 @@ const checkAppSubscription = async (shop, token = null) => {
     let accessToken = token;
     let session = null;
     if (!accessToken) {
-      session = await loadOfflineSession(shop);
+      session = await loadOfflineSession(shop, shopifyApi);
       if (!session || !session.accessToken) {
         throw new Error('No offline session found');
       }
@@ -297,7 +298,7 @@ const checkCharge = async (shop, token = null, chargeID) => {
     let accessToken = token;
     let session = null;
     if (!accessToken) {
-      session = await loadOfflineSession(shop);
+      session = await loadOfflineSession(shop, shopifyApi);
       if (!session || !session.accessToken) {
         throw new Error('No offline session found');
       }
@@ -430,7 +431,7 @@ const supportBlocks = async (shop, token = null) => {
     let accessToken = token;
     let session = null;
     if (!accessToken) {
-      session = await loadOfflineSession(shop);
+      session = await loadOfflineSession(shop, shopifyApi);
       if (!session || !session.accessToken) {
         throw new Error('No offline session found');
       }

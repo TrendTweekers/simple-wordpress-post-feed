@@ -48,6 +48,16 @@ Shopify.Context.initialize({
   SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
 });
 
+// Boot check: verify session storage is available after initialization
+const { getSessionStorageSafe } = require("./lib/shopify/shopify");
+const shopifyApi = Shopify; // The initialized Shopify instance
+const storage = getSessionStorageSafe(shopifyApi);
+console.log("[SESSION STORAGE] Boot check: active =", storage ? "OK" : "MISSING");
+if (storage) {
+  console.log("[SESSION STORAGE] Boot check: loadSession =", typeof storage.loadSession);
+  console.log("[SESSION STORAGE] Boot check: deleteSession =", typeof storage.deleteSession);
+}
+
 const port = parseInt(process.env.PORT, 10) || 3000;
 // Force production mode - don't rely on NODE_ENV (prevents "assets exist but Next still 404s" bugs)
 const dev = false;
