@@ -1,8 +1,85 @@
 const { handleShopifyAuthError } = require("./authError");
 const { loadOfflineSession } = require("./session");
+const { Shopify } = require("@shopify/shopify-api");
+const admin = require("firebase-admin");
+const config = require("../../config/config");
+
+const { APP } = config;
 
 /**
- * Middleware wrapper for Shopify API calls that automatically handles 401/403 errors
+ * Handle TypeError (e.g., session load failures) by deleting token and triggering reauth
+ * @param {Error} err - TypeError or other error
+ * @param {object} ctx - Koa context
+ * @param {string} shop - Shop domain
+ * @param {string} host - Host parameter (for redirect)
+ * @param {string} endpoint - Endpoint description (for logging)
+ * @returns {boolean} - true if error was handled
+ */
+const handleTypeError = async (err, ctx, shop, host, endpoint = "unknown") => {
+  // Log the error with full stack trace
+  console.error(`[SESSION LOAD ERROR] ${endpoint} for shop ${shop}:`, {
+    endpoint: endpoint,
+    error: err.message || err.toString(),
+    errorType: err.constructor.name,
+    stack: err.stack || 'No stack trace available'
+  });
+  
+  console.log('Session load failed, reauthing');
+  
+  // Delete offline session from Shopify session storage
+  try {
+    const sessionId = Shopify.Utils.session.getOfflineId(shop);
+    await Shopify.Context.SESSION_STORAGE.deleteSession(sessionId);
+    console.log(`[SESSION ERROR] Deleted offline session for ${shop} (sessionId: ${sessionId})`);
+  } catch (deleteError) {
+    console.error(`[SESSION ERROR] Failed to delete session for ${shop}:`, deleteError);
+  }
+  
+  // Delete token field from Firebase (not the entire document)
+  try {
+    const db = admin.firestore();
+    const shopRef = db.collection(APP).doc(shop);
+    await shopRef.update({
+      token: admin.firestore.FieldValue.delete()
+    });
+    console.log(`[SESSION ERROR] Deleted invalid token from Firebase for ${shop}, triggering reauth`);
+  } catch (deleteError) {
+    console.error(`[SESSION ERROR] Failed to delete token from Firebase for ${shop}:`, deleteError);
+    // If update fails (e.g., document doesn't exist), try to delete the whole document as fallback
+    try {
+      const db = admin.firestore();
+      await db.collection(APP).doc(shop).delete();
+      console.log(`[SESSION ERROR] Deleted entire shop document from Firebase for ${shop} (fallback)`);
+    } catch (fallbackError) {
+      console.error(`[SESSION ERROR] Failed to delete shop document from Firebase for ${shop}:`, fallbackError);
+    }
+  }
+  
+  // Determine if this is an API request (JSON) or HTML request
+  const isApiRequest = ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json");
+  
+  if (isApiRequest) {
+    // Return JSON response for API routes
+    ctx.status = 401;
+    ctx.body = {
+      ok: false,
+      reauth: true,
+      code: "SESSION_LOAD_FAILED",
+      shop: shop || null,
+      message: "Session load failed - reauthentication required",
+      reauthUrl: `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`
+    };
+    return true;
+  } else {
+    // Return 302 redirect for HTML requests
+    const redirectUrl = `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
+    ctx.redirect(redirectUrl);
+    return true;
+  }
+};
+
+/**
+ * Middleware wrapper for Shopify API calls that automatically handles 401/403 errors and TypeError
  * This wraps API calls and catches authentication errors, then triggers reauth
  * 
  * Usage:
@@ -30,6 +107,21 @@ const shopifyApiWrapper = async (apiCall, shop, ctx, host, endpoint = "unknown")
     // Execute the API call with the session
     return await apiCall(session);
   } catch (err) {
+    // Check if this is a TypeError (e.g., "Cannot read properties of undefined")
+    const isTypeError = err instanceof TypeError || err.constructor.name === 'TypeError';
+    
+    if (isTypeError) {
+      // Handle TypeError - this will delete token and redirect
+      const handled = await handleTypeError(err, ctx, shop, host, endpoint);
+      if (handled) {
+        // Error was handled (redirected or JSON response sent)
+        // Throw a special error to stop execution
+        const handledError = new Error('Session load failed - reauth triggered');
+        handledError.handled = true;
+        throw handledError;
+      }
+    }
+    
     // Check if this is a 401/403 error
     const status = err.response?.status || err.statusCode || err.code || err.status;
     const isAuthError = status === 401 || status === 403;
@@ -71,17 +163,33 @@ const shopifyApiMiddleware = async (ctx, next) => {
     const host = ctx.query.host || 
                  new URLSearchParams(ctx.request.header.referer || '').get("host");
     
+    if (!shop) {
+      // Can't handle without shop info
+      throw err;
+    }
+    
+    // Extract endpoint from error
+    const endpoint = err.config?.url || 
+                     err.request?.url || 
+                     ctx.path || 
+                     'unknown';
+    
+    // Check if this is a TypeError (e.g., "Cannot read properties of undefined")
+    const isTypeError = err instanceof TypeError || err.constructor.name === 'TypeError';
+    
+    if (isTypeError) {
+      // Handle TypeError - this will delete token and redirect
+      const handled = await handleTypeError(err, ctx, shop, host, endpoint);
+      if (handled) {
+        return; // Error was handled (redirected or JSON response sent)
+      }
+    }
+    
     // Check if this is a Shopify API auth error
     const status = err.response?.status || err.statusCode || err.code || err.status;
     const isAuthError = status === 401 || status === 403;
     
-    if (isAuthError && shop) {
-      // Extract endpoint from error
-      const endpoint = err.config?.url || 
-                       err.request?.url || 
-                       ctx.path || 
-                       'unknown';
-      
+    if (isAuthError) {
       const handled = await handleShopifyAuthError(err, ctx, shop, host, endpoint);
       if (handled) {
         return; // Error was handled (redirected or JSON response sent)
