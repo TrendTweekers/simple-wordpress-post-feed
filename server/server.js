@@ -376,7 +376,8 @@ app
           // Redirect to toplevel auth to break out of iframe for OAuth
           const { ensureHost } = require("./lib/shopify/host");
           const finalHost = ensureHost(shop, host);
-          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
           return;
         }
         
@@ -397,7 +398,8 @@ app
             console.log(`Auth error checking charge for ${shop}, redirecting to toplevel auth`);
             const { ensureHost } = require("./lib/shopify/host");
             const finalHost = ensureHost(shop, host);
-            ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+            const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+            ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
             return;
           }
           // Otherwise, try legacy checkCharge if chargeID exists
@@ -414,7 +416,8 @@ app
           // Redirect to toplevel auth to break out of iframe for OAuth
           const { ensureHost } = require("./lib/shopify/host");
           const finalHost = ensureHost(shop, host);
-          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
         }
       } else if (shop) {
         // Non-embedded request, handle normally

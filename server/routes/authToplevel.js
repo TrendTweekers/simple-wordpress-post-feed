@@ -18,6 +18,9 @@ router.get("/auth/toplevel", async (ctx) => {
   const redirectTo = ctx.query.redirectTo || `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host)}`;
   const apiKey = env.SHOPIFY_API_KEY || process.env.SHOPIFY_API_KEY || process.env.NEXT_PUBLIC_SHOPIFY_API_KEY;
 
+  // Log the toplevel redirect chain
+  console.log("[TOPLEVEL] /auth/toplevel hit", { shop, hasHost: !!host, redirectTo });
+
   if (!apiKey) {
     ctx.status = 500;
     ctx.body = "Missing SHOPIFY_API_KEY configuration";
