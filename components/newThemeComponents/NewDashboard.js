@@ -13,6 +13,7 @@ import {
 } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useAppBridge } from "@shopify/app-bridge-react";
 import { TroubleShootBanner, ReviewBanner } from "../Banners";
 import * as types from "../../store/types";
 import { Store } from "../../store/store";
@@ -21,6 +22,7 @@ import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
 import ShowExcerpt from "./ShowExcerpt";
 import LastPost from "./LastPost";
+import { authenticatedFetch } from "../../lib/authenticatedFetch";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -30,6 +32,7 @@ import LastPost from "./LastPost";
 
 const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   const { data, dispatch } = React.useContext(Store);
+  const app = useAppBridge();
   const [showBanner, setShowBanner] = useState(banner === "true");
   const [showReviewBanner, setShowReviewBanner] = useState(
     reviewBanner === "true"
@@ -41,47 +44,28 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       setShowReviewBanner(true);
     }
   }, [banner, reviewBanner]);
-  const handleSubmit = () => {
-    axios.post(`/api/data`, {
-      settings
-    })
-      .then(({data,status}) => {
-        if (status === 200) {
-          dispatch({
-            type: types.FETCH_METADATA,
-            payload: data,
-          });
-          dispatch({
-            type: types.SAVE_DB,
-          });
-        } else {
-          console.log("!!! unsuccesful upload settings :( !!!");
-        }
-      })
-      .catch((err) => {
-        // Handle 401/403 or {reauth: true} - redirect to reauth
-        if (err.response?.status === 401 || err.response?.status === 403) {
-          const data = err.response?.data;
-          const needsReauth = data?.reauth === true || data?.code === "SHOPIFY_AUTH_REQUIRED" || data?.code === "NO_OFFLINE_SESSION";
-          if (needsReauth && data?.reauthUrl) {
-            const shop = new URLSearchParams(window.location.search).get("shop");
-            const host = new URLSearchParams(window.location.search).get("host");
-            const reauthUrl = data.reauthUrl || `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(host || '')}`;
-            console.log(`[AUTH] Reauth required in handleSubmit, redirecting to: ${reauthUrl}`);
-            // Use App Bridge Redirect if available
-            try {
-              const { Redirect } = require("@shopify/app-bridge/actions");
-              const app = require("@shopify/app-bridge").default;
-              const redirect = Redirect.create(app);
-              redirect.dispatch(Redirect.Action.REMOTE, reauthUrl);
-            } catch {
-              window.location.assign(reauthUrl);
-            }
-            return;
-          }
-        }
-        return err;
-      });
+  const handleSubmit = async () => {
+    try {
+      const responseData = await authenticatedFetch(`/api/data`, {
+        method: 'POST',
+        data: { settings }
+      }, app);
+      
+      if (responseData) {
+        dispatch({
+          type: types.FETCH_METADATA,
+          payload: responseData,
+        });
+        dispatch({
+          type: types.SAVE_DB,
+        });
+      } else {
+        // Redirect was triggered
+        console.log("!!! Redirect triggered for reauth !!!");
+      }
+    } catch (err) {
+      console.error("Error uploading settings:", err);
+    }
   };
 
   /** Link to the shop theme customizer */
@@ -111,12 +95,24 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     />
   );
 
-  const handleDeleteAllMeta = () => {
-    axios.post(`/api/deletedata`, {
-      settings
-    }).then(()=>dispatch({
-      type: types.RESET_DATA,
-      }));
+  const handleDeleteAllMeta = async () => {
+    try {
+      const responseData = await authenticatedFetch(`/api/deletedata`, {
+        method: 'POST',
+        data: { settings }
+      }, app);
+      
+      if (responseData) {
+        dispatch({
+          type: types.RESET_DATA,
+        });
+      } else {
+        // Redirect was triggered
+        console.log("!!! Redirect triggered for reauth !!!");
+      }
+    } catch (err) {
+      console.error("Error deleting meta data:", err);
+    }
   }
 
 

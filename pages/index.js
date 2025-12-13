@@ -9,6 +9,7 @@ import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
+import { authenticatedFetch, buildAuthUrl } from "../lib/authenticatedFetch";
 
 /* ------------------ SAFE REVIEW BANNER ------------------ */
 function ReviewBanner() {
@@ -130,76 +131,27 @@ const Index = ({ shopOrigin: shop }) => {
   
   // Get App Bridge instance for redirects
   const app = useAppBridge();
-  const redirect = app ? Redirect.create(app) : null;
-
-  /**
-   * Build absolute URL with host parameter preserved
-   */
-  const buildAuthUrl = (reauthUrl) => {
-    // Start with absolute URL
-    const url = new URL(reauthUrl, window.location.origin);
-    
-    // Ensure host exists (Shopify requires it) - get from current URL
-    const currentHost = new URLSearchParams(window.location.search).get("host");
-    if (!url.searchParams.get("host") && currentHost) {
-      url.searchParams.set("host", currentHost);
-    }
-    
-    // Ensure shop parameter exists
-    const currentShop = new URLSearchParams(window.location.search).get("shop");
-    if (!url.searchParams.get("shop") && currentShop) {
-      url.searchParams.set("shop", currentShop);
-    }
-    
-    return url.toString();
-  };
 
   const fetchShopData = async () => {
-    try {
-      const response = await axios(`/api/data`);
-      return response.data;
-    } catch (err) {
-      // Handle 401/403 or {reauth: true} - redirect to reauth using App Bridge
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        const data = err.response?.data;
-        const needsReauth = data?.reauth === true || data?.code === "SHOPIFY_AUTH_REQUIRED" || data?.code === "NO_OFFLINE_SESSION";
-        
-        if (needsReauth) {
-          const reauthUrl = data?.reauthUrl || `/install/auth/toplevel?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(new URLSearchParams(window.location.search).get("host") || '')}`;
-          console.log(`[AUTH] Reauth required in fetchShopData, redirecting to: ${reauthUrl}`);
-          
-          // Build absolute URL with host parameter preserved
-          const fullUrl = buildAuthUrl(reauthUrl);
-          
-          // Use App Bridge Redirect for embedded apps
-          try {
-            if (redirect) {
-              redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
-              console.log(`[AUTH] App Bridge redirect dispatched from fetchShopData`);
-            } else {
-              // Fallback if App Bridge not available
-              console.warn(`[AUTH] App Bridge not available, using window.location.assign`);
-              window.location.assign(fullUrl);
-            }
-          } catch (redirectErr) {
-            console.error(`[AUTH] App Bridge redirect failed:`, redirectErr);
-            window.location.assign(fullUrl);
-          }
-          return null;
-        }
-      }
-      throw err;
-    }
+    const data = await authenticatedFetch(`/api/data`, { method: 'GET' }, app);
+    return data; // Will be null if redirect was triggered
   };
   
-  const getMetaData = () => axios(`/api/meta`).then(({ data }) => data);
+  const getMetaData = async () => {
+    const data = await authenticatedFetch(`/api/meta`, { method: 'GET' }, app);
+    return data; // Will be null if redirect was triggered
+  };
 
   const getSettings = async () => {
     dispatch({ type: types.LOADING, payload: true });
     try {
       const metaData = await getMetaData();
-      const shopData = await fetchShopData();
+      if (!metaData) {
+        // Redirect was triggered
+        return;
+      }
       
+      const shopData = await fetchShopData();
       if (!shopData) {
         // Redirect was triggered
         return;
