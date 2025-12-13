@@ -2,29 +2,36 @@ const { shopifyApi, sessionStorage } = require("./shopify");
 
 /**
  * Safely get offline session ID, handling both newer and older Shopify API versions
+ * NEVER throws TypeError - always returns a valid session ID string
  * @param {string} shop - Shop domain (e.g., "example.myshopify.com")
- * @param {object} shopifyApiInstance - Shopify API instance
- * @returns {string} - Offline session ID
+ * @param {object} shopifyApiInstance - Shopify API instance (from server/lib/shopify/shopify.js)
+ * @returns {string} - Offline session ID (format: "offline_{shop}")
  */
 function getOfflineIdSafe(shop, shopifyApiInstance) {
-  // Newer libs: shopifyApi.session.getOfflineId(shop)
-  if (shopifyApiInstance?.session?.getOfflineId) {
-    return shopifyApiInstance.session.getOfflineId(shop);
+  if (!shop) {
+    console.warn(`[SESSION] getOfflineIdSafe called without shop, using fallback`);
+    return `offline_unknown`;
   }
   
-  // Older libs / custom: offline_${shop}
-  // Also fallback if Utils.session.getOfflineId exists
+  // Try Shopify.Utils.session.getOfflineId(shop) - this is the standard way
   if (shopifyApiInstance?.Utils?.session?.getOfflineId) {
     try {
-      return shopifyApiInstance.Utils.session.getOfflineId(shop);
+      const offlineId = shopifyApiInstance.Utils.session.getOfflineId(shop);
+      if (offlineId && typeof offlineId === 'string') {
+        return offlineId;
+      }
+      console.warn(`[SESSION] getOfflineId returned invalid value: ${offlineId}, using fallback`);
     } catch (err) {
-      console.warn(`[SESSION] getOfflineId failed, using fallback:`, err.message);
-      return `offline_${shop}`;
+      console.warn(`[SESSION] getOfflineId threw error, using fallback:`, err.message);
+      // Fall through to fallback
     }
   }
   
-  // Final fallback
-  return `offline_${shop}`;
+  // Fallback: construct offline ID manually (format: "offline_{shop}")
+  // This is the standard format used by Shopify API
+  const fallbackId = `offline_${shop}`;
+  console.log(`[SESSION] Using fallback offline ID for ${shop}: ${fallbackId}`);
+  return fallbackId;
 }
 
 /**
@@ -35,13 +42,38 @@ function getOfflineIdSafe(shop, shopifyApiInstance) {
  */
 async function loadOfflineSession(shop) {
   if (!shop) {
-    throw new Error("loadOfflineSession called without shop");
+    const err = new Error("loadOfflineSession called without shop");
+    err.status = 401;
+    throw err;
   }
 
-  const offlineId = getOfflineIdSafe(shop, shopifyApi);
+  // Get offline ID safely (never throws TypeError)
+  let offlineId;
+  try {
+    offlineId = getOfflineIdSafe(shop, shopifyApi);
+  } catch (err) {
+    // This should never happen, but if it does, use fallback
+    console.error(`[SESSION] Unexpected error in getOfflineIdSafe:`, err);
+    offlineId = `offline_${shop}`;
+  }
+
   console.log(`[SESSION] Loading offline session for ${shop} (id=${offlineId})`);
 
-  const session = await sessionStorage.loadSession(offlineId);
+  // Load session from storage (wrap in try-catch to prevent TypeError)
+  let session;
+  try {
+    if (!sessionStorage || typeof sessionStorage.loadSession !== 'function') {
+      throw new Error('sessionStorage.loadSession is not available');
+    }
+    session = await sessionStorage.loadSession(offlineId);
+  } catch (err) {
+    // If loadSession throws (e.g., TypeError), treat as missing session
+    console.error(`[SESSION] Error loading session for ${shop} (id=${offlineId}):`, err.message || err);
+    const loadErr = new Error(`Failed to load offline session for ${shop} (id=${offlineId}): ${err.message || err}`);
+    loadErr.status = 401;
+    loadErr.originalError = err;
+    throw loadErr;
+  }
 
   if (!session) {
     const err = new Error(`Offline session missing for ${shop} (id=${offlineId})`);
