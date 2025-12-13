@@ -215,17 +215,25 @@ const checkDevShop = async (shop, token = null) => {
  * @return {boolean} true if active subscription exists, false otherwise
  */
 const checkAppSubscription = async (shop, token = null) => {
+  // Ensure we always have a session in scope
+  let session = null;
+
   try {
-    // Load offline session if token not provided
-    let accessToken = token;
-    let session = null;
-    if (!accessToken) {
-      session = await loadOfflineSession(shop, shopifyApi);
-      if (!session || !session.accessToken) {
-        throw new Error('No offline session found');
-      }
-      accessToken = session.accessToken;
-    }
+    // preferred: your existing session loader (uses sessionStorage)
+    session = await loadOfflineSession(shop, shopifyApi);
+  } catch (e) {
+    session = null;
+  }
+
+  if (!session) {
+    const err = new Error(`Offline session missing for ${shop}`);
+    err.status = 401;
+    throw err;
+  }
+
+  try {
+    // Use token if provided, otherwise use session accessToken
+    let accessToken = token || session.accessToken;
     
     const query = `{
       currentAppInstallation {
