@@ -20,16 +20,16 @@ const server = require('./server');
 // Log session storage status after Shopify initialization
 try {
   const { getSessionStorageSafe, shopifyApi } = require('./lib/shopify/shopify');
-  const { Shopify } = require('@shopify/shopify-api');
-  const sessionStorage = getSessionStorageSafe();
+  const sessionStorage = getSessionStorageSafe(shopifyApi);
   if (sessionStorage) {
     // Determine which source was used
     let source = 'unknown';
+    const { Shopify } = require('@shopify/shopify-api');
     if (sessionStorage === Shopify.Context?.SESSION_STORAGE) {
       source = 'Shopify.Context.SESSION_STORAGE';
-    } else if (sessionStorage === Shopify.sessionStorage) {
+    } else if (sessionStorage === shopifyApi.sessionStorage) {
       source = 'shopifyApi.sessionStorage';
-    } else if (sessionStorage === Shopify.config?.sessionStorage) {
+    } else if (sessionStorage === shopifyApi.config?.sessionStorage) {
       source = 'shopifyApi.config.sessionStorage';
     }
     console.log(`[SESSION STORAGE] Boot check: active = ${source}`);

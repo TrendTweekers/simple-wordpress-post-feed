@@ -27,7 +27,7 @@ const handleTypeError = async (err, ctx, shop, host, endpoint = "unknown") => {
   console.log('Session load failed, reauthing');
   
   // Delete offline session from Shopify session storage (if available)
-  const sessionStorage = getSessionStorageSafe();
+  const sessionStorage = getSessionStorageSafe(shopifyApi);
   if (sessionStorage) {
     try {
       const sessionId = getOfflineIdSafe(shop, shopifyApi);

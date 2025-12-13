@@ -49,7 +49,7 @@ const handleShopifyAuthError = async (err, ctx, shop, host, endpoint = "unknown"
   });
   
   // Delete offline session from Shopify session storage (if available)
-  const sessionStorage = getSessionStorageSafe();
+  const sessionStorage = getSessionStorageSafe(shopifyApi);
   if (sessionStorage) {
     try {
       // Delete session from Shopify session storage (using safe function)

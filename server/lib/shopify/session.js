@@ -60,7 +60,7 @@ async function loadOfflineSession(shop) {
   console.log(`[SESSION] Loading offline session for ${shop} (id=${offlineId})`);
 
   // Get session storage safely (checks multiple sources)
-  const sessionStorage = getSessionStorageSafe();
+  const sessionStorage = getSessionStorageSafe(shopifyApi);
   if (!sessionStorage) {
     const err = new Error('Session storage missing');
     err.status = 401;
