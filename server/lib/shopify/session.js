@@ -1,4 +1,4 @@
-const { shopifyApi, sessionStorage } = require("./shopify");
+const { shopifyApi, getSessionStorageSafe } = require("./shopify");
 
 /**
  * Safely get offline session ID, handling both newer and older Shopify API versions
@@ -59,12 +59,18 @@ async function loadOfflineSession(shop) {
 
   console.log(`[SESSION] Loading offline session for ${shop} (id=${offlineId})`);
 
+  // Get session storage safely (checks multiple sources)
+  const sessionStorage = getSessionStorageSafe();
+  if (!sessionStorage) {
+    const err = new Error('Session storage missing');
+    err.status = 401;
+    console.error(`[SESSION] ${err.message} for ${shop}`);
+    throw err;
+  }
+
   // Load session from storage (wrap in try-catch to prevent TypeError)
   let session;
   try {
-    if (!sessionStorage || typeof sessionStorage.loadSession !== 'function') {
-      throw new Error('sessionStorage.loadSession is not available');
-    }
     session = await sessionStorage.loadSession(offlineId);
   } catch (err) {
     // If loadSession throws (e.g., TypeError), treat as missing session

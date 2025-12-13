@@ -14,5 +14,32 @@ require('@babel/register')({
   ignore: ['node_modules'],
 });
 
-  // Import the rest of our application.
-module.exports = require('./server');
+// Import the rest of our application (this will initialize Shopify.Context)
+const server = require('./server');
+
+// Log session storage status after Shopify initialization
+try {
+  const { getSessionStorageSafe, shopifyApi } = require('./lib/shopify/shopify');
+  const { Shopify } = require('@shopify/shopify-api');
+  const sessionStorage = getSessionStorageSafe();
+  if (sessionStorage) {
+    // Determine which source was used
+    let source = 'unknown';
+    if (sessionStorage === Shopify.Context?.SESSION_STORAGE) {
+      source = 'Shopify.Context.SESSION_STORAGE';
+    } else if (sessionStorage === Shopify.sessionStorage) {
+      source = 'shopifyApi.sessionStorage';
+    } else if (sessionStorage === Shopify.config?.sessionStorage) {
+      source = 'shopifyApi.config.sessionStorage';
+    }
+    console.log(`[SESSION STORAGE] Boot check: active = ${source}`);
+    console.log(`[SESSION STORAGE] Boot check: loadSession = ${typeof sessionStorage.loadSession === 'function' ? 'function' : 'missing'}`);
+    console.log(`[SESSION STORAGE] Boot check: deleteSession = ${typeof sessionStorage.deleteSession === 'function' ? 'function' : 'missing'}`);
+  } else {
+    console.error(`[SESSION STORAGE] Boot check: WARNING - No valid session storage found`);
+  }
+} catch (err) {
+  console.error(`[SESSION STORAGE] Boot check failed:`, err.message);
+}
+
+module.exports = server;

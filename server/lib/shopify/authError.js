@@ -1,5 +1,5 @@
 const { getOfflineIdSafe } = require("./session");
-const { shopifyApi, sessionStorage } = require("./shopify");
+const { shopifyApi, getSessionStorageSafe } = require("./shopify");
 const admin = require("firebase-admin");
 const config = require("../../config/config");
 
@@ -48,14 +48,19 @@ const handleShopifyAuthError = async (err, ctx, shop, host, endpoint = "unknown"
     stack: err.stack ? err.stack.substring(0, 300) : undefined // Include first 300 chars of stack trace
   });
   
-  // Delete offline session from Firebase
-  try {
-    // Delete session from Shopify session storage (using safe function)
-    const sessionId = getOfflineIdSafe(shop, shopifyApi);
-    await sessionStorage.deleteSession(sessionId);
-    console.log(`[AUTH ERROR] Deleted offline session for ${shop} (sessionId: ${sessionId})`);
-  } catch (deleteError) {
-    console.error(`[AUTH ERROR] Failed to delete session for ${shop}:`, deleteError);
+  // Delete offline session from Shopify session storage (if available)
+  const sessionStorage = getSessionStorageSafe();
+  if (sessionStorage) {
+    try {
+      // Delete session from Shopify session storage (using safe function)
+      const sessionId = getOfflineIdSafe(shop, shopifyApi);
+      await sessionStorage.deleteSession(sessionId);
+      console.log(`[AUTH ERROR] Deleted offline session for ${shop} (sessionId: ${sessionId})`);
+    } catch (deleteError) {
+      console.error(`[AUTH ERROR] Failed to delete session for ${shop}:`, deleteError);
+    }
+  } else {
+    console.warn(`[AUTH ERROR] Session storage not available, skipping session deletion for ${shop}`);
   }
   
   // Delete token field from Firebase (not the entire document)
