@@ -123,15 +123,44 @@ app
       authCallbackPath: "/install/auth/callback",
       returnHeader: false,
       async afterAuth(ctx) {
-          console.log(`after auth ran`);
+          console.log(`[AFTER AUTH] OAuth callback completed`);
           const { shop, accessToken } = ctx.state.shopify;
           const { host } = ctx.query;
+          
           if (!accessToken) {
             // This can happen if the browser interferes with the auth flow
             ctx.response.status = 500;
             ctx.response.body = "Failed to get access token! Please try again.";
             return;
           }
+
+          // ✅ SCOPE VERIFICATION: Verify all required scopes were granted
+          const { verifySessionScopes, forceDeleteSession } = require("./lib/oauth-helpers");
+          const session = ctx.state.shopify.session || ctx.state.shopify;
+          const scopeVerification = verifySessionScopes(session);
+          
+          if (!scopeVerification.valid) {
+            console.error(`[AFTER AUTH] ❌ Missing required scopes for ${shop}!`);
+            console.error(`[AFTER AUTH] Missing scopes:`, scopeVerification.missingScopes);
+            console.error(`[AFTER AUTH] Current scopes:`, session?.scope || 'none');
+            
+            // Delete the incomplete session and redirect to re-auth
+            await forceDeleteSession(shop);
+            
+            const errorQuery = new URLSearchParams({
+              shop: shop,
+              host: host || '',
+              error: 'missing_scopes',
+              missing: scopeVerification.missingScopes.join(',')
+            });
+            
+            ctx.redirect(`/?${errorQuery.toString()}`);
+            return;
+          }
+
+          console.log(`[AFTER AUTH] ✅ All required scopes granted for ${shop}`);
+          console.log(`[AFTER AUTH] Granted scopes:`, session?.scope || 'unknown');
+          
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
           
@@ -176,14 +205,50 @@ app
       // Normalize path by stripping trailing slashes
       const p = ctx.path.replace(/\/+$/, "");
       
-      // Hard intercept: if normalized path matches auth routes, return auth middleware with noop next
-      if (p === "/install/auth" || p === "/install/auth/callback") {
-        console.log("[AUTH-GUARD] intercept", ctx.method, ctx.path, ctx.querystring);
+      // Hard intercept: if normalized path matches auth routes, check scopes and handle OAuth
+      if (p === "/install/auth") {
+        console.log("[AUTH-GUARD] intercept /install/auth", ctx.method, ctx.path, ctx.querystring);
+        const shop = ctx.query.shop;
+        
+        if (shop) {
+          try {
+            // ✅ SCOPE CHECK: Check if we need to request new scopes before OAuth
+            const { checkScopesNeedApproval, forceDeleteSession } = require("./lib/oauth-helpers");
+            const scopeCheck = await checkScopesNeedApproval(shop);
+            
+            console.log("[AUTH-GUARD] Scope check result:", {
+              needsReauth: scopeCheck.needsReauth,
+              currentScopes: scopeCheck.currentScopes,
+              missingScopes: scopeCheck.missingScopes,
+              reason: scopeCheck.reason
+            });
+            
+            // If we need new scopes, delete the old session to force approval screen
+            if (scopeCheck.needsReauth && scopeCheck.currentScopes) {
+              console.log("[AUTH-GUARD] ⚠️ Missing scopes detected, deleting old session to force approval");
+              console.log("[AUTH-GUARD] Missing scopes:", scopeCheck.missingScopes);
+              await forceDeleteSession(shop);
+            }
+          } catch (scopeError) {
+            console.error("[AUTH-GUARD] Error checking scopes:", scopeError);
+            // Continue with OAuth even if scope check fails
+          }
+        }
+        
         // Normalize ctx.path for auth middleware
         ctx.path = p;
         // Return auth middleware with noop next to prevent fallthrough
         return shopifyAuthMiddleware(ctx, async () => {});
       }
+      
+      if (p === "/install/auth/callback") {
+        console.log("[AUTH-GUARD] intercept /install/auth/callback", ctx.method, ctx.path, ctx.querystring);
+        // Normalize ctx.path for auth middleware
+        ctx.path = p;
+        // Return auth middleware with noop next to prevent fallthrough
+        return shopifyAuthMiddleware(ctx, async () => {});
+      }
+      
       return next();
     });
     
@@ -553,7 +618,86 @@ app
       .post("/swpf/customers/data_request", webhook, customerData)
       .post("/swpf/customers/redact", webhook, customerRedact)
       .post("/swpf/uninstall", webhook, uninstall)
-      .post("/api/cancel", cancelCharge);
+      .post("/api/cancel", cancelCharge)
+      // ✅ OAuth scope management routes
+      .get("/force-reauth", async (ctx) => {
+        const shop = ctx.query.shop;
+        const host = ctx.query.host;
+
+        if (!shop) {
+          ctx.body = {
+            error: 'Missing shop parameter',
+            usage: '/force-reauth?shop=SHOP_DOMAIN.myshopify.com'
+          };
+          ctx.status = 400;
+          return;
+        }
+
+        console.log('[FORCE REAUTH] Requested for shop:', shop);
+
+        try {
+          // Delete existing session
+          const { forceDeleteSession } = require('./lib/oauth-helpers');
+          const deleted = await forceDeleteSession(shop);
+          
+          if (deleted) {
+            console.log('[FORCE REAUTH] ✅ Session deleted for', shop);
+          } else {
+            console.log('[FORCE REAUTH] ⚠️ No session found for', shop);
+          }
+
+          // Redirect to OAuth
+          const redirectQuery = new URLSearchParams({
+            shop,
+            ...(host && { host })
+          });
+
+          console.log('[FORCE REAUTH] Redirecting to OAuth for', shop);
+          ctx.redirect(`/install/auth?${redirectQuery.toString()}`);
+
+        } catch (error) {
+          console.error('[FORCE REAUTH ERROR]', error);
+          ctx.body = {
+            error: 'Failed to force re-auth',
+            message: error.message,
+            shop
+          };
+          ctx.status = 500;
+        }
+      })
+      .get("/check-scopes", async (ctx) => {
+        const shop = ctx.query.shop;
+
+        if (!shop) {
+          ctx.body = {
+            error: 'Missing shop parameter',
+            usage: '/check-scopes?shop=SHOP_DOMAIN.myshopify.com'
+          };
+          ctx.status = 400;
+          return;
+        }
+
+        try {
+          const { checkScopesNeedApproval, getRequiredScopes } = require('./lib/oauth-helpers');
+          const scopeCheck = await checkScopesNeedApproval(shop);
+          
+          ctx.body = {
+            shop,
+            requiredScopes: getRequiredScopes(),
+            ...scopeCheck,
+            timestamp: new Date().toISOString()
+          };
+
+        } catch (error) {
+          console.error('[CHECK SCOPES ERROR]', error);
+          ctx.body = {
+            error: 'Failed to check scopes',
+            message: error.message,
+            shop
+          };
+          ctx.status = 500;
+        }
+      });
     
     // GraphQL proxy route
     router.post(
