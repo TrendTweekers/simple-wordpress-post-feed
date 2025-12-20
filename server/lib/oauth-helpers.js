@@ -56,9 +56,16 @@ async function checkScopesNeedApproval(shop) {
     const currentScopes = (session.scope || '').split(',').map(s => s.trim()).filter(s => s);
     const requiredScopes = getRequiredScopes();
     
-    const missingScopes = requiredScopes.filter(
-      required => !currentScopes.includes(required)
-    );
+    const missingScopes = requiredScopes.filter(required => {
+      // ✅ FIX: write_themes includes read_themes, write_script_tags includes read_script_tags
+      if (required === 'read_themes' && currentScopes.includes('write_themes')) {
+        return false; // Not missing - write includes read
+      }
+      if (required === 'read_script_tags' && currentScopes.includes('write_script_tags')) {
+        return false; // Not missing - write includes read
+      }
+      return !currentScopes.includes(required);
+    });
 
     return {
       needsReauth: missingScopes.length > 0,
@@ -117,9 +124,16 @@ function verifySessionScopes(session) {
   const currentScopes = session.scope.split(',').map(s => s.trim()).filter(s => s);
   const requiredScopes = getRequiredScopes();
   
-  const missingScopes = requiredScopes.filter(
-    required => !currentScopes.includes(required)
-  );
+  const missingScopes = requiredScopes.filter(required => {
+    // ✅ FIX: write_themes includes read_themes, write_script_tags includes read_script_tags
+    if (required === 'read_themes' && currentScopes.includes('write_themes')) {
+      return false; // Not missing - write includes read
+    }
+    if (required === 'read_script_tags' && currentScopes.includes('write_script_tags')) {
+      return false; // Not missing - write includes read
+    }
+    return !currentScopes.includes(required);
+  });
 
   return {
     valid: missingScopes.length === 0,
