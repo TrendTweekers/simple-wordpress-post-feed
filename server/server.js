@@ -34,14 +34,27 @@ import {
 } from "./routes/";
 import { checkDevShop, checkCharge, checkAppSubscription } from "./lib/shopify/functions";
 
-const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL } = env;
+const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL, SCOPES: ENV_SCOPES } = env;
+
+// ✅ FIX: Ensure SCOPES is always an array, prioritizing env.SCOPES from config
+let scopesArray;
+if (Array.isArray(ENV_SCOPES)) {
+  // Use scopes from config.js (already an array)
+  scopesArray = ENV_SCOPES;
+} else if (process.env.SCOPES) {
+  // Fallback to process.env.SCOPES if config doesn't have it
+  scopesArray = process.env.SCOPES.split(",").map(s => s.trim());
+} else {
+  // Final fallback
+  scopesArray = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+}
+
+console.log("[SHOPIFY INIT] Scopes configured:", scopesArray);
 
 Shopify.Context.initialize({
   API_KEY: SHOPIFY_API_KEY,
   API_SECRET_KEY: SHOPIFY_API_SECRET_KEY,
-  SCOPES: process.env.SCOPES
-    ? process.env.SCOPES.split(",")
-    : "write_themes,read_themes,read_script_tags,write_script_tags",
+  SCOPES: scopesArray,  // ✅ Always an array
   HOST_NAME: TUNNEL_URL.replace(/https:\/\//, ""),
   API_VERSION: ApiVersion.January22,
   IS_EMBEDDED_APP: true,
@@ -117,11 +130,13 @@ app
     console.log("✅ Custom Koa server starting - auth routes will be handled by Koa, not Next.js");
     
     // ✅ CRITICAL: Create Shopify auth middleware FIRST (required for hard intercept below)
+    // ✅ FIX: Explicitly pass scopes to ensure OAuth requests correct permissions
     const shopifyAuthMiddleware = createShopifyAuth({
       accessMode: "offline",
       authPath: "/install/auth",
       authCallbackPath: "/install/auth/callback",
       returnHeader: false,
+      scopes: scopesArray,  // ✅ Explicitly set scopes for OAuth
       async afterAuth(ctx) {
           console.log(`[AFTER AUTH] OAuth callback completed`);
           const { shop, accessToken } = ctx.state.shopify;
