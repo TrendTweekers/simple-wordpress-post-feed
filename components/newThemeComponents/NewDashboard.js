@@ -74,7 +74,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       primary
       disabled={!testedOK}
       onClick={() =>
-        window.open(`https://${shop}/admin/themes/${theme}/editor`, "_blank")
+        window.open(`https://${shop}/admin/themes/current/editor?context=apps`, "_blank")
       }
     >
       Theme section editor

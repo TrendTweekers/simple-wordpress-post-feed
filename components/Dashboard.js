@@ -42,7 +42,7 @@ const {theme,shop,themeAccess} = data
       primary
       onClick={() =>
         window.open(
-          `https://${shop}/admin/themes/${theme}/editor`,
+          `https://${shop}/admin/themes/current/editor?context=apps`,
           "_blank"
         )
       }

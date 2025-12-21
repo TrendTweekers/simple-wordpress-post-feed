@@ -661,14 +661,13 @@ app
             console.log('[FORCE REAUTH] ⚠️ No session found for', shop);
           }
 
-          // Redirect to OAuth
-          const redirectQuery = new URLSearchParams({
-            shop,
-            ...(host && { host })
-          });
+          // Redirect to OAuth via /auth/toplevel (App Bridge) to escape iframe
+          const { ensureHost } = require('./lib/shopify/host');
+          const finalHost = ensureHost(shop, host);
+          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
 
           console.log('[FORCE REAUTH] Redirecting to OAuth for', shop);
-          ctx.redirect(`/install/auth?${redirectQuery.toString()}`);
+          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
 
         } catch (error) {
           console.error('[FORCE REAUTH ERROR]', error);
