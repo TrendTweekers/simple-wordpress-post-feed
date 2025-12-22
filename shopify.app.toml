@@ -1,0 +1,34 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "312f1491e10a2848b3ef63a7cd13e91d"
+name = "WP - Simple WordPress Feed"
+application_url = "https://simple-wordpress-post-feed-production.up.railway.app"
+embedded = true
+handle = "simple-wordpress-post-feed"
+
+[webhooks]
+api_version = "2022-10"
+
+  [[webhooks.subscriptions]]
+  uri = "https://swpf.stackedboost.com/swpf/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "https://swpf.stackedboost.com/swpf/customers/redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "https://swpf.stackedboost.com/swpf/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_themes,read_themes,read_script_tags,write_script_tags"
+optional_scopes = [ ]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://simple-wordpress-post-feed-production.up.railway.app/auth/callback",
+  "https://simple-wordpress-post-feed-production.up.railway.app/install/auth/callback"
+]
