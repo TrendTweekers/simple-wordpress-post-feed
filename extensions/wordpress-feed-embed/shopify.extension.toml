@@ -1,9 +1,6 @@
 # Learn more about configuring your theme app extension at https://shopify.dev/docs/apps/online-store/theme-app-extensions/getting-started#step-2-configure-your-extension
 
-api_version = "2024-10"
-
-[[extension]]
-type = "theme"
 name = "wordpress-feed-embed"
+type = "theme_app_extension"
 
-[extension.settings]
+api_version = "2024-10"
