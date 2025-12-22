@@ -37,7 +37,11 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   const [showReviewBanner, setShowReviewBanner] = useState(
     reviewBanner === "true"
   );
-  const { theme, shop, disableSave, settings, testedOK } = data;
+  const { theme, shop: shopFromState, disableSave, settings, testedOK } = data;
+  
+  // ✅ FIX: Get shop from URL query params as fallback (strict enforcement)
+  const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const shop = shopFromState || urlParams.get("shop") || '';
   useEffect(() => {
     if (banner === undefined) {
       setShowBanner(true);
@@ -68,14 +72,22 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     }
   };
 
-  /** Link to the shop theme customizer */
+  /** Link to the shop theme customizer - ✅ FIX: Use shop from URL params directly */
   const themeSectionEditor = (
     <Button
       primary
       disabled={!testedOK}
-      onClick={() =>
-        window.open(`https://${shop}/admin/themes/current/editor?context=apps`, "_blank")
-      }
+      onClick={() => {
+        // ✅ FIX: Get shop directly from URL params to ensure it's always available
+        const shopFromUrl = new URLSearchParams(window.location.search).get("shop");
+        const shopToUse = shopFromUrl || shop;
+        if (shopToUse) {
+          const themeUrl = `https://${shopToUse}/admin/themes/current/editor?context=apps`;
+          window.open(themeUrl, "_blank");
+        } else {
+          console.error("[NewDashboard] Cannot open theme editor: shop parameter missing");
+        }
+      }}
     >
       Theme section editor
     </Button>

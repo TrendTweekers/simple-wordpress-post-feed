@@ -404,13 +404,25 @@ app
       await handle(ctx.req, ctx.res);
     });
     const handleRequest = async (ctx) => {
-      // Attach shop and host to request for Next.js to access via ctx.query
+      // ✅ FIX: Explicitly pass shop and host to frontend
       const shop = ctx.query.shop;
       const host = ctx.query.host;
       
+      // Ensure shop and host are always in URL query params for frontend access
       if (shop && host) {
         ctx.req.query = { shop, host };
-        ctx.req.url = `/?shop=${shop}&host=${host}`;
+        // Ensure URL always has shop and host params
+        const url = new URL(ctx.req.url || '/', `http://${ctx.req.headers.host || 'localhost'}`);
+        url.searchParams.set('shop', shop);
+        url.searchParams.set('host', host);
+        ctx.req.url = url.pathname + url.search;
+      } else if (shop) {
+        // If only shop is present, ensure it's in URL
+        const url = new URL(ctx.req.url || '/', `http://${ctx.req.headers.host || 'localhost'}`);
+        url.searchParams.set('shop', shop);
+        if (host) url.searchParams.set('host', host);
+        ctx.req.query = { shop, ...(host && { host }) };
+        ctx.req.url = url.pathname + url.search;
       }
       
       await handle(ctx.req, ctx.res);

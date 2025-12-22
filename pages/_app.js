@@ -37,13 +37,31 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
     const router = useRouter();
     const { asPath, query } = router;
 
-    // Get shop and host from multiple sources (priority order: props > query > pageProps)
-    const shop = shopOrigin || query.shop || pageProps?.shop;
-    const hostValue = host || query.host || pageProps?.host;
+    // ✅ FIX: Get shop and host from multiple sources (priority order: props > query > pageProps > URL)
+    const shop = shopOrigin || query.shop || pageProps?.shop || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('shop') : null);
+    
+    // ✅ FIX: Ensure host is valid - generate if missing but shop exists
+    let hostValue = host || query.host || pageProps?.host;
+    if (!hostValue && typeof window !== 'undefined') {
+      hostValue = new URLSearchParams(window.location.search).get('host');
+    }
+    // ✅ FIX: Generate host from shop if still missing (required for App Bridge embedding)
+    if (!hostValue && shop) {
+      try {
+        hostValue = btoa(`${shop}/admin`);
+      } catch (e) {
+        console.error('[App] Failed to generate host from shop:', e);
+      }
+    }
+
+    // ✅ FIX: Validate host is present before initializing App Bridge
+    if (!hostValue) {
+      console.warn('[App] ⚠️ Host parameter missing - App Bridge may not embed correctly');
+    }
 
     const config = {
       apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d',
-      host: hostValue,
+      host: hostValue, // ✅ FIX: Always provide host (even if generated)
       shopOrigin: shop,
       forceRedirect: true, // Forces top-level redirects if needed
     };

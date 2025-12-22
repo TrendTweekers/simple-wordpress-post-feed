@@ -26,26 +26,35 @@ const Dashboard = ({ newTheme}) => {
   const { data } = React.useContext(Store);
   const [showBanner, setShowBanner] = useState("true");
   const [showReviewBanner, setShowReviewBanner] = useState("true");
-const {theme,shop,themeAccess} = data
+  const {theme,shop: shopFromState,themeAccess} = data
+
+  // ✅ FIX: Get shop and host from URL query params as fallback (strict enforcement)
+  const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const shop = shopFromState || urlParams.get("shop") || '';
+  const host = urlParams.get("host") || '';
 
   // Build OAuth URL to request read_themes scope
   const buildUpdatePermissionsUrl = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = shop || urlParams.get("shop") || '';
-    const hostParam = urlParams.get("host") || (shopParam ? btoa(`${shopParam}/admin`) : '');
+    const shopParam = shop || '';
+    const hostParam = host || (shopParam ? btoa(`${shopParam}/admin`) : '');
     return `/install/auth?shop=${encodeURIComponent(shopParam)}&host=${encodeURIComponent(hostParam)}`;
   };
 
-  /** Link to the shop theme customizer */
+  /** Link to the shop theme customizer - ✅ FIX: Use shop from URL params directly */
   const themeSectionEditor = (
     <Button
       primary
-      onClick={() =>
-        window.open(
-          `https://${shop}/admin/themes/current/editor?context=apps`,
-          "_blank"
-        )
-      }
+      onClick={() => {
+        // ✅ FIX: Get shop directly from URL params to ensure it's always available
+        const shopFromUrl = new URLSearchParams(window.location.search).get("shop");
+        const shopToUse = shopFromUrl || shop;
+        if (shopToUse) {
+          const themeUrl = `https://${shopToUse}/admin/themes/current/editor?context=apps`;
+          window.open(themeUrl, "_blank");
+        } else {
+          console.error("[Dashboard] Cannot open theme editor: shop parameter missing");
+        }
+      }}
     >
       Theme section editor
     </Button>
