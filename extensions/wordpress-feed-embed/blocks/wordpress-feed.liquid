@@ -1,0 +1,115 @@
+{% comment %}
+  WordPress Post Feed Block
+  This block displays WordPress blog posts on Shopify store pages
+{% endcomment %}
+
+<div class="wordpress-feed-block" data-shop="{{ shop.permanent_domain }}" data-app-id="{{ app.id }}">
+  <div class="wp-feed-container">
+    {% if block.settings.show_title %}
+      <h2 class="wp-feed-title">{{ block.settings.title | default: "Latest Posts" }}</h2>
+    {% endif %}
+    
+    <div class="wp-feed-posts" id="wp-feed-posts-{{ block.id }}">
+      <p class="wp-feed-loading">Loading posts...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const blockId = '{{ block.id }}';
+    const shopDomain = '{{ shop.permanent_domain }}';
+    const container = document.getElementById('wp-feed-posts-' + blockId);
+    
+    if (!container) return;
+    
+    // Fetch WordPress posts from your app's API
+    fetch(`https://simple-wordpress-post-feed-production.up.railway.app/api/posts?shop=${shopDomain}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.posts && data.posts.length > 0) {
+          container.innerHTML = data.posts.map(post => `
+            <article class="wp-feed-post">
+              <h3><a href="${post.url}" target="_blank">${post.title}</a></h3>
+              ${post.excerpt ? `<p>${post.excerpt}</p>` : ''}
+              <time>${post.date}</time>
+            </article>
+          `).join('');
+        } else {
+          container.innerHTML = '<p>No posts available.</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Error loading WordPress feed:', error);
+        container.innerHTML = '<p>Unable to load posts at this time.</p>';
+      });
+  })();
+</script>
+
+<style>
+  .wordpress-feed-block {
+    padding: 20px;
+  }
+  
+  .wp-feed-title {
+    margin-bottom: 20px;
+  }
+  
+  .wp-feed-post {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .wp-feed-post:last-child {
+    border-bottom: none;
+  }
+  
+  .wp-feed-post h3 {
+    margin-bottom: 10px;
+  }
+  
+  .wp-feed-post h3 a {
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .wp-feed-post h3 a:hover {
+    text-decoration: underline;
+  }
+  
+  .wp-feed-loading {
+    text-align: center;
+    padding: 20px;
+  }
+</style>
+
+{% schema %}
+{
+  "name": "WordPress Post Feed",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Feed Title",
+      "default": "Latest Posts"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_title",
+      "label": "Show Title",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "post_count",
+      "label": "Number of Posts",
+      "min": 1,
+      "max": 20,
+      "default": 5,
+      "step": 1
+    }
+  ]
+}
+{% endschema %}
