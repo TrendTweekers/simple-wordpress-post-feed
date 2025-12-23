@@ -145,11 +145,35 @@ const Index = ({ shopOrigin: shop }) => {
       }
     }
     
+    // ✅ CRITICAL: Manual Token Retrieval Fallback - Test App Bridge v4 token exchange
+    const testTokenRetrieval = async () => {
+      if (typeof window === 'undefined' || !window.shopify) {
+        console.log('[Index] ⏳ Waiting for window.shopify to be available...');
+        return;
+      }
+      
+      try {
+        console.log('[Index] Testing App Bridge v4 token retrieval...');
+        const token = await window.shopify.idToken();
+        if (token) {
+          console.log('[Index] SUCCESS: Initial ID Token received:', token.substring(0, 20) + '...');
+          console.log('[Index] Token length:', token.length);
+        } else {
+          console.error('[Index] ERROR: App Bridge idToken() returned null');
+        }
+      } catch (err) {
+        console.error('[Index] ERROR: App Bridge could not get token:', err);
+        console.error('[Index] Error details:', err.message || err);
+      }
+    };
+    
     const checkShopify = async () => {
       const isReady = await waitForShopify(5000);
       setShopifyReady(isReady);
       if (isReady) {
         console.log('[Index] ✅ window.shopify.idToken() is ready');
+        // ✅ CRITICAL: Test token retrieval after App Bridge is ready
+        await testTokenRetrieval();
       } else {
         console.error('[Index] ❌ window.shopify.idToken() not available after 5 seconds');
       }

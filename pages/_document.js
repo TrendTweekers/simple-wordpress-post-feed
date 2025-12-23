@@ -9,9 +9,11 @@ class MyDocument extends Document {
 
   render() {
     // ✅ CRITICAL: Get API key for meta tag (must be available at build time)
+    // ✅ CRITICAL: Check SHOPIFY_API_KEY - must match server Client ID exactly
     const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d';
+    const serverApiKey = SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d';
     
-    // ✅ CRITICAL: Validate API key is not undefined
+    // ✅ CRITICAL: Validate API key matches server Client ID
     if (!apiKey || apiKey === 'undefined' || apiKey.trim() === '') {
       console.error('[_document] ❌ CRITICAL: NEXT_PUBLIC_SHOPIFY_API_KEY is undefined or empty!');
       console.error('[_document] process.env.NEXT_PUBLIC_SHOPIFY_API_KEY:', process.env.NEXT_PUBLIC_SHOPIFY_API_KEY);
@@ -19,6 +21,16 @@ class MyDocument extends Document {
       console.error('[_document] App Bridge will fail silently without a valid API key');
     } else {
       console.log('[_document] ✅ API key found for App Bridge meta tag:', apiKey.substring(0, 10) + '...');
+      
+      // ✅ CRITICAL: Verify API key matches server Client ID
+      if (apiKey !== serverApiKey) {
+        console.error('[_document] ❌ CRITICAL: API key mismatch!');
+        console.error('[_document] Frontend API key:', apiKey);
+        console.error('[_document] Server API key:', serverApiKey);
+        console.error('[_document] If they differ, App Bridge will fail to generate ID token');
+      } else {
+        console.log('[_document] ✅ API key matches server Client ID');
+      }
     }
     
     return (

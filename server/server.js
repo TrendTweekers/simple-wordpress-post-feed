@@ -519,18 +519,16 @@ app
       const shop = ctx.query.shop || ctx.request.query.shop || (ctx.session && ctx.session.shop);
       
       if (shop) {
-        // ✅ CRITICAL: Allow cdn.shopify.com for App Bridge script loading
+        // ✅ CRITICAL: Fix CSP Headers - Modern Shopify Admin requires admin.shopify.com explicitly
+        // Also allow *.myshopify.com pattern for shop domains
         // frame-ancestors controls who can embed this page (for iframe)
-        // script-src would control script sources, but we're not setting that here
-        // The default script-src allows all, so cdn.shopify.com should work
-        // But we explicitly allow it in case browser has strict CSP
-        ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://unpkg.com;`);
-        console.log(`[CSP] Set frame-ancestors and script-src for shop: ${shop} (allowing cdn.shopify.com)`);
+        ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com https://*.myshopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://cdn.shopify.com/static/frontend/app-bridge-v4 https://unpkg.com;`);
+        console.log(`[CSP] Set frame-ancestors and script-src for shop: ${shop} (allowing admin.shopify.com and *.myshopify.com)`);
       } else {
         // Secure fallback - deny embedding if no shop identified
         // But still allow cdn.shopify.com scripts to load
-        ctx.set('Content-Security-Policy', `frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://unpkg.com;`);
-        console.log(`[CSP] No shop found, denying frame embedding but allowing cdn.shopify.com scripts`);
+        ctx.set('Content-Security-Policy', `frame-ancestors https://admin.shopify.com https://*.myshopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://cdn.shopify.com/static/frontend/app-bridge-v4 https://unpkg.com;`);
+        console.log(`[CSP] No shop found, allowing admin.shopify.com and *.myshopify.com for frame embedding`);
       }
       await next();
     });
