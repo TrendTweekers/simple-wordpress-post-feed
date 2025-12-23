@@ -629,6 +629,28 @@ app
             }
           } catch (err) {
             if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
+              // ✅ CRITICAL: For API requests, return 401 JSON instead of redirecting
+              const isApiRequest = ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json");
+              
+              if (isApiRequest) {
+                console.log(`[SHOP GUARD] Auth error checking charge for API request, returning 401`);
+                const { ensureHost } = require("./lib/shopify/host");
+                const finalHost = ensureHost(shop, host);
+                ctx.status = 401;
+                ctx.set('X-Shopify-API-Request-Failure-Reauthorize', '1');
+                ctx.set('X-Shopify-API-Request-Failure-Reauthorize-Url', `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+                ctx.body = {
+                  ok: false,
+                  reauth: true,
+                  code: "SHOPIFY_AUTH_REQUIRED",
+                  shop: shop || null,
+                  message: "Shopify authentication required",
+                  reauthUrl: `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`
+                };
+                return;
+              }
+              
+              // For HTML requests, redirect to auth
               console.log(`[SHOP GUARD] Auth error checking charge, redirecting to auth`);
               const { ensureHost } = require("./lib/shopify/host");
               const finalHost = ensureHost(shop, host);
@@ -639,58 +661,35 @@ app
           }
         }
         
-        // No valid session or charge found, redirect to auth
+        // No valid session or charge found
+        // ✅ CRITICAL: For API requests, return 401 JSON instead of redirecting
+        const isApiRequest = ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json");
+        
+        if (isApiRequest) {
+          console.log(`[SHOP GUARD] No valid session for API request ${ctx.path}, returning 401`);
+          const { ensureHost } = require("./lib/shopify/host");
+          const finalHost = ensureHost(shop, host);
+          ctx.status = 401;
+          ctx.set('X-Shopify-API-Request-Failure-Reauthorize', '1');
+          ctx.set('X-Shopify-API-Request-Failure-Reauthorize-Url', `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+          ctx.body = {
+            ok: false,
+            reauth: true,
+            code: "NO_OFFLINE_SESSION",
+            shop: shop || null,
+            message: "No valid session found - reauthentication required",
+            reauthUrl: `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`
+          };
+          return;
+        }
+        
+        // For HTML requests, redirect to auth
         console.log(`[SHOP GUARD] No valid session or charge for ${shop}, redirecting to auth`);
         const { ensureHost } = require("./lib/shopify/host");
         const finalHost = ensureHost(shop, host);
         const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
         ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
         return;
-        
-        // Only check charge if we have a token
-        if (tokenToUse) {
-          try {
-            activeCharge = await checkAppSubscription(shop, tokenToUse);
-            if (!activeCharge && storeDB?.chargeID) {
-              // Fallback to REST API check for legacy charges
-              activeCharge = await checkCharge(shop, tokenToUse, storeDB.chargeID);
-            }
-          } catch (err) {
-            // If checkAppSubscription fails with auth error, redirect to reauth
-            if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-              console.log(`Auth error checking charge for ${shop}, redirecting to toplevel auth`);
-              const { ensureHost } = require("./lib/shopify/host");
-              const finalHost = ensureHost(shop, host);
-              const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
-              ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
-              return;
-            }
-            // Otherwise, try legacy checkCharge if chargeID exists
-            if (storeDB?.chargeID) {
-              activeCharge = await checkCharge(shop, tokenToUse, storeDB.chargeID);
-            }
-          }
-        } else {
-          // No token available, redirect to auth
-          console.log(`[SHOP GUARD] No token available for ${shop} (legacy record), redirecting to toplevel auth`);
-          const { ensureHost } = require("./lib/shopify/host");
-          const finalHost = ensureHost(shop, host);
-          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
-          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
-          return;
-        }
-        
-        if (activeCharge) {
-          console.log(`Active charge found for ${shop}, rendering app`);
-          await handleRequest(ctx);
-        } else {
-          console.log(`Charge not active for ${shop}, redirecting to toplevel auth`);
-          // Redirect to toplevel auth to break out of iframe for OAuth
-          const { ensureHost } = require("./lib/shopify/host");
-          const finalHost = ensureHost(shop, host);
-          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
-          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
-        }
       } else if (shop) {
         // Non-embedded request, handle normally
         console.log(`Non-embedded request for shop: ${shop}`);
