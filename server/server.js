@@ -71,6 +71,11 @@ if (scopesArray.length !== 4) {
 
 console.log("[SHOPIFY INIT] ✅ Final scopes configured:", scopesArray);
 
+// ✅ CRITICAL: Use Firebase-based session storage instead of MemorySessionStorage
+// This ensures sessions persist and are accessible by both Shopify library and manual Firebase lookups
+const FirebaseSessionStorage = require("./lib/shopify/firebaseSessionStorage");
+const customSessionStorage = new FirebaseSessionStorage();
+
 Shopify.Context.initialize({
   API_KEY: SHOPIFY_API_KEY,
   API_SECRET_KEY: SHOPIFY_API_SECRET_KEY,
@@ -78,7 +83,7 @@ Shopify.Context.initialize({
   HOST_NAME: TUNNEL_URL.replace(/https:\/\//, ""),
   API_VERSION: ApiVersion.January22,
   IS_EMBEDDED_APP: true,
-  SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
+  SESSION_STORAGE: customSessionStorage, // ✅ Use Firebase session storage
 });
 
 // Boot check: verify session storage is available after initialization
@@ -275,20 +280,29 @@ app
             console.log(`[AFTER AUTH] Koa session save not available (using Shopify session storage)`);
           }
           
-          // ✅ CRITICAL: Verify Shopify session storage has the session
+          // ✅ CRITICAL: Store session in Shopify library's session storage
+          // This registers the session with the library so AUTH-GUARD can find it
           const { getSessionStorageSafe } = require("./lib/shopify/shopify");
           const storage = getSessionStorageSafe(shopifyApi);
-          if (storage) {
+          if (storage && session) {
             try {
+              console.log(`[AFTER AUTH] Storing session in Shopify library storage (id=${expectedOfflineId})...`);
+              await storage.storeSession(session);
+              console.log(`[AFTER AUTH] ✅ Successfully stored session in Shopify library storage`);
+              
+              // Verify the session was stored
               const storedSession = await storage.loadSession(expectedOfflineId);
               if (storedSession && storedSession.accessToken) {
                 console.log(`[AFTER AUTH] ✅ Verified session exists in Shopify storage with ID: ${expectedOfflineId}`);
               } else {
-                console.warn(`[AFTER AUTH] ⚠️ Session not found in Shopify storage with ID: ${expectedOfflineId}`);
+                console.warn(`[AFTER AUTH] ⚠️ Session not found in Shopify storage after store (id=${expectedOfflineId})`);
               }
             } catch (err) {
-              console.error(`[AFTER AUTH] Error verifying session in storage:`, err.message);
+              console.error(`[AFTER AUTH] ❌ CRITICAL: Failed to store session in Shopify library storage:`, err.message);
+              console.error(`[AFTER AUTH] This will cause AUTH-GUARD to trigger re-auth because reason: 'no_session'`);
             }
+          } else {
+            console.warn(`[AFTER AUTH] ⚠️ Session storage not available or session missing`);
           }
           
           /** Check if its a development shop */
