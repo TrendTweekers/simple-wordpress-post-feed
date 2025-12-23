@@ -58,7 +58,37 @@ function getRequiredScopes() {
 }
 
 /**
+ * Check if a required scope is satisfied by the granted scopes
+ * ✅ CRITICAL: Implements "write includes read" logic
+ * - write_themes implicitly includes read_themes
+ * - write_script_tags implicitly includes read_script_tags
+ * @param {string} requiredScope - The scope we need
+ * @param {string[]} grantedScopes - The scopes that were granted
+ * @returns {boolean} True if the required scope is satisfied
+ */
+function isScopeSatisfied(requiredScope, grantedScopes) {
+  // Direct match: required scope is explicitly granted
+  if (grantedScopes.includes(requiredScope)) {
+    return true;
+  }
+  
+  // ✅ CRITICAL: Write permissions include read permissions
+  // If we need read_themes but have write_themes, we're good
+  if (requiredScope === 'read_themes' && grantedScopes.includes('write_themes')) {
+    return true;
+  }
+  
+  // If we need read_script_tags but have write_script_tags, we're good
+  if (requiredScope === 'read_script_tags' && grantedScopes.includes('write_script_tags')) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
  * Check if the current session has all required scopes
+ * ✅ CRITICAL: Uses "write includes read" logic - 2 scopes can satisfy 4 requirements
  * @param {string} shop - Shop domain
  * @returns {Promise<{needsReauth: boolean, currentScopes: string, missingScopes: string[]}>}
  */
@@ -90,22 +120,36 @@ async function checkScopesNeedApproval(shop) {
     const currentScopes = (session.scope || '').split(',').map(s => s.trim()).filter(s => s);
     const requiredScopes = getRequiredScopes();
     
+    console.log('[CHECK SCOPES] Comparing scopes:', {
+      granted: currentScopes,
+      required: requiredScopes,
+      grantedCount: currentScopes.length,
+      requiredCount: requiredScopes.length
+    });
+    
+    // ✅ CRITICAL: Use helper function that implements "write includes read" logic
     const missingScopes = requiredScopes.filter(required => {
-      // ✅ FIX: write_themes includes read_themes, write_script_tags includes read_script_tags
-      if (required === 'read_themes' && currentScopes.includes('write_themes')) {
-        return false; // Not missing - write includes read
+      const satisfied = isScopeSatisfied(required, currentScopes);
+      if (!satisfied) {
+        console.log(`[CHECK SCOPES] Missing scope: ${required} (granted: ${currentScopes.join(', ')})`);
       }
-      if (required === 'read_script_tags' && currentScopes.includes('write_script_tags')) {
-        return false; // Not missing - write includes read
-      }
-      return !currentScopes.includes(required);
+      return !satisfied;
     });
 
+    const needsReauth = missingScopes.length > 0;
+    
+    if (!needsReauth) {
+      console.log('[CHECK SCOPES] ✅ All scopes satisfied (using write-includes-read logic)');
+      console.log('[CHECK SCOPES] Granted:', currentScopes.join(', '), 'satisfies required:', requiredScopes.join(', '));
+    } else {
+      console.log('[CHECK SCOPES] ⚠️ Missing scopes:', missingScopes);
+    }
+
     return {
-      needsReauth: missingScopes.length > 0,
+      needsReauth,
       currentScopes: session.scope || '',
       missingScopes,
-      reason: missingScopes.length > 0 ? 'missing_scopes' : 'ok'
+      reason: needsReauth ? 'missing_scopes' : 'ok'
     };
   } catch (error) {
     console.error('[CHECK SCOPES ERROR]', error);
@@ -144,6 +188,7 @@ async function forceDeleteSession(shop) {
 
 /**
  * Verify that a session has all required scopes
+ * ✅ CRITICAL: Uses "write includes read" logic - 2 scopes can satisfy 4 requirements
  * @param {Object} session - Shopify session object
  * @returns {{valid: boolean, missingScopes: string[]}}
  */
@@ -158,19 +203,29 @@ function verifySessionScopes(session) {
   const currentScopes = session.scope.split(',').map(s => s.trim()).filter(s => s);
   const requiredScopes = getRequiredScopes();
   
+  console.log('[VERIFY SCOPES] Comparing scopes:', {
+    granted: currentScopes,
+    required: requiredScopes,
+    grantedCount: currentScopes.length,
+    requiredCount: requiredScopes.length
+  });
+  
+  // ✅ CRITICAL: Use helper function that implements "write includes read" logic
   const missingScopes = requiredScopes.filter(required => {
-    // ✅ FIX: write_themes includes read_themes, write_script_tags includes read_script_tags
-    if (required === 'read_themes' && currentScopes.includes('write_themes')) {
-      return false; // Not missing - write includes read
-    }
-    if (required === 'read_script_tags' && currentScopes.includes('write_script_tags')) {
-      return false; // Not missing - write includes read
-    }
-    return !currentScopes.includes(required);
+    return !isScopeSatisfied(required, currentScopes);
   });
 
+  const valid = missingScopes.length === 0;
+  
+  if (valid) {
+    console.log('[VERIFY SCOPES] ✅ All scopes satisfied (using write-includes-read logic)');
+    console.log('[VERIFY SCOPES] Granted:', currentScopes.join(', '), 'satisfies required:', requiredScopes.join(', '));
+  } else {
+    console.log('[VERIFY SCOPES] ⚠️ Missing scopes:', missingScopes);
+  }
+
   return {
-    valid: missingScopes.length === 0,
+    valid,
     missingScopes
   };
 }
