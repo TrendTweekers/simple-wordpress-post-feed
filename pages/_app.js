@@ -59,14 +59,53 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
       console.warn('[App] ⚠️ Host parameter missing - App Bridge may not embed correctly');
     }
 
+    const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d';
+    
     const config = {
-      apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d',
+      apiKey: apiKey,
       host: hostValue, // ✅ FIX: Always provide host (even if generated)
       shopOrigin: shop,
       // ✅ FIX: Only force redirect if we're not already on the home page
       // Setting to false prevents App Bridge from redirecting unnecessarily
       forceRedirect: false,
     };
+
+    // ✅ CRITICAL: Global fetch interceptor to verify App Bridge v4 token exchange
+    useEffect(() => {
+      if (typeof window === 'undefined') return;
+      
+      // Wait for App Bridge to initialize
+      const checkAppBridge = () => {
+        if (!window.shopify) {
+          console.warn('[App] ⚠️ window.shopify not available - App Bridge may not be loaded');
+          return;
+        }
+        
+        // Check if idToken function exists (App Bridge v4)
+        if (typeof window.shopify.idToken !== 'function') {
+          console.warn('[App] ⚠️ window.shopify.idToken() not available - App Bridge v4 token exchange may fail');
+          return;
+        }
+        
+        // Test idToken retrieval
+        try {
+          const token = window.shopify.idToken();
+          if (token) {
+            console.log('[App] ✅ App Bridge v4 idToken available:', token.substring(0, 20) + '...');
+          } else {
+            console.warn('[App] ⚠️ App Bridge idToken() returned null - token exchange may fail');
+          }
+        } catch (err) {
+          console.error('[App] ❌ Error getting App Bridge idToken:', err);
+        }
+      };
+      
+      // Check immediately and after a short delay (App Bridge may load async)
+      checkAppBridge();
+      const timeout = setTimeout(checkAppBridge, 500);
+      
+      return () => clearTimeout(timeout);
+    }, []);
 
     return (
       <Provider config={config}>
