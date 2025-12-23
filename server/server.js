@@ -36,20 +36,40 @@ import { checkDevShop, checkCharge, checkAppSubscription } from "./lib/shopify/f
 
 const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL, SCOPES: ENV_SCOPES } = env;
 
-// ✅ FIX: Ensure SCOPES is always an array, prioritizing env.SCOPES from config
+// ✅ FIX: Ensure SCOPES is always an array with ALL 4 required scopes
+// Priority: config.js > process.env.SCOPES > hardcoded fallback
 let scopesArray;
-if (Array.isArray(ENV_SCOPES)) {
-  // Use scopes from config.js (already an array)
+if (Array.isArray(ENV_SCOPES) && ENV_SCOPES.length === 4) {
+  // Use scopes from config.js (already an array) - MUST have all 4 scopes
   scopesArray = ENV_SCOPES;
+  console.log("[SHOPIFY INIT] Using scopes from config.js:", scopesArray);
 } else if (process.env.SCOPES) {
   // Fallback to process.env.SCOPES if config doesn't have it
   scopesArray = process.env.SCOPES.split(",").map(s => s.trim());
+  console.log("[SHOPIFY INIT] Using scopes from process.env.SCOPES:", scopesArray);
+  // ✅ VALIDATE: Ensure all 4 scopes are present
+  const requiredScopes = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  const missingScopes = requiredScopes.filter(s => !scopesArray.includes(s));
+  if (missingScopes.length > 0) {
+    console.warn("[SHOPIFY INIT] ⚠️ Missing scopes in process.env.SCOPES:", missingScopes);
+    console.warn("[SHOPIFY INIT] Using fallback with all 4 scopes");
+    scopesArray = requiredScopes;
+  }
 } else {
-  // Final fallback
+  // Final fallback - ALWAYS use all 4 scopes
   scopesArray = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  console.log("[SHOPIFY INIT] Using hardcoded fallback scopes:", scopesArray);
 }
 
-console.log("[SHOPIFY INIT] Scopes configured:", scopesArray);
+// ✅ CRITICAL: Validate we have exactly 4 scopes
+if (scopesArray.length !== 4) {
+  console.error("[SHOPIFY INIT] ❌ ERROR: Expected 4 scopes, got", scopesArray.length, scopesArray);
+  // Force correct scopes
+  scopesArray = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  console.log("[SHOPIFY INIT] ✅ Forced correct scopes:", scopesArray);
+}
+
+console.log("[SHOPIFY INIT] ✅ Final scopes configured:", scopesArray);
 
 Shopify.Context.initialize({
   API_KEY: SHOPIFY_API_KEY,
