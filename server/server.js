@@ -458,11 +458,83 @@ app
       await next();
     });
     
-    // ✅ CRITICAL: IMPORTANT: do NOT redirect for API calls — return 401 JSON
-    // This prevents redirect loops when frontend makes API calls without Bearer token
+    // ✅ BILLING ENFORCEMENT: Centralized billing check for API routes only
+    // Billing enforcement MUST apply only to API routes (/api/*)
+    // Never enforce billing on document / iframe loads
+    // Never block initial app render due to billing
+    const requireActiveSubscription = async (shop) => {
+      if (!shop) {
+        return { allowed: false, reason: "missing_shop" };
+      }
+      
+      // Load offline session (Shopify storage → Firebase fallback)
+      let accessToken = null;
+      
+      try {
+        // Try Shopify session storage first (primary source of truth)
+        const { shopifyApi } = require("./lib/shopify/shopify");
+        const { getOfflineIdSafe } = require("./lib/shopify/session");
+        const { getSessionStorageSafe } = require("./lib/shopify/shopify");
+        
+        const storage = getSessionStorageSafe(shopifyApi);
+        if (storage) {
+          const offlineId = getOfflineIdSafe(shop, shopifyApi);
+          const session = await storage.loadSession(offlineId);
+          if (session && session.accessToken) {
+            accessToken = session.accessToken;
+          }
+        }
+      } catch (err) {
+        // Continue to Firebase fallback
+      }
+      
+      // Firebase fallback
+      if (!accessToken) {
+        try {
+          const { getOfflineIdSafe } = require("./lib/shopify/session");
+          const { shopifyApi } = require("./lib/shopify/shopify");
+          const firebaseDocId = getOfflineIdSafe(shop, shopifyApi);
+          const storeDB = await getFs(APP, firebaseDocId);
+          if (storeDB && (storeDB.token || storeDB.accessToken)) {
+            accessToken = storeDB.token || storeDB.accessToken;
+          } else {
+            // Try legacy shop document
+            const legacyDB = await getFs(APP, shop);
+            if (legacyDB && (legacyDB.token || legacyDB.accessToken)) {
+              accessToken = legacyDB.token || legacyDB.accessToken;
+            }
+          }
+        } catch (err) {
+          // No token found
+        }
+      }
+      
+      if (!accessToken) {
+        return { allowed: false, reason: "no_access_token" };
+      }
+      
+      // Verify subscription via checkAppSubscription()
+      try {
+        const { checkAppSubscription } = require("./lib/shopify/functions");
+        const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
+        
+        if (hasActiveSubscription) {
+          return { allowed: true };
+        } else {
+          return { allowed: false, reason: "inactive_subscription" };
+        }
+      } catch (err) {
+        // If check fails, allow request (fail open for API stability)
+        console.error(`[BILLING] Error checking subscription for ${shop}:`, err.message || err);
+        return { allowed: true, reason: "check_failed" };
+      }
+    };
+    
+    // ✅ API GUARD: Bearer token verification + billing enforcement
     // Must run BEFORE router.get("/") so it catches all /api/* routes
     server.use(async (ctx, next) => {
       if (ctx.path.startsWith("/api/")) {
+        // Step 1: Verify Bearer token
         const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
         const hasBearer = auth.toLowerCase().startsWith("bearer ");
         if (!hasBearer) {
@@ -471,9 +543,34 @@ app
           ctx.body = { error: "missing_session_token" };
           return;
         }
-        // If Bearer token exists, continue to normal processing
-        console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token, proceeding`);
+        
+        // Step 2: Enforce active subscription (after Bearer token verification)
+        const shop = ctx.query.shop;
+        if (shop) {
+          const billingCheck = await requireActiveSubscription(shop);
+          if (!billingCheck.allowed) {
+            console.log(`[BILLING] API request ${ctx.method} ${ctx.path} blocked - ${billingCheck.reason} for shop ${shop}`);
+            ctx.status = 402;
+            ctx.body = { 
+              error: "subscription_required",
+              reason: billingCheck.reason,
+              message: "Active subscription required to access this API endpoint"
+            };
+            return;
+          }
+          console.log(`[BILLING] API request ${ctx.method} ${ctx.path} allowed - active subscription verified for ${shop}`);
+        } else {
+          // No shop parameter - skip billing check (may be public API endpoint)
+          console.log(`[BILLING] API request ${ctx.method} ${ctx.path} - no shop parameter, skipping billing check`);
+        }
+        
+        // Bearer token exists and billing verified - continue to route handler
+        console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token and active subscription, proceeding`);
+      } else {
+        // Not an API route - skip billing check (document loads)
+        console.log(`[BILLING] Skipping billing check for non-API route: ${ctx.path} (document load)`);
       }
+      
       await next();
     });
     
@@ -893,44 +990,22 @@ app
         }
         
         // ✅ SHOP GUARD RULE 2c: Document requests - skip billing check, allow rendering
+        // ✅ BILLING ENFORCEMENT: Billing checks happen ONLY in API guard middleware, never here
         // ✅ DEV SAFETY FALLBACK: Billing checks happen after render, not before
         if (isDocumentRequest) {
-          console.log(`[SHOP GUARD] ✅ Document request - allowing app UI to render (billing check skipped)`);
+          console.log(`[SHOP GUARD] ✅ Document request - allowing app UI to render (billing check skipped - only enforced on API routes)`);
           ctx.state.shopify = { accessToken: tokenToUse || null, shop: shop };
           await handleRequest(ctx);
           return;
         }
         
-        // ✅ SHOP GUARD RULE 3: API requests - check charge if token available
-        // Only for non-document requests (API calls)
-        if (tokenToUse && !isDocumentRequest) {
-          try {
-            const { checkAppSubscription } = require("./lib/shopify/functions");
-            const activeCharge = await checkAppSubscription(shop, tokenToUse);
-            if (activeCharge) {
-              console.log(`[SHOP GUARD] Active charge found for ${shop}, allowing API request`);
-              await handleRequest(ctx);
-              return;
-            }
-          } catch (err) {
-            if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-              console.log(`[SHOP GUARD] Auth error checking charge for API request, returning 401`);
-              const { ensureHost } = require("./lib/shopify/host");
-              const finalHost = ensureHost(shop, host);
-              ctx.status = 401;
-              ctx.set('X-Shopify-API-Request-Failure-Reauthorize', '1');
-              ctx.set('X-Shopify-API-Request-Failure-Reauthorize-Url', `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
-              ctx.body = {
-                ok: false,
-                reauth: true,
-                code: "SHOPIFY_AUTH_REQUIRED",
-                shop: shop || null,
-                message: "Shopify authentication required",
-                reauthUrl: `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`
-              };
-              return;
-            }
-          }
+        // ✅ SHOP GUARD RULE 3: API requests handled by API guard middleware
+        // Billing enforcement is handled in early API guard middleware (before this route)
+        // If we reach here for an API request, it means billing was already verified
+        if (!isDocumentRequest && tokenToUse) {
+          console.log(`[SHOP GUARD] API request with token - proceeding (billing already verified by API guard)`);
+          await handleRequest(ctx);
+          return;
         }
         
         // No valid session or charge found
