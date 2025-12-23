@@ -206,6 +206,32 @@ app
           console.log(`[AFTER AUTH] ✅ All required scopes granted for ${shop}`);
           console.log(`[AFTER AUTH] Granted scopes:`, session?.scope || 'unknown');
           
+          // ✅ CRITICAL: Save accessToken to Firebase after OAuth completes
+          // This ensures the token is available for SHOP GUARD checks on subsequent requests
+          try {
+            console.log(`[AFTER AUTH] Saving accessToken to Firebase for ${shop}...`);
+            await writeFs(APP, shop, { 
+              token: accessToken,
+              accessToken: accessToken, // Save to both fields for compatibility
+              shop: shop,
+              updatedAt: new Date().toISOString()
+            });
+            console.log(`[AFTER AUTH] ✅ Successfully saved accessToken to Firebase for ${shop}`);
+            
+            // Verify the token was saved
+            const verifyStoreDB = await getFs(APP, shop);
+            if (verifyStoreDB && (verifyStoreDB.token || verifyStoreDB.accessToken)) {
+              const savedToken = verifyStoreDB.token || verifyStoreDB.accessToken;
+              console.log(`[AFTER AUTH] ✅ Verified token saved to Firebase (length=${savedToken ? savedToken.length : 0})`);
+            } else {
+              console.warn(`[AFTER AUTH] ⚠️ Token save verification failed - token not found in Firebase`);
+            }
+          } catch (firebaseError) {
+            console.error(`[AFTER AUTH] ❌ CRITICAL: Failed to save accessToken to Firebase for ${shop}:`, firebaseError);
+            console.error(`[AFTER AUTH] This will cause SHOP GUARD to trigger OAuth again on next request`);
+            // Don't return here - continue with auth flow even if Firebase save fails
+          }
+          
           // ✅ CRITICAL: Log session ID format to verify consistency with SHOP GUARD
           const sessionId = session?.id || session?.sessionId || 'unknown';
           console.log(`[AFTER AUTH] Session ID format: ${sessionId}`);
