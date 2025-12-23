@@ -1,10 +1,11 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Store } from "../store/store";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import { Spinner } from "@shopify/polaris";
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
-import Spinner from "../components/SpinnerComponent";
+import SpinnerComponent from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
 import { manualTokenFetch, waitForShopify } from "../lib/manualTokenFetch";
@@ -248,9 +249,33 @@ const Index = ({ shopOrigin: shop }) => {
   const newThemeSwitch = () => setThemeOverride(!themeOverride);
 
   useEffect(() => {
-    getSettings();
+    // ✅ CRITICAL: Only fetch settings if App Bridge is ready
+    if (shopifyReady) {
+      getSettings();
+    }
     return () => abortController.abort();
-  }, [shop, themeOverride]);
+  }, [shop, themeOverride, shopifyReady]);
+
+  // ✅ CRITICAL: Block initial render if App Bridge is not ready
+  // Do not render dashboard components until shopifyReady is true
+  if (!shopifyReady) {
+    console.log('[Index] ⏳ Waiting for App Bridge to initialize...');
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        flexDirection: 'column',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      }}>
+        <Spinner />
+        <p style={{ marginTop: '20px', fontSize: '16px', color: '#666' }}>
+          Loading App Bridge...
+        </p>
+      </div>
+    );
+  }
 
   const dashboardComponent =
     newThemeCapable || themeOverride ? (
