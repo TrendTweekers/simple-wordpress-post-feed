@@ -10,17 +10,51 @@ const env = require('../config/config');
 /**
  * Get required scopes as an array
  * Handles both array and comma-separated string formats
+ * ✅ CRITICAL: Always returns exactly 4 scopes to match shopify.app.toml
  */
 function getRequiredScopes() {
-  if (Array.isArray(env.SCOPES)) {
-    return env.SCOPES.map(s => s.trim());
+  const requiredScopes = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  let scopesArray = null;
+  
+  // Priority 1: Use config.js (env.SCOPES) if it's an array with 4 scopes
+  if (Array.isArray(env.SCOPES) && env.SCOPES.length === 4) {
+    scopesArray = env.SCOPES.map(s => s.trim());
+    console.log("[getRequiredScopes] Using scopes from config.js:", scopesArray);
   }
-  if (typeof env.SCOPES === 'string') {
-    return env.SCOPES.split(',').map(s => s.trim());
+  // Priority 2: Use config.js if it's a string
+  else if (typeof env.SCOPES === 'string') {
+    scopesArray = env.SCOPES.split(',').map(s => s.trim());
+    console.log("[getRequiredScopes] Using scopes from config.js (string):", scopesArray);
   }
-  // Fallback to process.env.SCOPES
-  const scopesEnv = process.env.SCOPES || 'write_themes,read_themes,read_script_tags,write_script_tags';
-  return scopesEnv.split(',').map(s => s.trim());
+  // Priority 3: Fallback to process.env.SCOPES
+  else if (process.env.SCOPES) {
+    scopesArray = process.env.SCOPES.split(',').map(s => s.trim());
+    console.log("[getRequiredScopes] Using scopes from process.env.SCOPES:", scopesArray);
+  }
+  // Priority 4: Hardcoded fallback
+  else {
+    scopesArray = requiredScopes;
+    console.log("[getRequiredScopes] Using hardcoded fallback scopes:", scopesArray);
+  }
+  
+  // ✅ VALIDATE: Ensure all 4 required scopes are present
+  const missingScopes = requiredScopes.filter(s => !scopesArray.includes(s));
+  if (missingScopes.length > 0) {
+    console.warn("[getRequiredScopes] ⚠️ Missing scopes:", missingScopes);
+    console.warn("[getRequiredScopes] Expected:", requiredScopes);
+    console.warn("[getRequiredScopes] Got:", scopesArray);
+    console.warn("[getRequiredScopes] Forcing correct scopes");
+    scopesArray = requiredScopes;
+  }
+  
+  // ✅ CRITICAL: Final validation - must have exactly 4 scopes
+  if (scopesArray.length !== 4) {
+    console.error("[getRequiredScopes] ❌ ERROR: Expected 4 scopes, got", scopesArray.length, scopesArray);
+    scopesArray = requiredScopes;
+    console.log("[getRequiredScopes] ✅ Forced correct scopes:", scopesArray);
+  }
+  
+  return scopesArray;
 }
 
 /**
