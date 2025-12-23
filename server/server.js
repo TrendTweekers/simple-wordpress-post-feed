@@ -197,13 +197,45 @@ app
           console.log(`[AFTER AUTH] ✅ All required scopes granted for ${shop}`);
           console.log(`[AFTER AUTH] Granted scopes:`, session?.scope || 'unknown');
           
+          // ✅ CRITICAL: Log session ID format to verify consistency with SHOP GUARD
+          const sessionId = session?.id || session?.sessionId || 'unknown';
+          console.log(`[AFTER AUTH] Session ID format: ${sessionId}`);
+          console.log(`[AFTER AUTH] Session shop: ${session?.shop || shop}`);
+          
+          // Verify session ID format matches what SHOP GUARD expects
+          const { getOfflineIdSafe } = require("./lib/shopify/session");
+          const { shopifyApi } = require("./lib/shopify/shopify");
+          const expectedOfflineId = getOfflineIdSafe(shop, shopifyApi);
+          console.log(`[AFTER AUTH] Expected offline ID format: ${expectedOfflineId}`);
+          if (sessionId !== expectedOfflineId && sessionId !== 'unknown') {
+            console.warn(`[AFTER AUTH] ⚠️ Session ID mismatch! Saved as: ${sessionId}, SHOP GUARD expects: ${expectedOfflineId}`);
+          } else {
+            console.log(`[AFTER AUTH] ✅ Session ID format matches expected format`);
+          }
+          
           // ✅ CRITICAL: Force session save before redirect
           // This ensures the session is committed to storage before the redirect happens
           if (ctx.session && typeof ctx.session.save === 'function') {
             await ctx.session.save();
-            console.log(`[AFTER AUTH] Session saved to storage for ${shop}`);
+            console.log(`[AFTER AUTH] Koa session saved to storage for ${shop}`);
           } else {
-            console.log(`[AFTER AUTH] Session save not available (using Shopify session storage)`);
+            console.log(`[AFTER AUTH] Koa session save not available (using Shopify session storage)`);
+          }
+          
+          // ✅ CRITICAL: Verify Shopify session storage has the session
+          const { getSessionStorageSafe } = require("./lib/shopify/shopify");
+          const storage = getSessionStorageSafe(shopifyApi);
+          if (storage) {
+            try {
+              const storedSession = await storage.loadSession(expectedOfflineId);
+              if (storedSession && storedSession.accessToken) {
+                console.log(`[AFTER AUTH] ✅ Verified session exists in Shopify storage with ID: ${expectedOfflineId}`);
+              } else {
+                console.warn(`[AFTER AUTH] ⚠️ Session not found in Shopify storage with ID: ${expectedOfflineId}`);
+              }
+            } catch (err) {
+              console.error(`[AFTER AUTH] Error verifying session in storage:`, err.message);
+            }
           }
           
           /** Check if its a development shop */
@@ -543,6 +575,16 @@ app
       // Check if this is an embedded app request (has shop and host)
       if (shop && host) {
         console.log(`[SHOP GUARD] Checking access for shop: ${shop}`);
+        
+        // ✅ DEBUG: Log Authorization header to verify Bearer token is being sent
+        const authHeader = ctx.get('Authorization') || ctx.request.headers.authorization || ctx.request.header.authorization || '';
+        console.log(`[SHOP GUARD] DEBUG: Authorization Header = [${authHeader}]`);
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          const bearerToken = authHeader.substring(7);
+          console.log(`[SHOP GUARD] DEBUG: Bearer token found (length=${bearerToken.length}, preview=${bearerToken.substring(0, 20)}...)`);
+        } else {
+          console.log(`[SHOP GUARD] DEBUG: No Bearer token in Authorization header - App Bridge may not be sending session token`);
+        }
         
         // ✅ CRITICAL: First check offline session directly (same storage as Auth routes)
         // This is the source of truth after OAuth completes
