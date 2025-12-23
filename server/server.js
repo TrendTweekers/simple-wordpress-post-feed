@@ -246,9 +246,9 @@ app
           
           if (hasActiveSubscription) {
             console.log(`[BILLING GUARD] Active subscription exists for ${shop} after OAuth - skipping charge creation`);
-            // Redirect to Shopify app launcher - no billing needed
-            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
-            ctx.redirect(appLauncherUrl);
+            // ✅ CRITICAL: Redirect with host and shop parameters to preserve App Bridge state
+            console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${host}`);
+            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host || '')}`);
             return;
           }
           
@@ -265,13 +265,13 @@ app
           }
           
           // If billing confirmation is needed, redirect to it
-          // Otherwise, redirect to Shopify app launcher
+          // Otherwise, redirect to app with host and shop parameters
           if (confirmationUrl) {
             ctx.redirect(confirmationUrl);
           } else {
-            // Redirect to Shopify app launcher to ensure proper embedding
-            const appLauncherUrl = `https://${shop}/admin/apps/${SHOPIFY_API_KEY}`;
-            ctx.redirect(appLauncherUrl);
+            // ✅ CRITICAL: Redirect with host and shop parameters to preserve App Bridge state
+            console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${host}`);
+            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host || '')}`);
           }
         },
       });
@@ -720,6 +720,17 @@ app
         }
         
         // No valid session or charge found
+        // ✅ CRITICAL: Check if host parameter is missing (Catch-All Redirect)
+        // If host is missing, App Bridge cannot initialize, so we must re-acquire it
+        if (!host && shop) {
+          console.error(`[SHOP GUARD] ❌ CRITICAL: Missing "host" parameter for shop ${shop}!`);
+          console.error(`[SHOP GUARD] App Bridge requires host parameter to initialize`);
+          console.error(`[SHOP GUARD] Redirecting to /auth/toplevel to re-acquire host from Shopify`);
+          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}`;
+          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&redirectTo=${encodeURIComponent(redirectTo)}`);
+          return;
+        }
+        
         // ✅ CRITICAL: Strictly check for Accept: application/json header
         // Browser page loads will NOT have this header, so they MUST return HTML/redirect
         const acceptHeader = ctx.get("accept") || ctx.request.headers.accept || '';
