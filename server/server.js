@@ -343,9 +343,9 @@ app
           
           if (hasActiveSubscription) {
             console.log(`[BILLING GUARD] Active subscription exists for ${shop} after OAuth - skipping charge creation`);
-            // ✅ CRITICAL: Fix final redirect - ensure host is defined and encoded
+            // ✅ CRITICAL: Fix final redirect - host is already encoded by Shopify, do NOT double-encode
             console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${finalHost}`);
-            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${finalHost}`);
             return;
           }
           
@@ -366,9 +366,9 @@ app
           if (confirmationUrl) {
             ctx.redirect(confirmationUrl);
           } else {
-            // ✅ CRITICAL: Fix final redirect - ensure host is defined and encoded
+            // ✅ CRITICAL: Fix final redirect - host is already encoded by Shopify, do NOT double-encode
             console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${finalHost}`);
-            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${finalHost}`);
           }
         },
       });

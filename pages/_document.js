@@ -26,7 +26,8 @@ class MyDocument extends Document {
         <Head>
           {/* ✅ CRITICAL: Shopify App Bridge v4 CDN script MUST be first in <head> */}
           {/* No async or defer - must load synchronously for App Bridge initialization */}
-          <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+          {/* ✅ CRITICAL: Use correct App Bridge v4 script URL */}
+          <script src="https://cdn.shopify.com/static/frontend/app-bridge-v4/app-bridge.js"></script>
           
           {/* ✅ CRITICAL: Meta tag with API key for App Bridge v4 token exchange */}
           {/* If this is missing or undefined, App Bridge will fail silently and never provide tokens */}
