@@ -678,14 +678,18 @@ app
         }
         
         // No valid session or charge found
-        // ✅ CRITICAL: For document requests (HTML) to root path, always redirect to auth
-        // For API requests (JSON), return 401 JSON so App Bridge can handle it silently
-        const isRootPath = ctx.path === '/' || ctx.path === '';
-        const isApiRequest = !isRootPath && (ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json"));
+        // ✅ CRITICAL: Strictly check for Accept: application/json header
+        // Browser page loads will NOT have this header, so they MUST return HTML/redirect
+        const acceptHeader = ctx.get("accept") || ctx.request.headers.accept || '';
+        const isApiRequest = acceptHeader.includes("application/json");
         
-        if (isApiRequest) {
+        // Root path is NEVER an API request (it's always a document request)
+        const isRootPath = ctx.path === '/' || ctx.path === '';
+        const isTrueApiRequest = !isRootPath && isApiRequest;
+        
+        if (isTrueApiRequest) {
           // This is a true API request (not the initial document load)
-          console.log(`[SHOP GUARD] No valid session for API request ${ctx.path}, returning 401`);
+          console.log(`[SHOP GUARD] No valid session for API request ${ctx.path} (Accept: application/json), returning 401`);
           const { ensureHost } = require("./lib/shopify/host");
           const finalHost = ensureHost(shop, host);
           ctx.status = 401;

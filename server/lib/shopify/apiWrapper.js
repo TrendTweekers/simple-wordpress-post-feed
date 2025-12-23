@@ -68,8 +68,11 @@ const handleTypeError = async (err, ctx, shop, host, endpoint = "unknown") => {
   const isApiRequest = ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json");
   
   if (isApiRequest) {
-    // Return JSON response for API routes
+    // ✅ CRITICAL: Return JSON response with App Bridge v4 headers for API routes
+    // App Bridge v4 requires these headers to handle reauth without page reload
     ctx.status = 401;
+    ctx.set('X-Shopify-API-Request-Failure-Reauthorize', '1');
+    ctx.set('X-Shopify-API-Request-Failure-Reauthorize-Url', `/install/auth?shop=${encodeURIComponent(shop || '')}&host=${encodeURIComponent(finalHost || '')}`);
     ctx.body = {
       ok: false,
       reauth: true,

@@ -1,15 +1,13 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Store } from "../store/store";
-import axios from "axios";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { Redirect } from "@shopify/app-bridge/actions";
+import { authenticatedFetch as appBridgeAuthenticatedFetch } from "@shopify/app-bridge-utils";
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
-import { authenticatedFetch, buildAuthUrl } from "../lib/authenticatedFetch";
 
 /* ------------------ SAFE REVIEW BANNER ------------------ */
 function ReviewBanner() {
@@ -129,31 +127,98 @@ const Index = ({ shopOrigin: shop }) => {
     support: { newThemeCapable },
   } = data;
   
-  // Get App Bridge instance for redirects
+  // ✅ CRITICAL: Get App Bridge instance and use authenticatedFetch from app-bridge-utils
+  // This automatically adds the session token (Bearer token) to all requests
   const app = useAppBridge();
+  
+  // Create authenticated fetch function that includes App Bridge session token
+  const authenticatedFetch = app ? appBridgeAuthenticatedFetch(app) : null;
 
   const fetchShopData = async () => {
-    const data = await authenticatedFetch(`/api/data`, { method: 'GET' }, app);
-    return data; // Will be null if redirect was triggered
+    if (!authenticatedFetch) {
+      console.error('[Index] App Bridge not available, cannot fetch shop data');
+      return null;
+    }
+    
+    try {
+      const response = await authenticatedFetch(`/api/data`, {
+        method: 'GET',
+      });
+      
+      // authenticatedFetch from app-bridge-utils returns null if redirect was triggered
+      if (!response) {
+        console.log('[Index] Redirect triggered by authenticatedFetch');
+        return null;
+      }
+      
+      // Check for X-Shopify-API-Request-Failure-Reauthorize header
+      if (response.headers?.get("X-Shopify-API-Request-Failure-Reauthorize") === "1") {
+        console.log('[Index] Reauth required (detected via header)');
+        return null; // App Bridge will handle redirect automatically
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('[Index] Error fetching shop data:', err);
+      // Don't trigger page reload - let App Bridge handle it
+      return null;
+    }
   };
   
   const getMetaData = async () => {
-    const data = await authenticatedFetch(`/api/meta`, { method: 'GET' }, app);
-    return data; // Will be null if redirect was triggered
+    if (!authenticatedFetch) {
+      console.error('[Index] App Bridge not available, cannot fetch metadata');
+      return null;
+    }
+    
+    try {
+      const response = await authenticatedFetch(`/api/meta`, {
+        method: 'GET',
+      });
+      
+      // authenticatedFetch from app-bridge-utils returns null if redirect was triggered
+      if (!response) {
+        console.log('[Index] Redirect triggered by authenticatedFetch');
+        return null;
+      }
+      
+      // Check for X-Shopify-API-Request-Failure-Reauthorize header
+      if (response.headers?.get("X-Shopify-API-Request-Failure-Reauthorize") === "1") {
+        console.log('[Index] Reauth required (detected via header)');
+        return null; // App Bridge will handle redirect automatically
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('[Index] Error fetching metadata:', err);
+      // Don't trigger page reload - let App Bridge handle it
+      return null;
+    }
   };
 
   const getSettings = async () => {
     dispatch({ type: types.LOADING, payload: true });
+    
+    if (!authenticatedFetch) {
+      console.error('[Index] App Bridge not available, cannot fetch settings');
+      dispatch({ type: types.LOADING, payload: false });
+      return;
+    }
+    
     try {
       const metaData = await getMetaData();
       if (!metaData) {
-        // Redirect was triggered
+        // Redirect was triggered by App Bridge - don't do anything, App Bridge handles it
+        console.log('[Index] Metadata fetch triggered redirect');
         return;
       }
       
       const shopData = await fetchShopData();
       if (!shopData) {
-        // Redirect was triggered
+        // Redirect was triggered by App Bridge - don't do anything, App Bridge handles it
+        console.log('[Index] Shop data fetch triggered redirect');
         return;
       }
 
@@ -161,19 +226,10 @@ const Index = ({ shopOrigin: shop }) => {
       dispatch({ type: types.FETCH_DATA, payload: shopData });
       dispatch({ type: types.LOADING, payload: false });
     } catch (err) {
-      console.error('Error fetching settings:', err);
-      // If 401 error, redirect to /auth/toplevel which uses App Bridge
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        const data = err.response?.data || {};
-        const urlParams = new URLSearchParams(window.location.search);
-        const shopParam = shop || urlParams.get("shop") || '';
-        const hostParam = urlParams.get("host") || (shopParam ? btoa(`${shopParam}/admin`) : '');
-        const reauthUrl = data?.reauthUrl || `/install/auth?shop=${encodeURIComponent(shopParam)}&host=${encodeURIComponent(hostParam)}`;
-        // Redirect to /auth/toplevel which uses App Bridge for proper iframe breakout
-        const toplevelUrl = `/auth/toplevel?shop=${encodeURIComponent(shopParam)}&host=${encodeURIComponent(hostParam)}&redirectTo=${encodeURIComponent(reauthUrl)}`;
-        window.location.href = toplevelUrl;
-        return;
-      }
+      console.error('[Index] Error fetching settings:', err);
+      // ✅ CRITICAL: Don't trigger page reload on errors
+      // App Bridge will handle reauth automatically via headers
+      // If we do window.location.href, it causes redirect loops
       dispatch({ type: types.LOADING, payload: false });
     }
   };
