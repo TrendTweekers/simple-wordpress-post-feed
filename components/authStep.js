@@ -6,9 +6,8 @@ import { AppProvider } from "@shopify/polaris";
 import { StoreProvider } from "../store/store";
 import React, { useState, useEffect } from "react";
 import { useAppBridge, Provider } from "@shopify/app-bridge-react";
-import { authenticatedFetch } from "@shopify/app-bridge-utils";
 import { Redirect } from "@shopify/app-bridge/actions";
-import { manualTokenFetch, waitForShopify } from "../lib/manualTokenFetch";
+import { authenticatedFetch } from "../lib/authenticatedFetch";
 import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
@@ -133,25 +132,17 @@ const authStep = ({ config, Component, pageProps }) => {
    */
   const makeInstall = async () => {
     try {
-      // ✅ CRITICAL: Wait for window.shopify to be available
-      const isReady = await waitForShopify(3000);
-      if (!isReady) {
-        console.error('[AUTH] window.shopify.idToken() not available, cannot call /api/install');
-        setLoading(false);
-        return;
-      }
-      
       const url = `/api/install?shop=${encodeURIComponent(shopOrigin)}&host=${encodeURIComponent(host)}`;
-      console.log(`[AUTH] Calling /api/install for ${shopOrigin} with manual token`);
+      console.log(`[AUTH] Calling /api/install for ${shopOrigin} with authenticatedFetch`);
       
-      // ✅ CRITICAL: Use manual token fetch to inject Bearer token
-      const response = await manualTokenFetch(url, {
+      // ✅ CRITICAL: Use new authenticatedFetch which automatically handles Bearer token
+      const response = await authenticatedFetch(url, {
         method: 'GET',
       });
       
       if (!response) {
-        // Redirect was triggered by authenticatedFetch (X-Shopify-API-Request-Failure-Reauthorize header)
-        console.log(`[AUTH] Redirect triggered by authenticatedFetch`);
+        // Response was null (shouldn't happen with new authenticatedFetch, but handle gracefully)
+        console.log(`[AUTH] Response was null`);
         return;
       }
       

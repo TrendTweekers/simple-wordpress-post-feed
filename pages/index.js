@@ -8,7 +8,7 @@ import Header from "../components/Header";
 import SpinnerComponent from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
-import { manualTokenFetch, waitForShopify } from "../lib/manualTokenFetch";
+import { authenticatedFetch } from "../lib/authenticatedFetch";
 
 /* ------------------ SAFE REVIEW BANNER ------------------ */
 function ReviewBanner() {
@@ -167,31 +167,23 @@ const Index = ({ shopOrigin: shop }) => {
       }
     };
     
-    const checkShopify = async () => {
-      const isReady = await waitForShopify(5000);
-      setShopifyReady(isReady);
-      if (isReady) {
-        console.log('[Index] ✅ window.shopify.idToken() is ready');
-        // ✅ CRITICAL: Test token retrieval after App Bridge is ready
-        await testTokenRetrieval();
-      } else {
-        console.error('[Index] ❌ window.shopify.idToken() not available after 5 seconds');
-      }
-    };
-    
+    // ✅ CRITICAL: Test token retrieval to verify App Bridge is ready
+    // authenticatedFetch will handle token retrieval automatically, but we test here for logging
     if (typeof window !== 'undefined') {
-      checkShopify();
+      testTokenRetrieval().then(() => {
+        setShopifyReady(true);
+        console.log('[Index] ✅ App Bridge ready, authenticatedFetch can be used');
+      }).catch(() => {
+        console.warn('[Index] ⚠️ App Bridge not ready yet, but authenticatedFetch will retry');
+        // Still set ready to allow requests - authenticatedFetch will handle errors
+        setShopifyReady(true);
+      });
     }
   }, []);
 
   const fetchShopData = async () => {
-    if (!shopifyReady) {
-      console.error('[Index] Shopify not ready, cannot fetch shop data');
-      return null;
-    }
-    
     try {
-      const response = await manualTokenFetch(`/api/data`, {
+      const response = await authenticatedFetch(`/api/data`, {
         method: 'GET',
       });
       
@@ -220,7 +212,7 @@ const Index = ({ shopOrigin: shop }) => {
     }
     
     try {
-      const response = await manualTokenFetch(`/api/meta`, {
+      const response = await authenticatedFetch(`/api/meta`, {
         method: 'GET',
       });
       
@@ -245,17 +237,8 @@ const Index = ({ shopOrigin: shop }) => {
   const getSettings = async () => {
     dispatch({ type: types.LOADING, payload: true });
     
-    // ✅ CRITICAL: Wait for Shopify to be ready before making requests
-    if (!shopifyReady) {
-      console.log('[Index] Waiting for Shopify to be ready...');
-      const isReady = await waitForShopify(5000);
-      if (!isReady) {
-        console.error('[Index] Shopify not ready after waiting, cannot fetch settings');
-        dispatch({ type: types.LOADING, payload: false });
-        return;
-      }
-      setShopifyReady(true);
-    }
+    // ✅ CRITICAL: authenticatedFetch handles token retrieval automatically
+    // No need to wait for Shopify - authenticatedFetch will throw if App Bridge isn't ready
     
     try {
       const metaData = await getMetaData();
