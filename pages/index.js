@@ -135,7 +135,7 @@ const Index = ({ shopOrigin: shop }) => {
     (async () => {
       try {
         // ✅ CRITICAL: Ensure App Bridge is alive and token works before making requests
-        await getSessionTokenSafe();
+        await getSessionTokenSafe(); // just validates token can be obtained
         setShopifyReady(true);
         console.log('[Index] ✅ App Bridge token initialized successfully');
       } catch (e) {
@@ -146,6 +146,12 @@ const Index = ({ shopOrigin: shop }) => {
   }, []);
 
   const fetchShopData = async () => {
+    // ✅ CRITICAL: Force-gate API calls until token init is complete
+    if (!shopifyReady) {
+      console.error('[Index] Shopify not ready, cannot fetch shop data');
+      return null;
+    }
+    
     try {
       const response = await authenticatedFetch(`/api/data`, {
         method: 'GET',
@@ -170,6 +176,7 @@ const Index = ({ shopOrigin: shop }) => {
   };
   
   const getMetaData = async () => {
+    // ✅ CRITICAL: Force-gate API calls until token init is complete
     if (!shopifyReady) {
       console.error('[Index] Shopify not ready, cannot fetch metadata');
       return null;
