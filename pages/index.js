@@ -248,13 +248,41 @@ const Index = ({ shopOrigin: shop }) => {
   /** Override current theme setting, showing new Theme 2.0 settings */
   const newThemeSwitch = () => setThemeOverride(!themeOverride);
 
+  // ✅ CRITICAL: Separate effect for shopifyReady - only trigger API calls when App Bridge becomes ready
   useEffect(() => {
-    // ✅ CRITICAL: Only fetch settings if App Bridge is ready
-    if (shopifyReady) {
-      getSettings();
+    // Guard: Only run on client side
+    if (typeof window === 'undefined') {
+      return;
     }
+    
+    // Guard: Only fetch settings when shopifyReady becomes true
+    if (!shopifyReady) {
+      console.log('[Index] ⏳ Waiting for App Bridge to initialize before fetching settings...');
+      return;
+    }
+    
+    console.log('[Index] ✅ App Bridge ready, fetching settings...');
+    getSettings();
+    
     return () => abortController.abort();
-  }, [shop, themeOverride, shopifyReady]);
+  }, [shopifyReady]); // ✅ CRITICAL: Only depend on shopifyReady - don't re-fetch on shop/themeOverride changes
+  
+  // ✅ Separate effect for shop/themeOverride changes - only fetch if App Bridge is already ready
+  useEffect(() => {
+    // Guard: Only run on client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
+    // Guard: Only refetch if App Bridge is already ready
+    if (!shopifyReady) {
+      console.log('[Index] ⏳ Shop/theme changed but App Bridge not ready, skipping refetch');
+      return;
+    }
+    
+    console.log('[Index] ✅ Shop/theme changed and App Bridge ready, refetching settings...');
+    getSettings();
+  }, [shop, themeOverride]); // Only refetch when shop or themeOverride changes (and App Bridge is ready)
 
   // ✅ CRITICAL: Block initial render if App Bridge is not ready
   // Do not render dashboard components until shopifyReady is true

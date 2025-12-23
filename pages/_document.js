@@ -11,6 +11,16 @@ class MyDocument extends Document {
     // ✅ CRITICAL: Get API key for meta tag (must be available at build time)
     const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d';
     
+    // ✅ CRITICAL: Validate API key is not undefined
+    if (!apiKey || apiKey === 'undefined' || apiKey.trim() === '') {
+      console.error('[_document] ❌ CRITICAL: NEXT_PUBLIC_SHOPIFY_API_KEY is undefined or empty!');
+      console.error('[_document] process.env.NEXT_PUBLIC_SHOPIFY_API_KEY:', process.env.NEXT_PUBLIC_SHOPIFY_API_KEY);
+      console.error('[_document] SHOPIFY_API_KEY:', SHOPIFY_API_KEY);
+      console.error('[_document] App Bridge will fail silently without a valid API key');
+    } else {
+      console.log('[_document] ✅ API key found for App Bridge meta tag:', apiKey.substring(0, 10) + '...');
+    }
+    
     return (
       <Html>
         <Head>
@@ -19,6 +29,7 @@ class MyDocument extends Document {
           <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
           
           {/* ✅ CRITICAL: Meta tag with API key for App Bridge v4 token exchange */}
+          {/* If this is missing or undefined, App Bridge will fail silently and never provide tokens */}
           <meta name="shopify-api-key" content={apiKey} />
         </Head>
         <body>

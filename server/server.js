@@ -411,6 +411,7 @@ app
     
     // ✅ CSP Middleware - Allow iframe embedding from Shopify domains
     // Required for embedded apps to work in Shopify admin iframe
+    // ✅ CRITICAL: Must allow cdn.shopify.com for App Bridge script to load
     server.use(async (ctx, next) => {
       // Skip CSP for static assets and favicon
       if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
@@ -421,13 +422,18 @@ app
       const shop = ctx.query.shop || ctx.request.query.shop || (ctx.session && ctx.session.shop);
       
       if (shop) {
-        // Allow embedding from shop domain and Shopify admin
-        ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com;`);
-        console.log(`[CSP] Set frame-ancestors for shop: ${shop}`);
+        // ✅ CRITICAL: Allow cdn.shopify.com for App Bridge script loading
+        // frame-ancestors controls who can embed this page (for iframe)
+        // script-src would control script sources, but we're not setting that here
+        // The default script-src allows all, so cdn.shopify.com should work
+        // But we explicitly allow it in case browser has strict CSP
+        ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://unpkg.com;`);
+        console.log(`[CSP] Set frame-ancestors and script-src for shop: ${shop} (allowing cdn.shopify.com)`);
       } else {
         // Secure fallback - deny embedding if no shop identified
-        ctx.set('Content-Security-Policy', `frame-ancestors 'none';`);
-        console.log(`[CSP] No shop found, denying frame embedding`);
+        // But still allow cdn.shopify.com scripts to load
+        ctx.set('Content-Security-Policy', `frame-ancestors 'none'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://unpkg.com;`);
+        console.log(`[CSP] No shop found, denying frame embedding but allowing cdn.shopify.com scripts`);
       }
       await next();
     });
