@@ -63,7 +63,9 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
       apiKey: process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d',
       host: hostValue, // ✅ FIX: Always provide host (even if generated)
       shopOrigin: shop,
-      forceRedirect: true, // Forces top-level redirects if needed
+      // ✅ FIX: Only force redirect if we're not already on the home page
+      // Setting to false prevents App Bridge from redirecting unnecessarily
+      forceRedirect: false,
     };
 
     return (

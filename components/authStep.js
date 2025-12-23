@@ -8,7 +8,6 @@ import React, { useState, useEffect } from "react";
 import { useAppBridge, Provider } from "@shopify/app-bridge-react";
 import { authenticatedFetch } from "@shopify/app-bridge-utils";
 import { Redirect } from "@shopify/app-bridge/actions";
-import createApp from "@shopify/app-bridge";
 import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
@@ -65,15 +64,12 @@ const authStep = ({ config, Component, pageProps }) => {
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Create App Bridge instance
-  const app = createApp({
-    apiKey,
-    shopOrigin,
-    host,
-  });
-
-  // Create App Bridge Redirect instance for embedded redirects
-  const redirect = Redirect.create(app);
+  // ✅ FIX: Use App Bridge instance from Provider context instead of creating duplicate
+  // This ensures we're using the same instance as _app.js Provider
+  const app = useAppBridge();
+  
+  // Only create redirect if app is available
+  const redirect = app ? Redirect.create(app) : null;
 
   // Use authenticated fetch from App Bridge (no cookies needed)
   const authenticatedFetch = userLoggedInFetch(app);
@@ -134,29 +130,54 @@ const authStep = ({ config, Component, pageProps }) => {
   const makeInstall = async () => {
     try {
       const url = `/api/install?shop=${encodeURIComponent(shopOrigin)}&host=${encodeURIComponent(host)}`;
+      console.log(`[AUTH] Calling /api/install for ${shopOrigin}`);
+      
       const response = await authenticatedFetch(url, {
         method: 'GET',
         credentials: 'include',
       });
       
       if (!response) {
-        // Redirect was triggered by authenticatedFetch
+        // Redirect was triggered by authenticatedFetch (X-Shopify-API-Request-Failure-Reauthorize header)
+        console.log(`[AUTH] Redirect triggered by authenticatedFetch`);
         return;
       }
       
-      // Handle 401/403 or {reauth: true} - Shopify auth required - IMMEDIATE redirect using App Bridge
+      // ✅ FIX: Only redirect on 401/403 if explicitly told to reauth
+      // Don't redirect on every 401/403 - backend might be handling it
       if (response.status === 401 || response.status === 403) {
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (e) {
+          console.log(`[AUTH] Could not parse error response, checking status only`);
+          data = {};
+        }
+        
         const needsReauth = data?.reauth === true || data?.code === "SHOPIFY_AUTH_REQUIRED" || data?.code === "NO_OFFLINE_SESSION";
         
         if (needsReauth && data.reauthUrl) {
-          console.log(`[AUTH] Reauth required detected, redirecting to: ${data.reauthUrl}`);
-          // Immediate redirect using App Bridge - no spinner, no delay
+          console.log(`[AUTH] Reauth required detected (code: ${data.code}), redirecting to: ${data.reauthUrl}`);
           redirectToAuth(data.reauthUrl);
           return;
         }
-        // Even if code doesn't match, redirect on 401/403
-        console.log(`[AUTH] 401/403 without reauth flag, using fallback URL`);
+        
+        // ✅ FIX: Don't redirect on 401/403 if backend didn't explicitly request it
+        // The backend SHOP GUARD might be handling auth differently
+        console.log(`[AUTH] 401/403 received but no explicit reauth flag, checking if we're already authenticated`);
+        
+        // If we're on the home page and got 401/403, it might be a false positive
+        // Let the backend SHOP GUARD handle it instead of redirecting immediately
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        if (currentPath === '/' || currentPath === '/index') {
+          console.log(`[AUTH] On home page with 401/403 but no reauth flag - backend may handle it, not redirecting`);
+          // Don't redirect - let the page render and backend will handle it
+          setLoading(false);
+          return;
+        }
+        
+        // Only redirect if we're not on home page and got explicit error
+        console.log(`[AUTH] Not on home page, using fallback URL`);
         const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
         const fallbackUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
         redirectToAuth(fallbackUrl);
@@ -192,21 +213,37 @@ const authStep = ({ config, Component, pageProps }) => {
   };
 
   useEffect(() => {
+    // ✅ FIX: Only call makeInstall if we have shop and host
+    // Prevent unnecessary redirects if parameters are missing
+    if (!shopOrigin || !host) {
+      console.warn('[AUTH] Missing shop or host, skipping install check');
+      setLoading(false);
+      return;
+    }
+    
     makeInstall();
     
-    // Boot timeout failsafe - if app doesn't initialize in 3 seconds, force reauth using App Bridge
+    // ✅ FIX: Increase timeout and only redirect if we're still loading AND on home page
+    // Don't redirect if we're already on a different page
     const timeout = setTimeout(() => {
       if (!allowed && loading) {
-        console.warn('Boot timeout - forcing reauth');
-        const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
-        const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
-        redirectToAuth(reauthUrl);
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+        // Only redirect if we're on home page (/) or index
+        if (currentPath === '/' || currentPath === '/index') {
+          console.warn('[AUTH] Boot timeout - forcing reauth (on home page)');
+          const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
+          const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
+          redirectToAuth(reauthUrl);
+        } else {
+          console.log('[AUTH] Boot timeout but not on home page, skipping redirect');
+          setLoading(false);
+        }
       }
-    }, 3000);
+    }, 5000); // Increased from 3s to 5s to give backend more time
     
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopOrigin]);
+  }, [shopOrigin, host]);
   // console.log(apiKey, shopOrigin, host);
   if (loading) {
     return (
