@@ -449,6 +449,25 @@ app
       await next();
     });
     
+    // ✅ CRITICAL: IMPORTANT: do NOT redirect for API calls — return 401 JSON
+    // This prevents redirect loops when frontend makes API calls without Bearer token
+    // Must run BEFORE router.get("/") so it catches all /api/* routes
+    server.use(async (ctx, next) => {
+      if (ctx.path.startsWith("/api/")) {
+        const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
+        const hasBearer = auth.toLowerCase().startsWith("bearer ");
+        if (!hasBearer) {
+          console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} missing Authorization Bearer token, returning 401 JSON`);
+          ctx.status = 401;
+          ctx.body = { error: "missing_session_token" };
+          return;
+        }
+        // If Bearer token exists, continue to normal processing
+        console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token, proceeding`);
+      }
+      await next();
+    });
+    
     // Serve static assets with koa-static + koa-mount - MUST be ABSOLUTE FIRST middleware
     const nextStaticPath = path.join(process.cwd(), ".next", "static");
     
@@ -522,13 +541,14 @@ app
         // ✅ CRITICAL: Fix CSP Headers - Modern Shopify Admin requires admin.shopify.com explicitly
         // Also allow *.myshopify.com pattern for shop domains
         // frame-ancestors controls who can embed this page (for iframe)
-        ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com https://*.myshopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://cdn.shopify.com/static/frontend/app-bridge-v4 https://unpkg.com;`);
-        console.log(`[CSP] Set frame-ancestors and script-src for shop: ${shop} (allowing admin.shopify.com and *.myshopify.com)`);
+        // script-src includes CDNs that might load utilities from
+        ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com https://*.myshopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://cdn.shopify.com/static/frontend/app-bridge-v4 https://cdn.jsdelivr.net https://unpkg.com;`);
+        console.log(`[CSP] Set frame-ancestors and script-src for shop: ${shop} (allowing admin.shopify.com, *.myshopify.com, cdn.shopify.com, cdn.jsdelivr.net, unpkg.com)`);
       } else {
         // Secure fallback - deny embedding if no shop identified
-        // But still allow cdn.shopify.com scripts to load
-        ctx.set('Content-Security-Policy', `frame-ancestors https://admin.shopify.com https://*.myshopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://cdn.shopify.com/static/frontend/app-bridge-v4 https://unpkg.com;`);
-        console.log(`[CSP] No shop found, allowing admin.shopify.com and *.myshopify.com for frame embedding`);
+        // But still allow CDN scripts to load
+        ctx.set('Content-Security-Policy', `frame-ancestors https://admin.shopify.com https://*.myshopify.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com https://cdn.shopify.com/static/frontend/app-bridge-v4 https://cdn.jsdelivr.net https://unpkg.com;`);
+        console.log(`[CSP] No shop found, allowing admin.shopify.com, *.myshopify.com, cdn.shopify.com, cdn.jsdelivr.net, unpkg.com for frame embedding and scripts`);
       }
       await next();
     });
@@ -678,6 +698,21 @@ app
         console.log(`[SHOP GUARD] Bypassing guard and letting AUTH-GUARD handle it`);
         // Don't process - let AUTH-GUARD middleware handle it
         return;
+      }
+      
+      // ✅ CRITICAL: IMPORTANT: do NOT redirect for API calls — return 401 JSON
+      // This prevents redirect loops when frontend makes API calls without Bearer token
+      if (ctx.path.startsWith("/api/")) {
+        const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
+        const hasBearer = auth.toLowerCase().startsWith("bearer ");
+        if (!hasBearer) {
+          console.log(`[SHOP GUARD] API request ${ctx.path} missing Authorization Bearer token, returning 401 JSON`);
+          ctx.status = 401;
+          ctx.body = { error: "missing_session_token" };
+          return;
+        }
+        // If Bearer token exists, continue to normal processing (don't return early)
+        console.log(`[SHOP GUARD] API request ${ctx.path} has Bearer token, proceeding`);
       }
       
       const shop = ctx.query.shop;
