@@ -197,6 +197,15 @@ app
           console.log(`[AFTER AUTH] ✅ All required scopes granted for ${shop}`);
           console.log(`[AFTER AUTH] Granted scopes:`, session?.scope || 'unknown');
           
+          // ✅ CRITICAL: Force session save before redirect
+          // This ensures the session is committed to storage before the redirect happens
+          if (ctx.session && typeof ctx.session.save === 'function') {
+            await ctx.session.save();
+            console.log(`[AFTER AUTH] Session saved to storage for ${shop}`);
+          } else {
+            console.log(`[AFTER AUTH] Session save not available (using Shopify session storage)`);
+          }
+          
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
           
@@ -629,14 +638,18 @@ app
             }
           } catch (err) {
             if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-              // ✅ CRITICAL: For document requests (HTML) to root path, always redirect to auth
-              // For API requests (JSON), return 401 JSON so App Bridge can handle it silently
-              const isRootPath = ctx.path === '/' || ctx.path === '';
-              const isApiRequest = !isRootPath && (ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json"));
+              // ✅ CRITICAL: Strictly check for Accept: application/json header
+              // Browser page loads will NOT have this header, so they MUST return HTML/redirect
+              const acceptHeader = ctx.get("accept") || ctx.request.headers.accept || '';
+              const isApiRequest = acceptHeader.includes("application/json");
               
-              if (isApiRequest) {
+              // Root path is NEVER an API request (it's always a document request)
+              const isRootPath = ctx.path === '/' || ctx.path === '';
+              const isTrueApiRequest = !isRootPath && isApiRequest;
+              
+              if (isTrueApiRequest) {
                 // This is a true API request (not the initial document load)
-                console.log(`[SHOP GUARD] Auth error checking charge for API request, returning 401`);
+                console.log(`[SHOP GUARD] Auth error checking charge for API request (Accept: application/json), returning 401`);
                 const { ensureHost } = require("./lib/shopify/host");
                 const finalHost = ensureHost(shop, host);
                 ctx.status = 401;
