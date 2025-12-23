@@ -364,12 +364,18 @@ app
           // If billing confirmation is needed, redirect to it
           // Otherwise, redirect to app with host and shop parameters
           if (confirmationUrl) {
+            console.log(`[AFTER AUTH] Redirecting to billing confirmation: ${confirmationUrl}`);
             ctx.redirect(confirmationUrl);
-          } else {
-            // ✅ CRITICAL: Fix final redirect - host is already encoded by Shopify, do NOT double-encode
-            console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${finalHost}`);
-            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${finalHost}`);
+            return;
           }
+          
+          // ✅ CRITICAL: AFTER OAuth + session + billing is done - explicit redirect to app root
+          // Do not render, do not fall through, do not rely on Shopify SDK defaults
+          // White screen = no redirect
+          const redirectUrl = `/?shop=${encodeURIComponent(shop)}&host=${finalHost}`;
+          console.log(`[AFTER AUTH] Redirecting to app root: ${redirectUrl}`);
+          ctx.redirect(redirectUrl);
+          return;
         },
       });
     
@@ -880,7 +886,17 @@ app
           console.log(`[SHOP GUARD] Using token from Firebase for ${shop}`);
         }
         
-        // If we have offline session, proceed to check charge
+        // ✅ CRITICAL: Prevent billing guard from hijacking iframe load
+        // If this is a document / iframe load, DO NOT block
+        if (isDocumentRequest) {
+          console.log(`[BILLING GUARD] Skipping billing check on document load - allowing app UI to render`);
+          // Allow the app to render - billing can be triggered later from UI
+          ctx.state.shopify = { accessToken: tokenToUse || null, shop: shop };
+          await handleRequest(ctx);
+          return;
+        }
+        
+        // If we have offline session, proceed to check charge (only for API requests)
         if (tokenToUse && !isDocumentRequest) {
           console.log(`[SHOP GUARD] Using offline session token for ${shop}`);
           let activeCharge = false;
@@ -904,6 +920,16 @@ app
         const shopifySession = ctx.state.shopify;
         if (shopifySession && shopifySession.accessToken) {
           console.log(`[SHOP GUARD] Valid Shopify session found for ${shop}, proceeding with app`);
+          await handleRequest(ctx);
+          return;
+        }
+        
+        // ✅ CRITICAL: Prevent billing guard from hijacking iframe load (duplicate check for safety)
+        // If this is a document / iframe load, DO NOT block
+        if (isDocumentRequest) {
+          console.log(`[BILLING GUARD] Skipping billing check on document load - allowing app UI to render`);
+          // Allow the app to render - billing can be triggered later from UI
+          ctx.state.shopify = { accessToken: tokenToUse || null, shop: shop };
           await handleRequest(ctx);
           return;
         }
