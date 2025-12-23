@@ -135,6 +135,15 @@ app
     // ✅ CRITICAL: Trust Railway proxy for secure cookies (required for SameSite=None cookies)
     server.proxy = true;
     
+    // ✅ CRITICAL: Validate Railway Variables - Check SHOPIFY_API_SECRET_KEY
+    if (!SHOPIFY_API_SECRET_KEY || SHOPIFY_API_SECRET_KEY === 'undefined' || SHOPIFY_API_SECRET_KEY.trim() === '') {
+      console.error(`[SERVER] ❌ CRITICAL: SHOPIFY_API_SECRET_KEY is missing or undefined!`);
+      console.error(`[SERVER] This will cause session storage checks to fail silently`);
+      console.error(`[SERVER] Please verify Railway environment variable SHOPIFY_API_SECRET_KEY is set correctly`);
+    } else {
+      console.log(`[SERVER] ✅ SHOPIFY_API_SECRET_KEY is configured (length=${SHOPIFY_API_SECRET_KEY.length})`);
+    }
+    
     const router = new Router();
     
     // Global error handler to suppress EPIPE errors (common in web servers)
@@ -653,26 +662,58 @@ app
         try {
           storeDB = await getFs(APP, shop);
           console.log(`[SHOP GUARD] Firebase query result for ${shop}:`, storeDB ? 'Found' : 'Not found');
+          
+          // ✅ CRITICAL: Validate Firebase Data - check if accessToken field exists
+          if (storeDB) {
+            if (!storeDB.token && !storeDB.accessToken) {
+              console.warn(`[FIREBASE] ⚠️ Shop ${shop} found in Firebase but accessToken field is missing`);
+              console.warn(`[FIREBASE] Firebase document keys:`, Object.keys(storeDB));
+            } else {
+              const tokenField = storeDB.token || storeDB.accessToken;
+              console.log(`[FIREBASE] ✅ Shop ${shop} found in Firebase with token (length=${tokenField ? tokenField.length : 0})`);
+            }
+          }
         } catch (error) {
           console.error(`[SHOP GUARD] Error fetching shop data from Firebase:`, error);
           storeDB = null;
         }
         
-        // ✅ CRITICAL: Trust Firebase Token for Initial Load
+        // ✅ CRITICAL: Loosen Document Guard - If document request AND shop found in Firebase, allow HTML to load
+        // Even if token is missing, let App Bridge initialize and handle authentication
+        if (isDocumentRequest && storeDB) {
+          console.log(`[SHOP GUARD] ✅ Document request with shop found in Firebase - allowing HTML to load`);
+          console.log(`[SHOP GUARD] App Bridge will initialize and handle authentication via window.shopify.idToken()`);
+          
+          // Use token if available, but don't require it for document requests
+          if (storeDB.token || storeDB.accessToken) {
+            tokenToUse = storeDB.token || storeDB.accessToken;
+            ctx.state.shopify = { accessToken: tokenToUse, shop: shop };
+            console.log(`[SHOP GUARD] Token available in Firebase, setting in state`);
+          } else {
+            // No token, but still allow HTML to load - App Bridge will handle auth
+            ctx.state.shopify = { shop: shop };
+            console.log(`[SHOP GUARD] No token in Firebase, but allowing HTML load for App Bridge initialization`);
+          }
+          
+          await handleRequest(ctx);
+          return;
+        }
+        
+        // ✅ CRITICAL: Trust Firebase Token for Initial Load (legacy check for token)
         // If this is a document request AND Firebase has a token, allow it to load
-        if (isDocumentRequest && storeDB && storeDB.token) {
+        if (isDocumentRequest && storeDB && (storeDB.token || storeDB.accessToken)) {
           console.log(`[SHOP GUARD] ✅ Document request with Firebase token found - allowing HTML to load`);
           console.log(`[SHOP GUARD] App Bridge will initialize and handle API calls with Bearer token`);
-          tokenToUse = storeDB.token;
+          tokenToUse = storeDB.token || storeDB.accessToken;
           // Create a session-like object for state
-          ctx.state.shopify = { accessToken: storeDB.token, shop: shop };
+          ctx.state.shopify = { accessToken: tokenToUse, shop: shop };
           await handleRequest(ctx);
           return;
         }
         
         // If Firebase has token, use it (for API requests or charge checking)
-        if (storeDB && storeDB.token && !tokenToUse) {
-          tokenToUse = storeDB.token;
+        if (storeDB && (storeDB.token || storeDB.accessToken) && !tokenToUse) {
+          tokenToUse = storeDB.token || storeDB.accessToken;
           console.log(`[SHOP GUARD] Using token from Firebase for ${shop}`);
         }
         
