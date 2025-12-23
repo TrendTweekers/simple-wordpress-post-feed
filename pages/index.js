@@ -131,6 +131,20 @@ const Index = ({ shopOrigin: shop }) => {
   
   // ✅ CRITICAL: Wait for window.shopify to be available before making any requests
   useEffect(() => {
+    // ✅ CRITICAL: Client-Side Verification - Check for host parameter
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hostParam = urlParams.get('host');
+      console.log('[Index] Checking for host parameter:', hostParam);
+      if (!hostParam) {
+        console.error('[Index] ❌ CRITICAL: Host parameter is null - this is the reason for the loop!');
+        console.error('[Index] Current URL:', window.location.href);
+        console.error('[Index] Query params:', window.location.search);
+      } else {
+        console.log('[Index] ✅ Host parameter found:', hostParam);
+      }
+    }
+    
     const checkShopify = async () => {
       const isReady = await waitForShopify(5000);
       setShopifyReady(isReady);

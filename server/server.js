@@ -327,16 +327,30 @@ app
           // ✅ IDEMPOTENT BILLING GUARD: Check Shopify first before creating subscription
           const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
           
+          // ✅ CRITICAL: Ensure host is defined before redirect
+          // Host comes from query params during OAuth callback
+          const finalHost = host || ctx.query.host || '';
+          if (!finalHost) {
+            console.warn(`[AFTER AUTH] ⚠️ Host parameter missing in callback - attempting to generate from shop`);
+            // Try to generate host from shop if missing
+            try {
+              const generatedHost = btoa(`${shop}/admin`);
+              console.log(`[AFTER AUTH] Generated host from shop: ${generatedHost}`);
+            } catch (e) {
+              console.error(`[AFTER AUTH] Failed to generate host:`, e);
+            }
+          }
+          
           if (hasActiveSubscription) {
             console.log(`[BILLING GUARD] Active subscription exists for ${shop} after OAuth - skipping charge creation`);
-            // ✅ CRITICAL: Redirect with host and shop parameters to preserve App Bridge state
-            console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${host}`);
-            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host || '')}`);
+            // ✅ CRITICAL: Fix final redirect - ensure host is defined and encoded
+            console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${finalHost}`);
+            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
             return;
           }
           
           console.log(`[BILLING GUARD] No active subscription found for ${shop} after OAuth - creating charge`);
-          const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${host}&shop=${shop}`;
+          const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${finalHost}&shop=${shop}`;
           
           // Get subscription URL (billing confirmation) if needed
           let confirmationUrl = null;
@@ -352,9 +366,9 @@ app
           if (confirmationUrl) {
             ctx.redirect(confirmationUrl);
           } else {
-            // ✅ CRITICAL: Redirect with host and shop parameters to preserve App Bridge state
-            console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${host}`);
-            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host || '')}`);
+            // ✅ CRITICAL: Fix final redirect - ensure host is defined and encoded
+            console.log(`[AFTER AUTH] Redirecting to app with shop=${shop}&host=${finalHost}`);
+            ctx.redirect(`/?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
           }
         },
       });
@@ -658,6 +672,12 @@ app
     });
 
     router.get("/", async (ctx) => {
+      // ✅ CRITICAL: Bypass Guard for Callback - let callback handler process it
+      if (ctx.path === "/install/auth/callback" || ctx.path === "/install/auth/callback/") {
+        console.log(`[SHOP GUARD] Bypassing guard for callback path: ${ctx.path}`);
+        return next();
+      }
+      
       const shop = ctx.query.shop;
       const host = ctx.query.host;
       
