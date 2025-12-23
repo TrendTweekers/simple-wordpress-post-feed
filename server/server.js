@@ -206,32 +206,6 @@ app
           console.log(`[AFTER AUTH] ✅ All required scopes granted for ${shop}`);
           console.log(`[AFTER AUTH] Granted scopes:`, session?.scope || 'unknown');
           
-          // ✅ CRITICAL: Save accessToken to Firebase after OAuth completes
-          // This ensures the token is available for SHOP GUARD checks on subsequent requests
-          try {
-            console.log(`[AFTER AUTH] Saving accessToken to Firebase for ${shop}...`);
-            await writeFs(APP, shop, { 
-              token: accessToken,
-              accessToken: accessToken, // Save to both fields for compatibility
-              shop: shop,
-              updatedAt: new Date().toISOString()
-            });
-            console.log(`[AFTER AUTH] ✅ Successfully saved accessToken to Firebase for ${shop}`);
-            
-            // Verify the token was saved
-            const verifyStoreDB = await getFs(APP, shop);
-            if (verifyStoreDB && (verifyStoreDB.token || verifyStoreDB.accessToken)) {
-              const savedToken = verifyStoreDB.token || verifyStoreDB.accessToken;
-              console.log(`[AFTER AUTH] ✅ Verified token saved to Firebase (length=${savedToken ? savedToken.length : 0})`);
-            } else {
-              console.warn(`[AFTER AUTH] ⚠️ Token save verification failed - token not found in Firebase`);
-            }
-          } catch (firebaseError) {
-            console.error(`[AFTER AUTH] ❌ CRITICAL: Failed to save accessToken to Firebase for ${shop}:`, firebaseError);
-            console.error(`[AFTER AUTH] This will cause SHOP GUARD to trigger OAuth again on next request`);
-            // Don't return here - continue with auth flow even if Firebase save fails
-          }
-          
           // ✅ CRITICAL: Log session ID format to verify consistency with SHOP GUARD
           const sessionId = session?.id || session?.sessionId || 'unknown';
           console.log(`[AFTER AUTH] Session ID format: ${sessionId}`);
@@ -242,6 +216,50 @@ app
           const { shopifyApi } = require("./lib/shopify/shopify");
           const expectedOfflineId = getOfflineIdSafe(shop, shopifyApi);
           console.log(`[AFTER AUTH] Expected offline ID format: ${expectedOfflineId}`);
+          
+          // ✅ CRITICAL: Save accessToken to Firebase using unified session ID format
+          // Use offline_{shop} as the document ID to match SHOP GUARD lookup
+          try {
+            console.log(`[AFTER AUTH] [SESSION] Accessing Firebase document ID: ${expectedOfflineId}`);
+            console.log(`[AFTER AUTH] Saving accessToken to Firebase for ${shop}...`);
+            
+            // ✅ CRITICAL: Save to Firebase using offline_{shop} format (matches SHOP GUARD lookup)
+            await writeFs(APP, expectedOfflineId, { 
+              token: accessToken,
+              accessToken: accessToken, // Save to both fields for compatibility
+              shop: shop,
+              updatedAt: new Date().toISOString()
+            });
+            console.log(`[AFTER AUTH] ✅ Successfully saved accessToken to Firebase document: ${expectedOfflineId}`);
+            
+            // ✅ CRITICAL: Verify the token was saved using the same document ID format
+            const verifyStoreDB = await getFs(APP, expectedOfflineId);
+            if (verifyStoreDB && (verifyStoreDB.token || verifyStoreDB.accessToken)) {
+              const savedToken = verifyStoreDB.token || verifyStoreDB.accessToken;
+              console.log(`[AFTER AUTH] ✅ Verified token saved to Firebase document ${expectedOfflineId} (length=${savedToken ? savedToken.length : 0})`);
+            } else {
+              console.warn(`[AFTER AUTH] ⚠️ Token save verification failed - token not found in Firebase document ${expectedOfflineId}`);
+            }
+            
+            // ✅ CRITICAL: Also save to legacy shop document for backward compatibility
+            // Some code paths might still look for shop name directly
+            try {
+              await writeFs(APP, shop, { 
+                token: accessToken,
+                accessToken: accessToken,
+                shop: shop,
+                updatedAt: new Date().toISOString()
+              });
+              console.log(`[AFTER AUTH] ✅ Also saved token to legacy Firebase document: ${shop}`);
+            } catch (legacyError) {
+              console.warn(`[AFTER AUTH] ⚠️ Failed to save to legacy document ${shop}:`, legacyError.message);
+            }
+          } catch (firebaseError) {
+            console.error(`[AFTER AUTH] ❌ CRITICAL: Failed to save accessToken to Firebase for ${shop}:`, firebaseError);
+            console.error(`[AFTER AUTH] Document ID attempted: ${expectedOfflineId}`);
+            console.error(`[AFTER AUTH] This will cause SHOP GUARD to trigger OAuth again on next request`);
+            // Don't return here - continue with auth flow even if Firebase save fails
+          }
           if (sessionId !== expectedOfflineId && sessionId !== 'unknown') {
             console.warn(`[AFTER AUTH] ⚠️ Session ID mismatch! Saved as: ${sessionId}, SHOP GUARD expects: ${expectedOfflineId}`);
           } else {
@@ -684,19 +702,51 @@ app
         }
         
         // Fallback: Check Firebase for existing shop data
-        let storeDB;
+        // ✅ CRITICAL: Use unified session ID format (offline_{shop}) to match afterAuth save logic
+        let storeDB = null;
+        const { getOfflineIdSafe } = require("./lib/shopify/session");
+        const { shopifyApi } = require("./lib/shopify/shopify");
+        const firebaseDocId = getOfflineIdSafe(shop, shopifyApi);
+        
         try {
-          storeDB = await getFs(APP, shop);
-          console.log(`[SHOP GUARD] Firebase query result for ${shop}:`, storeDB ? 'Found' : 'Not found');
+          console.log(`[SHOP GUARD] [SESSION] Accessing Firebase document ID: ${firebaseDocId}`);
+          storeDB = await getFs(APP, firebaseDocId);
+          console.log(`[SHOP GUARD] Firebase query result for document ${firebaseDocId}:`, storeDB ? 'Found' : 'Not found');
           
           // ✅ CRITICAL: Validate Firebase Data - check if accessToken field exists
           if (storeDB) {
             if (!storeDB.token && !storeDB.accessToken) {
-              console.warn(`[FIREBASE] ⚠️ Shop ${shop} found in Firebase but accessToken field is missing`);
+              console.warn(`[FIREBASE] ⚠️ Document ${firebaseDocId} found in Firebase but accessToken field is missing`);
               console.warn(`[FIREBASE] Firebase document keys:`, Object.keys(storeDB));
             } else {
               const tokenField = storeDB.token || storeDB.accessToken;
-              console.log(`[FIREBASE] ✅ Shop ${shop} found in Firebase with token (length=${tokenField ? tokenField.length : 0})`);
+              console.log(`[FIREBASE] ✅ Document ${firebaseDocId} found in Firebase with token (length=${tokenField ? tokenField.length : 0})`);
+            }
+          } else {
+            // ✅ CRITICAL: Fallback to legacy shop document for backward compatibility
+            console.log(`[SHOP GUARD] Document ${firebaseDocId} not found, checking legacy document: ${shop}`);
+            try {
+              storeDB = await getFs(APP, shop);
+              if (storeDB) {
+                console.log(`[SHOP GUARD] ✅ Found legacy Firebase document for ${shop}`);
+                // Migrate token to new format
+                if (storeDB.token || storeDB.accessToken) {
+                  const tokenToMigrate = storeDB.token || storeDB.accessToken;
+                  try {
+                    await writeFs(APP, firebaseDocId, {
+                      token: tokenToMigrate,
+                      accessToken: tokenToMigrate,
+                      shop: shop,
+                      migratedAt: new Date().toISOString()
+                    });
+                    console.log(`[SHOP GUARD] ✅ Migrated token from legacy document ${shop} to ${firebaseDocId}`);
+                  } catch (migrateError) {
+                    console.warn(`[SHOP GUARD] ⚠️ Failed to migrate token:`, migrateError.message);
+                  }
+                }
+              }
+            } catch (legacyError) {
+              console.log(`[SHOP GUARD] Legacy document ${shop} also not found`);
             }
           }
         } catch (error) {
