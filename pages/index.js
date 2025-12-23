@@ -9,6 +9,7 @@ import SpinnerComponent from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
 import { authenticatedFetch } from "../lib/authenticatedFetch";
+import { getSessionTokenSafe } from "../lib/shopify/sessionTokenClient";
 
 /* ------------------ SAFE REVIEW BANNER ------------------ */
 function ReviewBanner() {
@@ -129,56 +130,19 @@ const Index = ({ shopOrigin: shop }) => {
     support: { newThemeCapable },
   } = data;
   
-  // ✅ CRITICAL: Wait for window.shopify to be available before making any requests
+  // ✅ CRITICAL: Initialize App Bridge token before making any API calls
   useEffect(() => {
-    // ✅ CRITICAL: Client-Side Verification - Check for host parameter
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const hostParam = urlParams.get('host');
-      console.log('[Index] Checking for host parameter:', hostParam);
-      if (!hostParam) {
-        console.error('[Index] ❌ CRITICAL: Host parameter is null - this is the reason for the loop!');
-        console.error('[Index] Current URL:', window.location.href);
-        console.error('[Index] Query params:', window.location.search);
-      } else {
-        console.log('[Index] ✅ Host parameter found:', hostParam);
-      }
-    }
-    
-    // ✅ CRITICAL: Manual Token Retrieval Fallback - Test App Bridge v4 token exchange
-    const testTokenRetrieval = async () => {
-      if (typeof window === 'undefined' || !window.shopify) {
-        console.log('[Index] ⏳ Waiting for window.shopify to be available...');
-        return;
-      }
-      
+    (async () => {
       try {
-        console.log('[Index] Testing App Bridge v4 token retrieval...');
-        const token = await window.shopify.idToken();
-        if (token) {
-          console.log('[Index] SUCCESS: Initial ID Token received:', token.substring(0, 20) + '...');
-          console.log('[Index] Token length:', token.length);
-        } else {
-          console.error('[Index] ERROR: App Bridge idToken() returned null');
-        }
-      } catch (err) {
-        console.error('[Index] ERROR: App Bridge could not get token:', err);
-        console.error('[Index] Error details:', err.message || err);
+        // ✅ CRITICAL: Ensure App Bridge is alive and token works before making requests
+        await getSessionTokenSafe();
+        setShopifyReady(true);
+        console.log('[Index] ✅ App Bridge token initialized successfully');
+      } catch (e) {
+        console.error("[Index] Token init failed:", e);
+        // Don't set ready if token init fails - authenticatedFetch will throw anyway
       }
-    };
-    
-    // ✅ CRITICAL: Test token retrieval to verify App Bridge is ready
-    // authenticatedFetch will handle token retrieval automatically, but we test here for logging
-    if (typeof window !== 'undefined') {
-      testTokenRetrieval().then(() => {
-        setShopifyReady(true);
-        console.log('[Index] ✅ App Bridge ready, authenticatedFetch can be used');
-      }).catch(() => {
-        console.warn('[Index] ⚠️ App Bridge not ready yet, but authenticatedFetch will retry');
-        // Still set ready to allow requests - authenticatedFetch will handle errors
-        setShopifyReady(true);
-      });
-    }
+    })();
   }, []);
 
   const fetchShopData = async () => {
