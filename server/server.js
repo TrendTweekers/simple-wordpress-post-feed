@@ -582,6 +582,13 @@ app
       if (shop && host) {
         console.log(`[SHOP GUARD] Checking access for shop: ${shop}`);
         
+        // ✅ CRITICAL: Check if this is a Document Request (initial HTML load)
+        // Document requests need to load so App Bridge can initialize
+        // We don't require Bearer token for initial HTML - only for API calls
+        const acceptHeader = ctx.get("accept") || ctx.request.headers.accept || '';
+        const isDocumentRequest = acceptHeader.includes("text/html") || 
+                                  (!acceptHeader.includes("application/json") && (ctx.path === '/' || ctx.path === ''));
+        
         // ✅ DEBUG: Log Authorization header to verify Bearer token is being sent
         const authHeader = ctx.get('Authorization') || ctx.request.headers.authorization || ctx.request.header.authorization || '';
         console.log(`[SHOP GUARD] DEBUG: Authorization Header = [${authHeader}]`);
@@ -596,6 +603,7 @@ app
         // This is the source of truth after OAuth completes
         let offlineSession = null;
         let tokenToUse = null;
+        let hasOfflineSession = false;
         
         try {
           const { loadOfflineSession } = require("./lib/shopify/session");
@@ -615,6 +623,7 @@ app
             
             if (offlineSession && offlineSession.accessToken) {
               tokenToUse = offlineSession.accessToken;
+              hasOfflineSession = true;
               console.log(`[SHOP GUARD] ✅ Found offline session for ${shop} (id=${offlineId})`);
             } else {
               console.log(`[SHOP GUARD] Offline session not found or missing token (id=${offlineId})`);
@@ -627,8 +636,48 @@ app
           // Continue to check Firebase/legacy records
         }
         
+        // ✅ CRITICAL: Trust Offline Session for Initial Load
+        // If this is a document request AND we have an offline session, allow it to load
+        // The frontend will then use App Bridge to get idToken for API calls
+        if (isDocumentRequest && hasOfflineSession) {
+          console.log(`[SHOP GUARD] ✅ Document request with offline session found - allowing HTML to load`);
+          console.log(`[SHOP GUARD] App Bridge will initialize and handle API calls with Bearer token`);
+          // Set the session in state so it's available for the request handler
+          ctx.state.shopify = offlineSession;
+          await handleRequest(ctx);
+          return;
+        }
+        
+        // Fallback: Check Firebase for existing shop data
+        let storeDB;
+        try {
+          storeDB = await getFs(APP, shop);
+          console.log(`[SHOP GUARD] Firebase query result for ${shop}:`, storeDB ? 'Found' : 'Not found');
+        } catch (error) {
+          console.error(`[SHOP GUARD] Error fetching shop data from Firebase:`, error);
+          storeDB = null;
+        }
+        
+        // ✅ CRITICAL: Trust Firebase Token for Initial Load
+        // If this is a document request AND Firebase has a token, allow it to load
+        if (isDocumentRequest && storeDB && storeDB.token) {
+          console.log(`[SHOP GUARD] ✅ Document request with Firebase token found - allowing HTML to load`);
+          console.log(`[SHOP GUARD] App Bridge will initialize and handle API calls with Bearer token`);
+          tokenToUse = storeDB.token;
+          // Create a session-like object for state
+          ctx.state.shopify = { accessToken: storeDB.token, shop: shop };
+          await handleRequest(ctx);
+          return;
+        }
+        
+        // If Firebase has token, use it (for API requests or charge checking)
+        if (storeDB && storeDB.token && !tokenToUse) {
+          tokenToUse = storeDB.token;
+          console.log(`[SHOP GUARD] Using token from Firebase for ${shop}`);
+        }
+        
         // If we have offline session, proceed to check charge
-        if (tokenToUse) {
+        if (tokenToUse && !isDocumentRequest) {
           console.log(`[SHOP GUARD] Using offline session token for ${shop}`);
           let activeCharge = false;
           try {
@@ -655,24 +704,8 @@ app
           return;
         }
         
-        // Fallback: Check Firebase for existing shop data
-        let storeDB;
-        try {
-          storeDB = await getFs(APP, shop);
-          console.log(`[SHOP GUARD] Firebase query result for ${shop}:`, storeDB ? 'Found' : 'Not found');
-        } catch (error) {
-          console.error(`[SHOP GUARD] Error fetching shop data from Firebase:`, error);
-          storeDB = null;
-        }
-        
-        // If Firebase has token, use it
-        if (storeDB && storeDB.token && !tokenToUse) {
-          tokenToUse = storeDB.token;
-          console.log(`[SHOP GUARD] Using token from Firebase for ${shop}`);
-        }
-        
-        // If we have a token from any source, check charge
-        if (tokenToUse) {
+        // If we have a token from any source, check charge (only for non-document requests)
+        if (tokenToUse && !isDocumentRequest) {
           try {
             const { checkAppSubscription, checkCharge } = require("./lib/shopify/functions");
             let activeCharge = await checkAppSubscription(shop, tokenToUse);
@@ -686,40 +719,21 @@ app
             }
           } catch (err) {
             if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-              // ✅ CRITICAL: Strictly check for Accept: application/json header
-              // Browser page loads will NOT have this header, so they MUST return HTML/redirect
-              const acceptHeader = ctx.get("accept") || ctx.request.headers.accept || '';
-              const isApiRequest = acceptHeader.includes("application/json");
-              
-              // Root path is NEVER an API request (it's always a document request)
-              const isRootPath = ctx.path === '/' || ctx.path === '';
-              const isTrueApiRequest = !isRootPath && isApiRequest;
-              
-              if (isTrueApiRequest) {
-                // This is a true API request (not the initial document load)
-                console.log(`[SHOP GUARD] Auth error checking charge for API request (Accept: application/json), returning 401`);
-                const { ensureHost } = require("./lib/shopify/host");
-                const finalHost = ensureHost(shop, host);
-                ctx.status = 401;
-                ctx.set('X-Shopify-API-Request-Failure-Reauthorize', '1');
-                ctx.set('X-Shopify-API-Request-Failure-Reauthorize-Url', `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
-                ctx.body = {
-                  ok: false,
-                  reauth: true,
-                  code: "SHOPIFY_AUTH_REQUIRED",
-                  shop: shop || null,
-                  message: "Shopify authentication required",
-                  reauthUrl: `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`
-                };
-                return;
-              }
-              
-              // For document requests (including root path), redirect to auth
-              console.log(`[SHOP GUARD] Auth error checking charge, redirecting to auth (document request)`);
+              // ✅ CRITICAL: This is an API request error - return 401 JSON
+              console.log(`[SHOP GUARD] Auth error checking charge for API request, returning 401`);
               const { ensureHost } = require("./lib/shopify/host");
               const finalHost = ensureHost(shop, host);
-              const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
-              ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
+              ctx.status = 401;
+              ctx.set('X-Shopify-API-Request-Failure-Reauthorize', '1');
+              ctx.set('X-Shopify-API-Request-Failure-Reauthorize-Url', `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`);
+              ctx.body = {
+                ok: false,
+                reauth: true,
+                code: "SHOPIFY_AUTH_REQUIRED",
+                shop: shop || null,
+                message: "Shopify authentication required",
+                reauthUrl: `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`
+              };
               return;
             }
           }
