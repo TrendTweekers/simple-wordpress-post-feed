@@ -38,34 +38,35 @@ const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL, SCOPES: ENV_SC
 
 // ✅ FIX: Ensure SCOPES is always an array with ALL 4 required scopes
 // Priority: config.js > process.env.SCOPES > hardcoded fallback
+// ✅ SIMPLIFIED: Only request write permissions (write includes read automatically)
 let scopesArray;
-if (Array.isArray(ENV_SCOPES) && ENV_SCOPES.length === 4) {
-  // Use scopes from config.js (already an array) - MUST have all 4 scopes
+if (Array.isArray(ENV_SCOPES) && ENV_SCOPES.length === 2) {
+  // Use scopes from config.js (already an array) - MUST have 2 scopes
   scopesArray = ENV_SCOPES;
   console.log("[SHOPIFY INIT] Using scopes from config.js:", scopesArray);
 } else if (process.env.SCOPES) {
   // Fallback to process.env.SCOPES if config doesn't have it
   scopesArray = process.env.SCOPES.split(",").map(s => s.trim());
   console.log("[SHOPIFY INIT] Using scopes from process.env.SCOPES:", scopesArray);
-  // ✅ VALIDATE: Ensure all 4 scopes are present
-  const requiredScopes = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  // ✅ VALIDATE: Ensure both write scopes are present
+  const requiredScopes = ["write_themes", "write_script_tags"];
   const missingScopes = requiredScopes.filter(s => !scopesArray.includes(s));
   if (missingScopes.length > 0) {
     console.warn("[SHOPIFY INIT] ⚠️ Missing scopes in process.env.SCOPES:", missingScopes);
-    console.warn("[SHOPIFY INIT] Using fallback with all 4 scopes");
+    console.warn("[SHOPIFY INIT] Using fallback with both write scopes");
     scopesArray = requiredScopes;
   }
 } else {
-  // Final fallback - ALWAYS use all 4 scopes
-  scopesArray = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  // Final fallback - ALWAYS use both write scopes
+  scopesArray = ["write_themes", "write_script_tags"];
   console.log("[SHOPIFY INIT] Using hardcoded fallback scopes:", scopesArray);
 }
 
-// ✅ CRITICAL: Validate we have exactly 4 scopes
-if (scopesArray.length !== 4) {
-  console.error("[SHOPIFY INIT] ❌ ERROR: Expected 4 scopes, got", scopesArray.length, scopesArray);
+// ✅ CRITICAL: Validate we have exactly 2 scopes
+if (scopesArray.length !== 2) {
+  console.error("[SHOPIFY INIT] ❌ ERROR: Expected 2 scopes, got", scopesArray.length, scopesArray);
   // Force correct scopes
-  scopesArray = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  scopesArray = ["write_themes", "write_script_tags"];
   console.log("[SHOPIFY INIT] ✅ Forced correct scopes:", scopesArray);
 }
 
