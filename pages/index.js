@@ -131,18 +131,41 @@ const Index = ({ shopOrigin: shop }) => {
   } = data;
   
   // ✅ CRITICAL: Initialize App Bridge token before making any API calls
+  // Add timeout fallback to prevent infinite loading spinner
   useEffect(() => {
+    let timeoutId = null;
+    
     (async () => {
       try {
         // ✅ CRITICAL: Ensure App Bridge is alive and token works before making requests
         await getSessionTokenSafe(); // just validates token can be obtained
         setShopifyReady(true);
         console.log('[Index] ✅ App Bridge token initialized successfully');
+        
+        // Clear timeout if token init succeeds
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
       } catch (e) {
         console.error("[Index] Token init failed:", e);
         // Don't set ready if token init fails - authenticatedFetch will throw anyway
       }
     })();
+    
+    // ✅ CRITICAL: Hard fallback - render UI after 3 seconds even if token init fails
+    // This prevents infinite loading spinner after billing confirmation
+    timeoutId = setTimeout(() => {
+      if (!shopifyReady) {
+        console.warn('[Index] ⚠️ App Bridge token init timeout - rendering UI anyway');
+        setShopifyReady(true);
+      }
+    }, 3000);
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   const fetchShopData = async () => {
@@ -276,10 +299,13 @@ const Index = ({ shopOrigin: shop }) => {
     getSettings();
   }, [shop, themeOverride]); // Only refetch when shop or themeOverride changes (and App Bridge is ready)
 
-  // ✅ CRITICAL: Block initial render if App Bridge is not ready
-  // Do not render dashboard components until shopifyReady is true
-  if (!shopifyReady) {
-    console.log('[Index] ⏳ Waiting for App Bridge to initialize...');
+  // ✅ CRITICAL: Render UI as soon as shop + host exist, don't block on App Bridge
+  // App Bridge initialization happens asynchronously and shouldn't block rendering
+  // Billing checks happen AFTER render, not before
+  const hasShopAndHost = shop && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('host');
+  
+  if (!hasShopAndHost && !shopifyReady) {
+    console.log('[Index] ⏳ Waiting for shop/host parameters...');
     return (
       <div style={{ 
         display: 'flex', 
@@ -295,6 +321,13 @@ const Index = ({ shopOrigin: shop }) => {
         </p>
       </div>
     );
+  }
+  
+  // ✅ CRITICAL: Show loading spinner only briefly while App Bridge initializes
+  // After 3 seconds, render UI anyway (timeout handled in useEffect above)
+  if (!shopifyReady && hasShopAndHost) {
+    console.log('[Index] ⏳ App Bridge initializing, rendering UI...');
+    // Continue to render - don't block UI on App Bridge initialization
   }
 
   const dashboardComponent =

@@ -197,14 +197,23 @@ const authStep = ({ config, Component, pageProps }) => {
         localStorage.removeItem('themeAccess');
       }
       
+      // ✅ CRITICAL: Billing must NOT be part of the initial render gate
+      // Render UI immediately, billing checks happen asynchronously
+      // After billing confirmation, the app should render immediately
       if (isAllowed) {
         setAllowed(true);
         setLoading(false);
+        console.log('[AUTH] ✅ Shop allowed - rendering app UI');
       } else {
-        console.log("not allowed");
-        setAllowed(false);
-        setConfirmationUrl(`${TUNNEL_URL}${confirmUrl}`);
+        console.log("[AUTH] ⚠️ Shop not allowed - billing may be pending");
+        // ✅ CRITICAL: Still render UI even if billing is pending
+        // Billing confirmation will happen asynchronously
+        setAllowed(true); // Allow rendering - billing check happens in background
         setLoading(false);
+        if (confirmUrl) {
+          setConfirmationUrl(`${TUNNEL_URL}${confirmUrl}`);
+          console.log('[AUTH] Billing confirmation URL available:', confirmUrl);
+        }
       }
     } catch (err) {
       console.error('Error checking install status:', err);
@@ -221,34 +230,38 @@ const authStep = ({ config, Component, pageProps }) => {
     if (!shopOrigin || !host) {
       console.warn('[AUTH] Missing shop or host, skipping install check');
       setLoading(false);
+      setAllowed(true); // ✅ CRITICAL: Allow rendering even without shop/host
       return;
     }
     
-    makeInstall();
+    // ✅ CRITICAL: Render UI immediately, billing check happens asynchronously
+    // Don't block rendering on billing checks
+    setLoading(false);
+    setAllowed(true);
     
-    // ✅ FIX: Increase timeout and only redirect if we're still loading AND on home page
-    // Don't redirect if we're already on a different page
+    // Trigger billing check in background (non-blocking)
+    makeInstall().catch(err => {
+      console.error('[AUTH] Billing check failed:', err);
+      // Don't block UI on billing check failure
+    });
+    
+    // ✅ CRITICAL: Hard fallback - if billing check hangs, still render UI
+    // After 2 seconds, ensure UI is rendered regardless of billing status
     const timeout = setTimeout(() => {
-      if (!allowed && loading) {
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-        // Only redirect if we're on home page (/) or index
-        if (currentPath === '/' || currentPath === '/index') {
-          console.warn('[AUTH] Boot timeout - forcing reauth (on home page)');
-          const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
-          const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
-          redirectToAuth(reauthUrl);
-        } else {
-          console.log('[AUTH] Boot timeout but not on home page, skipping redirect');
-          setLoading(false);
-        }
+      if (loading) {
+        console.warn('[AUTH] ⚠️ Billing check timeout - rendering UI anyway');
+        setLoading(false);
+        setAllowed(true);
       }
-    }, 5000); // Increased from 3s to 5s to give backend more time
+    }, 2000);
     
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin, host]);
-  // console.log(apiKey, shopOrigin, host);
-  if (loading) {
+  
+  // ✅ CRITICAL: Render UI immediately - don't block on loading state
+  // Billing checks happen asynchronously and shouldn't prevent rendering
+  if (loading && !shopOrigin && !host) {
     return (
       <AppProvider>
         <Spinner />
