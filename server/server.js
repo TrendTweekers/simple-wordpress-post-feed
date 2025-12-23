@@ -187,6 +187,12 @@ app
           // ✅ SCOPE VERIFICATION: Verify all required scopes were granted
           const { verifySessionScopes, forceDeleteSession } = require("./lib/oauth-helpers");
           const session = ctx.state.shopify.session || ctx.state.shopify;
+          
+          // ✅ CRITICAL: Log session object to verify scope property exists
+          console.log(`[AFTER AUTH] Session object keys:`, Object.keys(session || {}));
+          console.log(`[AFTER AUTH] Session scope property:`, session?.scope || 'MISSING');
+          console.log(`[AFTER AUTH] Session scope type:`, typeof session?.scope);
+          
           const scopeVerification = verifySessionScopes(session);
           
           if (!scopeVerification.valid) {
@@ -210,6 +216,13 @@ app
 
           console.log(`[AFTER AUTH] ✅ All required scopes granted for ${shop}`);
           console.log(`[AFTER AUTH] Granted scopes:`, session?.scope || 'unknown');
+          
+          // ✅ CRITICAL: Ensure session object has scope before storing
+          if (!session.scope) {
+            console.error(`[AFTER AUTH] ❌ CRITICAL: Session object missing scope property before storing!`);
+            console.error(`[AFTER AUTH] Session object:`, JSON.stringify(session, null, 2));
+            console.error(`[AFTER AUTH] This will cause AUTH-GUARD to fail with granted: []`);
+          }
           
           // ✅ CRITICAL: Log session ID format to verify consistency with SHOP GUARD
           const sessionId = session?.id || session?.sessionId || 'unknown';
