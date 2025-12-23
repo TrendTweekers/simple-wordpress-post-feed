@@ -672,10 +672,14 @@ app
     });
 
     router.get("/", async (ctx) => {
-      // ✅ CRITICAL: Bypass Guard for Callback - let callback handler process it
+      // ✅ CRITICAL: Bypass Guard for Callback - callback is handled by AUTH-GUARD middleware
+      // The callback path is already intercepted by AUTH-GUARD before reaching this route
+      // This check is defensive - callback should never reach here, but if it does, bypass guard
       if (ctx.path === "/install/auth/callback" || ctx.path === "/install/auth/callback/") {
-        console.log(`[SHOP GUARD] Bypassing guard for callback path: ${ctx.path}`);
-        return next();
+        console.log(`[SHOP GUARD] ⚠️ Callback path reached SHOP GUARD - this should not happen!`);
+        console.log(`[SHOP GUARD] Bypassing guard and letting AUTH-GUARD handle it`);
+        // Don't process - let AUTH-GUARD middleware handle it
+        return;
       }
       
       const shop = ctx.query.shop;
