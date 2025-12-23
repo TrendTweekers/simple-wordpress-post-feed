@@ -1,13 +1,13 @@
 import React, { useContext, useState, useEffect } from "react";
 import { Store } from "../store/store";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { authenticatedFetch as appBridgeAuthenticatedFetch } from "@shopify/app-bridge-utils";
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
 import Spinner from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
+import { manualTokenFetch, waitForShopify } from "../lib/manualTokenFetch";
 
 /* ------------------ SAFE REVIEW BANNER ------------------ */
 function ReviewBanner() {
@@ -123,77 +123,82 @@ const Index = ({ shopOrigin: shop }) => {
   const { data, dispatch } = useContext(Store);
   const [themeOverride, setThemeOverride] = useState(false);
   const [page, setPage] = useState("main");
+  const [shopifyReady, setShopifyReady] = useState(false);
   const {
     support: { newThemeCapable },
   } = data;
   
-  // ✅ CRITICAL: Get App Bridge instance and use authenticatedFetch from app-bridge-utils
-  // This automatically adds the session token (Bearer token) to all requests
-  const app = useAppBridge();
-  
-  // Create authenticated fetch function that includes App Bridge session token
-  const authenticatedFetch = app ? appBridgeAuthenticatedFetch(app) : null;
+  // ✅ CRITICAL: Wait for window.shopify to be available before making any requests
+  useEffect(() => {
+    const checkShopify = async () => {
+      const isReady = await waitForShopify(5000);
+      setShopifyReady(isReady);
+      if (isReady) {
+        console.log('[Index] ✅ window.shopify.idToken() is ready');
+      } else {
+        console.error('[Index] ❌ window.shopify.idToken() not available after 5 seconds');
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      checkShopify();
+    }
+  }, []);
 
   const fetchShopData = async () => {
-    if (!authenticatedFetch) {
-      console.error('[Index] App Bridge not available, cannot fetch shop data');
+    if (!shopifyReady) {
+      console.error('[Index] Shopify not ready, cannot fetch shop data');
       return null;
     }
     
     try {
-      const response = await authenticatedFetch(`/api/data`, {
+      const response = await manualTokenFetch(`/api/data`, {
         method: 'GET',
       });
       
-      // authenticatedFetch from app-bridge-utils returns null if redirect was triggered
       if (!response) {
-        console.log('[Index] Redirect triggered by authenticatedFetch');
+        console.log('[Index] Request failed or redirect triggered');
         return null;
       }
       
-      // Check for X-Shopify-API-Request-Failure-Reauthorize header
-      if (response.headers?.get("X-Shopify-API-Request-Failure-Reauthorize") === "1") {
-        console.log('[Index] Reauth required (detected via header)');
-        return null; // App Bridge will handle redirect automatically
+      if (!response.ok) {
+        console.error(`[Index] API error: ${response.status} ${response.statusText}`);
+        return null;
       }
       
       const data = await response.json();
       return data;
     } catch (err) {
       console.error('[Index] Error fetching shop data:', err);
-      // Don't trigger page reload - let App Bridge handle it
       return null;
     }
   };
   
   const getMetaData = async () => {
-    if (!authenticatedFetch) {
-      console.error('[Index] App Bridge not available, cannot fetch metadata');
+    if (!shopifyReady) {
+      console.error('[Index] Shopify not ready, cannot fetch metadata');
       return null;
     }
     
     try {
-      const response = await authenticatedFetch(`/api/meta`, {
+      const response = await manualTokenFetch(`/api/meta`, {
         method: 'GET',
       });
       
-      // authenticatedFetch from app-bridge-utils returns null if redirect was triggered
       if (!response) {
-        console.log('[Index] Redirect triggered by authenticatedFetch');
+        console.log('[Index] Request failed or redirect triggered');
         return null;
       }
       
-      // Check for X-Shopify-API-Request-Failure-Reauthorize header
-      if (response.headers?.get("X-Shopify-API-Request-Failure-Reauthorize") === "1") {
-        console.log('[Index] Reauth required (detected via header)');
-        return null; // App Bridge will handle redirect automatically
+      if (!response.ok) {
+        console.error(`[Index] API error: ${response.status} ${response.statusText}`);
+        return null;
       }
       
       const data = await response.json();
       return data;
     } catch (err) {
       console.error('[Index] Error fetching metadata:', err);
-      // Don't trigger page reload - let App Bridge handle it
       return null;
     }
   };
@@ -201,24 +206,32 @@ const Index = ({ shopOrigin: shop }) => {
   const getSettings = async () => {
     dispatch({ type: types.LOADING, payload: true });
     
-    if (!authenticatedFetch) {
-      console.error('[Index] App Bridge not available, cannot fetch settings');
-      dispatch({ type: types.LOADING, payload: false });
-      return;
+    // ✅ CRITICAL: Wait for Shopify to be ready before making requests
+    if (!shopifyReady) {
+      console.log('[Index] Waiting for Shopify to be ready...');
+      const isReady = await waitForShopify(5000);
+      if (!isReady) {
+        console.error('[Index] Shopify not ready after waiting, cannot fetch settings');
+        dispatch({ type: types.LOADING, payload: false });
+        return;
+      }
+      setShopifyReady(true);
     }
     
     try {
       const metaData = await getMetaData();
       if (!metaData) {
-        // Redirect was triggered by App Bridge - don't do anything, App Bridge handles it
-        console.log('[Index] Metadata fetch triggered redirect');
+        // Request failed or redirect triggered
+        console.log('[Index] Metadata fetch failed or redirect triggered');
+        dispatch({ type: types.LOADING, payload: false });
         return;
       }
       
       const shopData = await fetchShopData();
       if (!shopData) {
-        // Redirect was triggered by App Bridge - don't do anything, App Bridge handles it
-        console.log('[Index] Shop data fetch triggered redirect');
+        // Request failed or redirect triggered
+        console.log('[Index] Shop data fetch failed or redirect triggered');
+        dispatch({ type: types.LOADING, payload: false });
         return;
       }
 
@@ -227,9 +240,6 @@ const Index = ({ shopOrigin: shop }) => {
       dispatch({ type: types.LOADING, payload: false });
     } catch (err) {
       console.error('[Index] Error fetching settings:', err);
-      // ✅ CRITICAL: Don't trigger page reload on errors
-      // App Bridge will handle reauth automatically via headers
-      // If we do window.location.href, it causes redirect loops
       dispatch({ type: types.LOADING, payload: false });
     }
   };

@@ -71,8 +71,11 @@ const authStep = ({ config, Component, pageProps }) => {
   // Only create redirect if app is available
   const redirect = app ? Redirect.create(app) : null;
 
-  // Use authenticated fetch from App Bridge (no cookies needed)
-  const authenticatedFetch = userLoggedInFetch(app);
+  // ✅ CRITICAL: Use manual token fetch since automatic App Bridge interceptor is failing
+  const { manualTokenFetch, waitForShopify } = require("../lib/manualTokenFetch");
+  
+  // Also keep userLoggedInFetch as fallback
+  const authenticatedFetch = app ? userLoggedInFetch(app) : null;
 
   /**
    * Build absolute URL with host parameter preserved
@@ -129,12 +132,20 @@ const authStep = ({ config, Component, pageProps }) => {
    */
   const makeInstall = async () => {
     try {
-      const url = `/api/install?shop=${encodeURIComponent(shopOrigin)}&host=${encodeURIComponent(host)}`;
-      console.log(`[AUTH] Calling /api/install for ${shopOrigin}`);
+      // ✅ CRITICAL: Wait for window.shopify to be available
+      const isReady = await waitForShopify(3000);
+      if (!isReady) {
+        console.error('[AUTH] window.shopify.idToken() not available, cannot call /api/install');
+        setLoading(false);
+        return;
+      }
       
-      const response = await authenticatedFetch(url, {
+      const url = `/api/install?shop=${encodeURIComponent(shopOrigin)}&host=${encodeURIComponent(host)}`;
+      console.log(`[AUTH] Calling /api/install for ${shopOrigin} with manual token`);
+      
+      // ✅ CRITICAL: Use manual token fetch to inject Bearer token
+      const response = await manualTokenFetch(url, {
         method: 'GET',
-        credentials: 'include',
       });
       
       if (!response) {

@@ -22,7 +22,7 @@ import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
 import ShowExcerpt from "./ShowExcerpt";
 import LastPost from "./LastPost";
-import { authenticatedFetch } from "../../lib/authenticatedFetch";
+import { manualTokenFetch, waitForShopify } from "../../lib/manualTokenFetch";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -50,11 +50,24 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   }, [banner, reviewBanner]);
   const handleSubmit = async () => {
     try {
-      const responseData = await authenticatedFetch(`/api/data`, {
-        method: 'POST',
-        data: { settings }
-      }, app);
+      // ✅ CRITICAL: Wait for Shopify and use manual token fetch
+      const isReady = await waitForShopify(3000);
+      if (!isReady) {
+        console.error('[NewDashboard] window.shopify.idToken() not available');
+        return;
+      }
       
+      const response = await manualTokenFetch(`/api/data`, {
+        method: 'POST',
+        body: JSON.stringify({ settings }),
+      });
+      
+      if (!response || !response.ok) {
+        console.log("!!! Request failed or redirect triggered !!!");
+        return;
+      }
+      
+      const responseData = await response.json();
       if (responseData) {
         dispatch({
           type: types.FETCH_METADATA,
@@ -63,9 +76,6 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         dispatch({
           type: types.SAVE_DB,
         });
-      } else {
-        // Redirect was triggered
-        console.log("!!! Redirect triggered for reauth !!!");
       }
     } catch (err) {
       console.error("Error uploading settings:", err);
@@ -109,11 +119,24 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
 
   const handleDeleteAllMeta = async () => {
     try {
-      const responseData = await authenticatedFetch(`/api/deletedata`, {
-        method: 'POST',
-        data: { settings }
-      }, app);
+      // ✅ CRITICAL: Wait for Shopify and use manual token fetch
+      const isReady = await waitForShopify(3000);
+      if (!isReady) {
+        console.error('[NewDashboard] window.shopify.idToken() not available');
+        return;
+      }
       
+      const response = await manualTokenFetch(`/api/deletedata`, {
+        method: 'POST',
+        body: JSON.stringify({ settings }),
+      });
+      
+      if (!response || !response.ok) {
+        console.log("!!! Request failed or redirect triggered !!!");
+        return;
+      }
+      
+      const responseData = await response.json();
       if (responseData) {
         dispatch({
           type: types.RESET_DATA,
