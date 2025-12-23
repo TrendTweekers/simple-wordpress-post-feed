@@ -132,6 +132,9 @@ app
     console.log(`===========================\n`);
     
     const server = new Koa();
+    // ✅ CRITICAL: Trust Railway proxy for secure cookies (required for SameSite=None cookies)
+    server.proxy = true;
+    
     const router = new Router();
     
     // Global error handler to suppress EPIPE errors (common in web servers)
@@ -143,8 +146,6 @@ app
       // Log other errors normally
       console.error('Server error:', err);
     });
-    
-    server.proxy = true;
     
     console.log("✅ _next middleware mounted in", __filename);
     console.log("✅ Custom Koa server starting - auth routes will be handled by Koa, not Next.js");
@@ -532,78 +533,119 @@ app
       
       // Check if this is an embedded app request (has shop and host)
       if (shop && host) {
-        console.log(`Shop from query main page! ${shop}`);
+        console.log(`[SHOP GUARD] Checking access for shop: ${shop}`);
         
-        // First, check if there's a valid Shopify session (user is authenticated)
+        // ✅ CRITICAL: First check offline session directly (same storage as Auth routes)
+        // This is the source of truth after OAuth completes
+        let offlineSession = null;
+        let tokenToUse = null;
+        
+        try {
+          const { loadOfflineSession } = require("./lib/shopify/session");
+          const { shopifyApi } = require("./lib/shopify/shopify");
+          const { getOfflineIdSafe } = require("./lib/shopify/session");
+          const { getSessionStorageSafe } = require("./lib/shopify/shopify");
+          
+          // Use same sessionStorage instance as Auth routes
+          const storage = getSessionStorageSafe(shopifyApi);
+          if (storage) {
+            // Construct offline ID using same method as Auth routes
+            const offlineId = getOfflineIdSafe(shop, shopifyApi);
+            console.log(`[SHOP GUARD] Checking offline session with ID: ${offlineId}`);
+            
+            // Try to load session directly from storage
+            offlineSession = await storage.loadSession(offlineId);
+            
+            if (offlineSession && offlineSession.accessToken) {
+              tokenToUse = offlineSession.accessToken;
+              console.log(`[SHOP GUARD] ✅ Found offline session for ${shop} (id=${offlineId})`);
+            } else {
+              console.log(`[SHOP GUARD] Offline session not found or missing token (id=${offlineId})`);
+            }
+          } else {
+            console.log(`[SHOP GUARD] Session storage not available`);
+          }
+        } catch (sessionError) {
+          console.log(`[SHOP GUARD] Error loading offline session:`, sessionError.message || sessionError);
+          // Continue to check Firebase/legacy records
+        }
+        
+        // If we have offline session, proceed to check charge
+        if (tokenToUse) {
+          console.log(`[SHOP GUARD] Using offline session token for ${shop}`);
+          let activeCharge = false;
+          try {
+            const { checkAppSubscription } = require("./lib/shopify/functions");
+            activeCharge = await checkAppSubscription(shop, tokenToUse);
+            if (activeCharge) {
+              console.log(`[SHOP GUARD] Active charge found for ${shop}, rendering app`);
+              await handleRequest(ctx);
+              return;
+            } else {
+              console.log(`[SHOP GUARD] No active charge for ${shop}`);
+            }
+          } catch (chargeError) {
+            console.log(`[SHOP GUARD] Error checking charge:`, chargeError.message || chargeError);
+            // Continue to check other sources
+          }
+        }
+        
+        // Fallback: Check if there's a valid Shopify session (user is authenticated)
         const shopifySession = ctx.state.shopify;
         if (shopifySession && shopifySession.accessToken) {
-          console.log(`Valid Shopify session found for ${shop}, proceeding with app`);
-          // User is authenticated via Shopify session, proceed to render app
+          console.log(`[SHOP GUARD] Valid Shopify session found for ${shop}, proceeding with app`);
           await handleRequest(ctx);
           return;
         }
         
-        // No Shopify session, check Firebase for existing shop data
-        // IMPORTANT: Actually retrieve the data from Firebase first
+        // Fallback: Check Firebase for existing shop data
         let storeDB;
         try {
           storeDB = await getFs(APP, shop);
-          console.log(`Firebase query result for ${shop}:`, storeDB ? 'Found' : 'Not found');
+          console.log(`[SHOP GUARD] Firebase query result for ${shop}:`, storeDB ? 'Found' : 'Not found');
         } catch (error) {
-          console.error(`Error fetching shop data from Firebase for ${shop}:`, error);
+          console.error(`[SHOP GUARD] Error fetching shop data from Firebase:`, error);
           storeDB = null;
         }
         
-        // storeDB is the Firebase doc result
-        if (!storeDB) {
-          console.log(`[SHOP GUARD] No Firebase record for ${shop} -> toplevel auth`);
-          const { ensureHost } = require("./lib/shopify/host");
-          const finalHost = ensureHost(shop, host);
-          const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
-          ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
-          return;
-        }
-
-        // ✅ Legacy installs: record exists but may not match your new schema.
-        // DO NOT force OAuth again.
-        console.log(`[SHOP GUARD] Firebase record exists for ${shop} -> allowing app load (legacy ok)`);
-        
-        // Optional: auto-migrate the legacy record once
-        try {
-          await writeFs(APP, shop, {
-            shop,
-            legacy: true,
-            lastSeenAt: Date.now(),
-            host: host || null,
-            migratedAt: Date.now(),
-          });
-          console.log(`[SHOP GUARD] Migrated legacy record for ${shop}`);
-        } catch (e) {
-          console.log(`[SHOP GUARD] Legacy migrate failed (non-blocking):`, e?.message || e);
+        // If Firebase has token, use it
+        if (storeDB && storeDB.token && !tokenToUse) {
+          tokenToUse = storeDB.token;
+          console.log(`[SHOP GUARD] Using token from Firebase for ${shop}`);
         }
         
-        // Shop exists in Firebase (legacy or new), check if charge is active
-        console.log(`Shop data found for ${shop}, checking charge status`);
-        
-        // ✅ Use checkAppSubscription (GraphQL) as source of truth - works even after re-auth
-        // For legacy records without token, try to load session from session storage
-        let activeCharge = false;
-        let tokenToUse = storeDB.token;
-        
-        // If no token in Firebase, try to load from session storage (for legacy installs)
-        if (!tokenToUse) {
+        // If we have a token from any source, check charge
+        if (tokenToUse) {
           try {
-            const { loadOfflineSession } = require("./lib/shopify/session");
-            const { shopifyApi } = require("./lib/shopify/shopify");
-            const session = await loadOfflineSession(shop, shopifyApi);
-            if (session && session.accessToken) {
-              tokenToUse = session.accessToken;
-              console.log(`[SHOP GUARD] Loaded token from session storage for legacy record ${shop}`);
+            const { checkAppSubscription, checkCharge } = require("./lib/shopify/functions");
+            let activeCharge = await checkAppSubscription(shop, tokenToUse);
+            if (!activeCharge && storeDB?.chargeID) {
+              activeCharge = await checkCharge(shop, tokenToUse, storeDB.chargeID);
             }
-          } catch (sessionError) {
-            console.log(`[SHOP GUARD] Could not load session for legacy record ${shop}, will redirect if charge check fails`);
+            if (activeCharge) {
+              console.log(`[SHOP GUARD] Active charge found for ${shop}, rendering app`);
+              await handleRequest(ctx);
+              return;
+            }
+          } catch (err) {
+            if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
+              console.log(`[SHOP GUARD] Auth error checking charge, redirecting to auth`);
+              const { ensureHost } = require("./lib/shopify/host");
+              const finalHost = ensureHost(shop, host);
+              const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+              ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
+              return;
+            }
           }
         }
+        
+        // No valid session or charge found, redirect to auth
+        console.log(`[SHOP GUARD] No valid session or charge for ${shop}, redirecting to auth`);
+        const { ensureHost } = require("./lib/shopify/host");
+        const finalHost = ensureHost(shop, host);
+        const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
+        ctx.redirect(`/auth/toplevel?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}&redirectTo=${encodeURIComponent(redirectTo)}`);
+        return;
         
         // Only check charge if we have a token
         if (tokenToUse) {
