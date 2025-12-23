@@ -697,6 +697,88 @@ app
       return;
     });
 
+    // ✅ CRITICAL: Billing confirmation callback handler
+    // Handles return from Shopify after recurring charge approval
+    // Verifies charge is ACTIVE and redirects to app root
+    router.get("/billing/confirm", async (ctx) => {
+      const shop = ctx.query.shop;
+      const host = ctx.query.host;
+      
+      console.log(`[BILLING CONFIRM] Billing callback received for shop: ${shop}`);
+      
+      if (!shop) {
+        ctx.status = 400;
+        ctx.body = { error: "Missing shop parameter" };
+        return;
+      }
+      
+      // ✅ CRITICAL: Get access token to verify charge status
+      let accessToken = null;
+      try {
+        const { loadOfflineSession } = require("./lib/shopify/session");
+        const { shopifyApi } = require("./lib/shopify/shopify");
+        const { getOfflineIdSafe } = require("./lib/shopify/session");
+        const { getSessionStorageSafe } = require("./lib/shopify/shopify");
+        
+        const storage = getSessionStorageSafe(shopifyApi);
+        if (storage) {
+          const offlineId = getOfflineIdSafe(shop, shopifyApi);
+          const session = await storage.loadSession(offlineId);
+          if (session && session.accessToken) {
+            accessToken = session.accessToken;
+            console.log(`[BILLING CONFIRM] Found access token for ${shop}`);
+          }
+        }
+      } catch (err) {
+        console.error(`[BILLING CONFIRM] Error loading session:`, err.message || err);
+      }
+      
+      // Fallback: Try Firebase
+      if (!accessToken) {
+        try {
+          const { getOfflineIdSafe } = require("./lib/shopify/session");
+          const { shopifyApi } = require("./lib/shopify/shopify");
+          const firebaseDocId = getOfflineIdSafe(shop, shopifyApi);
+          const storeDB = await getFs(APP, firebaseDocId);
+          if (storeDB && (storeDB.token || storeDB.accessToken)) {
+            accessToken = storeDB.token || storeDB.accessToken;
+            console.log(`[BILLING CONFIRM] Found access token in Firebase for ${shop}`);
+          }
+        } catch (err) {
+          console.error(`[BILLING CONFIRM] Error loading from Firebase:`, err.message || err);
+        }
+      }
+      
+      // ✅ CRITICAL: Verify charge is ACTIVE before redirecting
+      if (accessToken) {
+        try {
+          const { checkAppSubscription } = require("./lib/shopify/functions");
+          const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
+          
+          if (hasActiveSubscription) {
+            console.log(`[BILLING CONFIRM] ✅ Active subscription verified for ${shop}`);
+          } else {
+            console.warn(`[BILLING CONFIRM] ⚠️ No active subscription found for ${shop} - redirecting anyway`);
+          }
+        } catch (err) {
+          console.error(`[BILLING CONFIRM] Error verifying subscription:`, err.message || err);
+          // Continue with redirect even if verification fails
+        }
+      } else {
+        console.warn(`[BILLING CONFIRM] ⚠️ No access token found for ${shop} - cannot verify subscription`);
+      }
+      
+      // ✅ CRITICAL: Explicit redirect to app root with shop and host parameters
+      // Do not render, do not fall through
+      const { ensureHost } = require("./lib/shopify/host");
+      const finalHost = ensureHost(shop, host);
+      const redirectUrl = `/?shop=${encodeURIComponent(shop)}&host=${finalHost}`;
+      
+      console.log(`[BILLING CONFIRM] Redirecting to app root: ${redirectUrl}`);
+      ctx.redirect(redirectUrl);
+      return;
+    });
+
     router.get("/", async (ctx) => {
       // ✅ CRITICAL: Bypass Guard for Callback - callback is handled by AUTH-GUARD middleware
       // The callback path is already intercepted by AUTH-GUARD before reaching this route
@@ -721,6 +803,14 @@ app
         }
         // If Bearer token exists, continue to normal processing (don't return early)
         console.log(`[SHOP GUARD] API request ${ctx.path} has Bearer token, proceeding`);
+      }
+      
+      // ✅ CRITICAL: Allow billing confirmation callback without re-triggering billing
+      if (ctx.path === "/billing/confirm") {
+        console.log(`[SHOP GUARD] Billing confirmation callback - bypassing guard`);
+        // Let the billing/confirm route handler process it
+        await next();
+        return;
       }
       
       const shop = ctx.query.shop;
