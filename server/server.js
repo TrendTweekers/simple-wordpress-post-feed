@@ -381,7 +381,8 @@ app
         },
       });
     
-    // ✅ HARD INTERCEPT: Normalize path and intercept /install/auth routes BEFORE EVERYTHING
+    // ✅ AUTH-GUARD: Normalize path and intercept /install/auth routes BEFORE EVERYTHING
+    // OAuth routes must always redirect (never render)
     // This ensures these routes NEVER reach Next.js, router, or any other middleware
     server.use(async (ctx, next) => {
       // Normalize path by stripping trailing slashes
@@ -419,7 +420,7 @@ app
         
         // Normalize ctx.path for auth middleware
         ctx.path = p;
-        // Return auth middleware with noop next to prevent fallthrough
+        // ✅ CRITICAL: OAuth routes must always redirect (never render) - explicit return
         return shopifyAuthMiddleware(ctx, async () => {});
       }
       
@@ -427,7 +428,7 @@ app
         console.log("[AUTH-GUARD] intercept /install/auth/callback", ctx.method, ctx.path, ctx.querystring);
         // Normalize ctx.path for auth middleware
         ctx.path = p;
-        // Return auth middleware with noop next to prevent fallthrough
+        // ✅ CRITICAL: OAuth routes must always redirect (never render) - explicit return
         return shopifyAuthMiddleware(ctx, async () => {});
       }
       
@@ -790,21 +791,6 @@ app
         return;
       }
       
-      // ✅ CRITICAL: IMPORTANT: do NOT redirect for API calls — return 401 JSON
-      // This prevents redirect loops when frontend makes API calls without Bearer token
-      if (ctx.path.startsWith("/api/")) {
-        const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
-        const hasBearer = auth.toLowerCase().startsWith("bearer ");
-        if (!hasBearer) {
-          console.log(`[SHOP GUARD] API request ${ctx.path} missing Authorization Bearer token, returning 401 JSON`);
-          ctx.status = 401;
-          ctx.body = { error: "missing_session_token" };
-          return;
-        }
-        // If Bearer token exists, continue to normal processing (don't return early)
-        console.log(`[SHOP GUARD] API request ${ctx.path} has Bearer token, proceeding`);
-      }
-      
       // ✅ CRITICAL: Allow billing confirmation callback without re-triggering billing
       if (ctx.path === "/billing/confirm") {
         console.log(`[SHOP GUARD] Billing confirmation callback - bypassing guard`);
@@ -816,232 +802,118 @@ app
       const shop = ctx.query.shop;
       const host = ctx.query.host;
       
-      // Check if this is an embedded app request (has shop and host)
+      // ✅ SHOP GUARD: Check if this is an embedded app request (has shop and host)
       if (shop && host) {
         console.log(`[SHOP GUARD] Checking access for shop: ${shop}`);
         
-        // ✅ CRITICAL: Check if this is a Document Request (initial HTML load)
-        // Document requests need to load so App Bridge can initialize
-        // We don't require Bearer token for initial HTML - only for API calls
+        // ✅ SHOP GUARD: Determine request type
         const acceptHeader = ctx.get("accept") || ctx.request.headers.accept || '';
         const isDocumentRequest = acceptHeader.includes("text/html") || 
                                   (!acceptHeader.includes("application/json") && (ctx.path === '/' || ctx.path === ''));
+        const isApiRequest = ctx.path.startsWith("/api/");
         
-        // ✅ DEBUG: Log Authorization header to verify Bearer token is being sent
-        const authHeader = ctx.get('Authorization') || ctx.request.headers.authorization || ctx.request.header.authorization || '';
-        console.log(`[SHOP GUARD] DEBUG: Authorization Header = [${authHeader}]`);
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-          const bearerToken = authHeader.substring(7);
-          console.log(`[SHOP GUARD] DEBUG: Bearer token found (length=${bearerToken.length}, preview=${bearerToken.substring(0, 20)}...)`);
-        } else {
-          console.log(`[SHOP GUARD] DEBUG: No Bearer token in Authorization header - App Bridge may not be sending session token`);
+        // ✅ SHOP GUARD RULE 1: API requests require valid Bearer token
+        if (isApiRequest) {
+          const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
+          const hasBearer = auth.toLowerCase().startsWith("bearer ");
+          if (!hasBearer) {
+            console.log(`[SHOP GUARD] API request ${ctx.path} missing Authorization Bearer token, returning 401 JSON`);
+            ctx.status = 401;
+            ctx.body = { error: "missing_session_token" };
+            return;
+          }
+          // Bearer token exists - continue to session/charge checks below
+          console.log(`[SHOP GUARD] API request ${ctx.path} has Bearer token, proceeding`);
         }
         
-        // ✅ CRITICAL: First check offline session directly (same storage as Auth routes)
-        // This is the source of truth after OAuth completes
+        // ✅ SHOP GUARD RULE 2: Document/iframe requests - allow rendering if offline session exists
+        // Load offline session (primary source of truth after OAuth)
         let offlineSession = null;
         let tokenToUse = null;
         let hasOfflineSession = false;
         
         try {
-          const { loadOfflineSession } = require("./lib/shopify/session");
           const { shopifyApi } = require("./lib/shopify/shopify");
           const { getOfflineIdSafe } = require("./lib/shopify/session");
           const { getSessionStorageSafe } = require("./lib/shopify/shopify");
           
-          // Use same sessionStorage instance as Auth routes
           const storage = getSessionStorageSafe(shopifyApi);
           if (storage) {
-            // Construct offline ID using same method as Auth routes
             const offlineId = getOfflineIdSafe(shop, shopifyApi);
-            console.log(`[SHOP GUARD] Checking offline session with ID: ${offlineId}`);
-            
-            // Try to load session directly from storage
             offlineSession = await storage.loadSession(offlineId);
             
             if (offlineSession && offlineSession.accessToken) {
               tokenToUse = offlineSession.accessToken;
               hasOfflineSession = true;
               console.log(`[SHOP GUARD] ✅ Found offline session for ${shop} (id=${offlineId})`);
-            } else {
-              console.log(`[SHOP GUARD] Offline session not found or missing token (id=${offlineId})`);
             }
-          } else {
-            console.log(`[SHOP GUARD] Session storage not available`);
           }
         } catch (sessionError) {
           console.log(`[SHOP GUARD] Error loading offline session:`, sessionError.message || sessionError);
-          // Continue to check Firebase/legacy records
         }
         
-        // ✅ CRITICAL: Trust Offline Session for Initial Load
-        // If this is a document request AND we have an offline session, allow it to load
-        // The frontend will then use App Bridge to get idToken for API calls
+        // ✅ SHOP GUARD RULE 2a: Document requests with offline session - allow rendering immediately
         if (isDocumentRequest && hasOfflineSession) {
-          console.log(`[SHOP GUARD] ✅ Document request with offline session found - allowing HTML to load`);
-          console.log(`[SHOP GUARD] App Bridge will initialize and handle API calls with Bearer token`);
-          // Set the session in state so it's available for the request handler
+          console.log(`[SHOP GUARD] ✅ Document request with offline session - allowing HTML to load`);
           ctx.state.shopify = offlineSession;
           await handleRequest(ctx);
           return;
         }
         
-        // Fallback: Check Firebase for existing shop data
-        // ✅ CRITICAL: Use unified session ID format (offline_{shop}) to match afterAuth save logic
+        // ✅ SHOP GUARD: Fallback - check Firebase for shop data (legacy support)
         let storeDB = null;
-        const { getOfflineIdSafe } = require("./lib/shopify/session");
-        const { shopifyApi } = require("./lib/shopify/shopify");
-        const firebaseDocId = getOfflineIdSafe(shop, shopifyApi);
-        
-        try {
-          console.log(`[SHOP GUARD] [SESSION] Accessing Firebase document ID: ${firebaseDocId}`);
-          storeDB = await getFs(APP, firebaseDocId);
-          console.log(`[SHOP GUARD] Firebase query result for document ${firebaseDocId}:`, storeDB ? 'Found' : 'Not found');
-          
-          // ✅ CRITICAL: Validate Firebase Data - check if accessToken field exists
-          if (storeDB) {
-            if (!storeDB.token && !storeDB.accessToken) {
-              console.warn(`[FIREBASE] ⚠️ Document ${firebaseDocId} found in Firebase but accessToken field is missing`);
-              console.warn(`[FIREBASE] Firebase document keys:`, Object.keys(storeDB));
-            } else {
-              const tokenField = storeDB.token || storeDB.accessToken;
-              console.log(`[FIREBASE] ✅ Document ${firebaseDocId} found in Firebase with token (length=${tokenField ? tokenField.length : 0})`);
-            }
-          } else {
-            // ✅ CRITICAL: Fallback to legacy shop document for backward compatibility
-            console.log(`[SHOP GUARD] Document ${firebaseDocId} not found, checking legacy document: ${shop}`);
-            try {
+        if (!hasOfflineSession) {
+          try {
+            const { getOfflineIdSafe } = require("./lib/shopify/session");
+            const { shopifyApi } = require("./lib/shopify/shopify");
+            const firebaseDocId = getOfflineIdSafe(shop, shopifyApi);
+            storeDB = await getFs(APP, firebaseDocId);
+            
+            // Fallback to legacy shop document
+            if (!storeDB) {
               storeDB = await getFs(APP, shop);
-              if (storeDB) {
-                console.log(`[SHOP GUARD] ✅ Found legacy Firebase document for ${shop}`);
-                // Migrate token to new format
-                if (storeDB.token || storeDB.accessToken) {
-                  const tokenToMigrate = storeDB.token || storeDB.accessToken;
-                  try {
-                    await writeFs(APP, firebaseDocId, {
-                      token: tokenToMigrate,
-                      accessToken: tokenToMigrate,
-                      shop: shop,
-                      migratedAt: new Date().toISOString()
-                    });
-                    console.log(`[SHOP GUARD] ✅ Migrated token from legacy document ${shop} to ${firebaseDocId}`);
-                  } catch (migrateError) {
-                    console.warn(`[SHOP GUARD] ⚠️ Failed to migrate token:`, migrateError.message);
-                  }
-                }
-              }
-            } catch (legacyError) {
-              console.log(`[SHOP GUARD] Legacy document ${shop} also not found`);
             }
+            
+            if (storeDB && (storeDB.token || storeDB.accessToken) && !tokenToUse) {
+              tokenToUse = storeDB.token || storeDB.accessToken;
+              console.log(`[SHOP GUARD] Using token from Firebase for ${shop}`);
+            }
+          } catch (error) {
+            console.error(`[SHOP GUARD] Error fetching shop data from Firebase:`, error);
           }
-        } catch (error) {
-          console.error(`[SHOP GUARD] Error fetching shop data from Firebase:`, error);
-          storeDB = null;
         }
         
-        // ✅ CRITICAL: Loosen Document Guard - If document request AND shop found in Firebase, allow HTML to load
-        // Even if token is missing, let App Bridge initialize and handle authentication
+        // ✅ SHOP GUARD RULE 2b: Document requests with Firebase shop data - allow rendering
+        // ✅ DEV SAFETY FALLBACK: Allow rendering even without token (App Bridge will handle auth)
         if (isDocumentRequest && storeDB) {
           console.log(`[SHOP GUARD] ✅ Document request with shop found in Firebase - allowing HTML to load`);
-          console.log(`[SHOP GUARD] App Bridge will initialize and handle authentication via window.shopify.idToken()`);
-          
-          // Use token if available, but don't require it for document requests
-          if (storeDB.token || storeDB.accessToken) {
-            tokenToUse = storeDB.token || storeDB.accessToken;
-            ctx.state.shopify = { accessToken: tokenToUse, shop: shop };
-            console.log(`[SHOP GUARD] Token available in Firebase, setting in state`);
-          } else {
-            // No token, but still allow HTML to load - App Bridge will handle auth
-            ctx.state.shopify = { shop: shop };
-            console.log(`[SHOP GUARD] No token in Firebase, but allowing HTML load for App Bridge initialization`);
-          }
-          
-          await handleRequest(ctx);
-          return;
-        }
-        
-        // ✅ CRITICAL: Trust Firebase Token for Initial Load (legacy check for token)
-        // If this is a document request AND Firebase has a token, allow it to load
-        if (isDocumentRequest && storeDB && (storeDB.token || storeDB.accessToken)) {
-          console.log(`[SHOP GUARD] ✅ Document request with Firebase token found - allowing HTML to load`);
-          console.log(`[SHOP GUARD] App Bridge will initialize and handle API calls with Bearer token`);
-          tokenToUse = storeDB.token || storeDB.accessToken;
-          // Create a session-like object for state
-          ctx.state.shopify = { accessToken: tokenToUse, shop: shop };
-          await handleRequest(ctx);
-          return;
-        }
-        
-        // If Firebase has token, use it (for API requests or charge checking)
-        if (storeDB && (storeDB.token || storeDB.accessToken) && !tokenToUse) {
-          tokenToUse = storeDB.token || storeDB.accessToken;
-          console.log(`[SHOP GUARD] Using token from Firebase for ${shop}`);
-        }
-        
-        // ✅ CRITICAL: Prevent billing guard from hijacking iframe load
-        // If this is a document / iframe load, DO NOT block
-        if (isDocumentRequest) {
-          console.log(`[BILLING GUARD] Skipping billing check on document load - allowing app UI to render`);
-          // Allow the app to render - billing can be triggered later from UI
           ctx.state.shopify = { accessToken: tokenToUse || null, shop: shop };
           await handleRequest(ctx);
           return;
         }
         
-        // If we have offline session, proceed to check charge (only for API requests)
+        // ✅ SHOP GUARD RULE 2c: Document requests - skip billing check, allow rendering
+        // ✅ DEV SAFETY FALLBACK: Billing checks happen after render, not before
+        if (isDocumentRequest) {
+          console.log(`[SHOP GUARD] ✅ Document request - allowing app UI to render (billing check skipped)`);
+          ctx.state.shopify = { accessToken: tokenToUse || null, shop: shop };
+          await handleRequest(ctx);
+          return;
+        }
+        
+        // ✅ SHOP GUARD RULE 3: API requests - check charge if token available
+        // Only for non-document requests (API calls)
         if (tokenToUse && !isDocumentRequest) {
-          console.log(`[SHOP GUARD] Using offline session token for ${shop}`);
-          let activeCharge = false;
           try {
             const { checkAppSubscription } = require("./lib/shopify/functions");
-            activeCharge = await checkAppSubscription(shop, tokenToUse);
+            const activeCharge = await checkAppSubscription(shop, tokenToUse);
             if (activeCharge) {
-              console.log(`[SHOP GUARD] Active charge found for ${shop}, rendering app`);
-              await handleRequest(ctx);
-              return;
-            } else {
-              console.log(`[SHOP GUARD] No active charge for ${shop}`);
-            }
-          } catch (chargeError) {
-            console.log(`[SHOP GUARD] Error checking charge:`, chargeError.message || chargeError);
-            // Continue to check other sources
-          }
-        }
-        
-        // Fallback: Check if there's a valid Shopify session (user is authenticated)
-        const shopifySession = ctx.state.shopify;
-        if (shopifySession && shopifySession.accessToken) {
-          console.log(`[SHOP GUARD] Valid Shopify session found for ${shop}, proceeding with app`);
-          await handleRequest(ctx);
-          return;
-        }
-        
-        // ✅ CRITICAL: Prevent billing guard from hijacking iframe load (duplicate check for safety)
-        // If this is a document / iframe load, DO NOT block
-        if (isDocumentRequest) {
-          console.log(`[BILLING GUARD] Skipping billing check on document load - allowing app UI to render`);
-          // Allow the app to render - billing can be triggered later from UI
-          ctx.state.shopify = { accessToken: tokenToUse || null, shop: shop };
-          await handleRequest(ctx);
-          return;
-        }
-        
-        // If we have a token from any source, check charge (only for non-document requests)
-        if (tokenToUse && !isDocumentRequest) {
-          try {
-            const { checkAppSubscription, checkCharge } = require("./lib/shopify/functions");
-            let activeCharge = await checkAppSubscription(shop, tokenToUse);
-            if (!activeCharge && storeDB?.chargeID) {
-              activeCharge = await checkCharge(shop, tokenToUse, storeDB.chargeID);
-            }
-            if (activeCharge) {
-              console.log(`[SHOP GUARD] Active charge found for ${shop}, rendering app`);
+              console.log(`[SHOP GUARD] Active charge found for ${shop}, allowing API request`);
               await handleRequest(ctx);
               return;
             }
           } catch (err) {
             if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-              // ✅ CRITICAL: This is an API request error - return 401 JSON
               console.log(`[SHOP GUARD] Auth error checking charge for API request, returning 401`);
               const { ensureHost } = require("./lib/shopify/host");
               const finalHost = ensureHost(shop, host);
