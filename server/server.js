@@ -210,6 +210,8 @@ app
               missing: scopeVerification.missingScopes.join(',')
             });
             
+            // ✅ CRITICAL: Ensure host parameter is explicitly passed in redirect
+            console.log(`[AFTER AUTH] Redirecting to error page with shop=${shop}&host=${host || ''}`);
             ctx.redirect(`/?${errorQuery.toString()}`);
             return;
           }

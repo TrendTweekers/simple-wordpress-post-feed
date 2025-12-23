@@ -1,10 +1,9 @@
 const env = {};
 
 /** Global Settings */
+// ✅ SIMPLIFIED: Only request write permissions (write includes read automatically)
 env.SCOPES = [
   "write_themes",
-  "read_themes",
-  "read_script_tags",
   "write_script_tags",
 ];
 env.API_VERSION = process.env.SHOPIFY_API_VERSION || "2024-10";

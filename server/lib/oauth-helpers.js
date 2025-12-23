@@ -10,14 +10,15 @@ const env = require('../config/config');
 /**
  * Get required scopes as an array
  * Handles both array and comma-separated string formats
- * ✅ CRITICAL: Always returns exactly 4 scopes to match shopify.app.toml
+ * ✅ SIMPLIFIED: Only request write permissions (write includes read automatically)
+ * ✅ CRITICAL: Always returns exactly 2 scopes to match shopify.app.toml
  */
 function getRequiredScopes() {
-  const requiredScopes = ["write_themes", "read_themes", "read_script_tags", "write_script_tags"];
+  const requiredScopes = ["write_themes", "write_script_tags"];
   let scopesArray = null;
   
-  // Priority 1: Use config.js (env.SCOPES) if it's an array with 4 scopes
-  if (Array.isArray(env.SCOPES) && env.SCOPES.length === 4) {
+  // Priority 1: Use config.js (env.SCOPES) if it's an array with 2 scopes
+  if (Array.isArray(env.SCOPES) && env.SCOPES.length === 2) {
     scopesArray = env.SCOPES.map(s => s.trim());
     console.log("[getRequiredScopes] Using scopes from config.js:", scopesArray);
   }
@@ -37,7 +38,7 @@ function getRequiredScopes() {
     console.log("[getRequiredScopes] Using hardcoded fallback scopes:", scopesArray);
   }
   
-  // ✅ VALIDATE: Ensure all 4 required scopes are present
+  // ✅ VALIDATE: Ensure all 2 required scopes are present
   const missingScopes = requiredScopes.filter(s => !scopesArray.includes(s));
   if (missingScopes.length > 0) {
     console.warn("[getRequiredScopes] ⚠️ Missing scopes:", missingScopes);
@@ -47,9 +48,9 @@ function getRequiredScopes() {
     scopesArray = requiredScopes;
   }
   
-  // ✅ CRITICAL: Final validation - must have exactly 4 scopes
-  if (scopesArray.length !== 4) {
-    console.error("[getRequiredScopes] ❌ ERROR: Expected 4 scopes, got", scopesArray.length, scopesArray);
+  // ✅ CRITICAL: Final validation - must have exactly 2 scopes
+  if (scopesArray.length !== 2) {
+    console.error("[getRequiredScopes] ❌ ERROR: Expected 2 scopes, got", scopesArray.length, scopesArray);
     scopesArray = requiredScopes;
     console.log("[getRequiredScopes] ✅ Forced correct scopes:", scopesArray);
   }
