@@ -350,7 +350,9 @@ app
           }
           
           console.log(`[BILLING GUARD] No active subscription found for ${shop} after OAuth - creating charge`);
-          const returnUrl = `https://${Shopify.Context.HOST_NAME}?host=${finalHost}&shop=${shop}`;
+          // ✅ CRITICAL: Billing returnUrl must point to a server route that explicitly redirects to app root
+          // This ensures Shopify redirects back to the app iframe after charge approval
+          const returnUrl = `https://${Shopify.Context.HOST_NAME}/billing/confirm?host=${finalHost}&shop=${shop}`;
           
           // Get subscription URL (billing confirmation) if needed
           let confirmationUrl = null;
