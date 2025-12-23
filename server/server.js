@@ -629,10 +629,13 @@ app
             }
           } catch (err) {
             if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
-              // ✅ CRITICAL: For API requests, return 401 JSON instead of redirecting
-              const isApiRequest = ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json");
+              // ✅ CRITICAL: For document requests (HTML) to root path, always redirect to auth
+              // For API requests (JSON), return 401 JSON so App Bridge can handle it silently
+              const isRootPath = ctx.path === '/' || ctx.path === '';
+              const isApiRequest = !isRootPath && (ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json"));
               
               if (isApiRequest) {
+                // This is a true API request (not the initial document load)
                 console.log(`[SHOP GUARD] Auth error checking charge for API request, returning 401`);
                 const { ensureHost } = require("./lib/shopify/host");
                 const finalHost = ensureHost(shop, host);
@@ -650,8 +653,8 @@ app
                 return;
               }
               
-              // For HTML requests, redirect to auth
-              console.log(`[SHOP GUARD] Auth error checking charge, redirecting to auth`);
+              // For document requests (including root path), redirect to auth
+              console.log(`[SHOP GUARD] Auth error checking charge, redirecting to auth (document request)`);
               const { ensureHost } = require("./lib/shopify/host");
               const finalHost = ensureHost(shop, host);
               const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
@@ -662,10 +665,13 @@ app
         }
         
         // No valid session or charge found
-        // ✅ CRITICAL: For API requests, return 401 JSON instead of redirecting
-        const isApiRequest = ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json");
+        // ✅ CRITICAL: For document requests (HTML) to root path, always redirect to auth
+        // For API requests (JSON), return 401 JSON so App Bridge can handle it silently
+        const isRootPath = ctx.path === '/' || ctx.path === '';
+        const isApiRequest = !isRootPath && (ctx.accepts("json") || ctx.path.startsWith("/api/") || ctx.get("accept")?.includes("application/json"));
         
         if (isApiRequest) {
+          // This is a true API request (not the initial document load)
           console.log(`[SHOP GUARD] No valid session for API request ${ctx.path}, returning 401`);
           const { ensureHost } = require("./lib/shopify/host");
           const finalHost = ensureHost(shop, host);
@@ -683,8 +689,8 @@ app
           return;
         }
         
-        // For HTML requests, redirect to auth
-        console.log(`[SHOP GUARD] No valid session or charge for ${shop}, redirecting to auth`);
+        // For document requests (including root path), redirect to auth
+        console.log(`[SHOP GUARD] No valid session or charge for ${shop}, redirecting to auth (document request)`);
         const { ensureHost } = require("./lib/shopify/host");
         const finalHost = ensureHost(shop, host);
         const redirectTo = `/install/auth?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(finalHost)}`;
