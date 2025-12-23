@@ -9,7 +9,10 @@ class MyDocument extends Document {
   render() {
     return (
       <Html>
-        <Head />
+        <Head>
+          {/* ✅ Shopify App Bridge v4 - Required for embedded apps */}
+          <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+        </Head>
         <body>
           <Main />
           <NextScript />

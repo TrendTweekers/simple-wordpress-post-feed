@@ -367,19 +367,25 @@ app
       await next();
     });
     
-    // CSP Middleware - Allow iframe embedding from Shopify domains
-    // Wrap to skip _next and favicon (prevents accidental ordering mistakes)
+    // ✅ CSP Middleware - Allow iframe embedding from Shopify domains
+    // Required for embedded apps to work in Shopify admin iframe
     server.use(async (ctx, next) => {
+      // Skip CSP for static assets and favicon
       if (ctx.path.startsWith("/_next/") || ctx.path === "/favicon.ico") {
         return next();
       }
       
-      const shop = ctx.query.shop || ctx.request.query.shop; // Fallback for query param
+      // Get shop from multiple sources (query params, session, request)
+      const shop = ctx.query.shop || ctx.request.query.shop || (ctx.session && ctx.session.shop);
+      
       if (shop) {
+        // Allow embedding from shop domain and Shopify admin
         ctx.set('Content-Security-Policy', `frame-ancestors https://${shop} https://admin.shopify.com;`);
+        console.log(`[CSP] Set frame-ancestors for shop: ${shop}`);
       } else {
-        // Secure fallback
+        // Secure fallback - deny embedding if no shop identified
         ctx.set('Content-Security-Policy', `frame-ancestors 'none';`);
+        console.log(`[CSP] No shop found, denying frame embedding`);
       }
       await next();
     });
