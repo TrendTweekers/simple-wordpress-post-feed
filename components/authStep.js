@@ -8,6 +8,7 @@ import React, { useState, useEffect } from "react";
 import { useAppBridge, Provider } from "@shopify/app-bridge-react";
 import { authenticatedFetch } from "@shopify/app-bridge-utils";
 import { Redirect } from "@shopify/app-bridge/actions";
+import { manualTokenFetch, waitForShopify } from "../lib/manualTokenFetch";
 import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
@@ -72,7 +73,7 @@ const authStep = ({ config, Component, pageProps }) => {
   const redirect = app ? Redirect.create(app) : null;
 
   // ✅ CRITICAL: Use manual token fetch since automatic App Bridge interceptor is failing
-  const { manualTokenFetch, waitForShopify } = require("../lib/manualTokenFetch");
+  // manualTokenFetch and waitForShopify are imported at top of file
   
   // Also keep userLoggedInFetch as fallback
   const authenticatedFetch = app ? userLoggedInFetch(app) : null;
