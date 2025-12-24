@@ -1041,14 +1041,16 @@ app
           return;
         }
         
-        // ✅ CRITICAL: Reuse acceptHeader already declared above (line 588)
+        // ✅ CRITICAL: Reuse acceptHeader and isApiRequest already declared above
         // Browser page loads will NOT have this header, so they MUST return HTML/redirect
-        // Derive isApiRequest from existing acceptHeader and isDocumentRequest
-        const isApiRequest = acceptHeader.includes("application/json");
+        // Derive isTrueApiRequest from existing acceptHeader, isDocumentRequest, and isApiRequest
+        // Note: isApiRequest is already declared at line 931 (checks ctx.path.startsWith("/api/"))
         
         // Root path is NEVER an API request (it's always a document request)
         const isRootPath = ctx.path === '/' || ctx.path === '';
-        const isTrueApiRequest = !isRootPath && isApiRequest && !isDocumentRequest;
+        // Check if request has JSON Accept header AND is an API path (not just document request)
+        const hasJsonAcceptHeader = acceptHeader.includes("application/json");
+        const isTrueApiRequest = !isRootPath && isApiRequest && hasJsonAcceptHeader && !isDocumentRequest;
         
         if (isTrueApiRequest) {
           // This is a true API request (not the initial document load)
