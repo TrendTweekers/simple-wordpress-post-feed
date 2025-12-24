@@ -2,7 +2,7 @@ import Head from "next/head";
 import "@shopify/polaris/build/esm/styles.css";
 import "../styles.scss";
 import React, { useEffect } from "react";
-import { Provider, RoutePropagator as AppBridgeRoutePropagator, useAppBridge } from "@shopify/app-bridge-react";
+import { Provider, RoutePropagator as AppBridgeRoutePropagator, useAppBridge, NavigationMenu } from "@shopify/app-bridge-react";
 import { useRouter } from "next/router";
 import { Redirect } from "@shopify/app-bridge/actions";
 
@@ -110,6 +110,35 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
     return (
       <Provider config={config}>
         <AppBridgeWrapper asPath={asPath}>
+          {/* ✅ App Bridge Navigation - adds sidebar icon and navigation menu */}
+          <NavigationMenu
+            navigationLinks={[
+              {
+                label: 'Dashboard',
+                destination: '/',
+              },
+              {
+                label: 'Documentation',
+                destination: '/?page=about',
+              },
+            ]}
+            matcher={(link, location) => {
+              // Match Dashboard (root path) - default/main page
+              if (link.destination === '/' && location.pathname === '/') {
+                // Check if page query param is not set or is 'main'
+                const params = new URLSearchParams(location.search);
+                const pageParam = params.get('page');
+                return !pageParam || pageParam === 'main';
+              }
+              // Match Documentation page (root path with page=about query param)
+              if (link.destination === '/?page=about' && location.pathname === '/') {
+                const params = new URLSearchParams(location.search);
+                return params.get('page') === 'about';
+              }
+              // Default: exact destination match
+              return link.destination === location.pathname;
+            }}
+          />
           <ClientRouter />
           <Head>
             <title>Simple Wordpress Post Feed</title>
