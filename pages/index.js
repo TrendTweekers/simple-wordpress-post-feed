@@ -124,7 +124,39 @@ const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const { data, dispatch } = useContext(Store);
   const [themeOverride, setThemeOverride] = useState(false);
-  const [page, setPage] = useState("main");
+  
+  // ✅ SYNC: Initialize page state from URL query param (for App Bridge Navigation)
+  const router = useRouter();
+  const initialPage = typeof window !== 'undefined' 
+    ? new URLSearchParams(window.location.search).get('page') || 'main'
+    : 'main';
+  const [page, setPage] = useState(initialPage);
+  
+  // ✅ SYNC: Update page state when URL query param changes (App Bridge Navigation)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const pageParam = params.get('page') || 'main';
+      if (pageParam !== page) {
+        setPage(pageParam);
+      }
+    }
+  }, [router.query.page]);
+  
+  // ✅ SYNC: Update URL when page state changes (for App Bridge Navigation)
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    // Update URL query param without full page reload
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location);
+      if (newPage === 'main') {
+        url.searchParams.delete('page');
+      } else {
+        url.searchParams.set('page', newPage);
+      }
+      window.history.pushState({}, '', url);
+    }
+  };
   const [shopifyReady, setShopifyReady] = useState(false);
   const {
     support: { newThemeCapable },
@@ -337,11 +369,14 @@ const Index = ({ shopOrigin: shop }) => {
       <Dashboard newTheme={newThemeSwitch} />
     );
 
+  // ✅ SYNC: Handle both "about" and "documentation" page values (Header uses "documentation")
   const activePage =
     page === "main" ? (
       dashboardComponent
-    ) : (
+    ) : page === "about" || page === "documentation" ? (
       <About newThemeCapable={newThemeCapable} />
+    ) : (
+      dashboardComponent // Default fallback
     );
 
   if (data.isLoading) {
