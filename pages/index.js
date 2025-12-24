@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { Store } from "../store/store";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { Spinner } from "@shopify/polaris";
@@ -135,13 +136,12 @@ const Index = ({ shopOrigin: shop }) => {
   // ✅ SYNC: Update page state when URL query param changes (App Bridge Navigation)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const pageParam = params.get('page') || 'main';
+      const pageParam = router.query.page || 'main';
       if (pageParam !== page) {
         setPage(pageParam);
       }
     }
-  }, [router.query.page]);
+  }, [router.query.page, page]);
   
   // ✅ SYNC: Update URL when page state changes (for App Bridge Navigation)
   const handlePageChange = (newPage) => {
