@@ -544,8 +544,29 @@ app
           return;
         }
         
-        // Step 2: Enforce active subscription (after Bearer token verification)
+        // Step 2: Check for trial stores (BEFORE billing enforcement)
         const shop = ctx.query.shop;
+        if (shop) {
+          // 2-month trial for testing stores
+          const TRIAL_STORES = {
+            'japexstore.myshopify.com': {
+              trialEndsAt: '2025-02-20', // 2 months from now
+              reason: 'Testing/troubleshooting compensation'
+            }
+          };
+          
+          const trialInfo = TRIAL_STORES[shop];
+          if (trialInfo && new Date() < new Date(trialInfo.trialEndsAt)) {
+            console.log(`[BILLING] Trial active for ${shop} until ${trialInfo.trialEndsAt} - ${trialInfo.reason}`);
+            // Skip billing check, allow app to load
+            console.log(`[BILLING] API request ${ctx.method} ${ctx.path} allowed - trial active for ${shop}`);
+            console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token and trial access, proceeding`);
+            await next();
+            return;
+          }
+        }
+        
+        // Step 3: Enforce active subscription (after Bearer token verification and trial check)
         if (shop) {
           const billingCheck = await requireActiveSubscription(shop);
           if (!billingCheck.allowed) {
