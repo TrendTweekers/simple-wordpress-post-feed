@@ -1,7 +1,7 @@
 import Head from "next/head";
 import "@shopify/polaris/build/esm/styles.css";
 import "../styles.scss";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Provider, RoutePropagator as AppBridgeRoutePropagator, useAppBridge, NavigationMenu } from "@shopify/app-bridge-react";
 import { useRouter } from "next/router";
 import { Redirect } from "@shopify/app-bridge/actions";
@@ -36,6 +36,13 @@ const AppBridgeWrapper = ({ asPath, children }) => {
 const App = ({ Component, pageProps, shopOrigin, host })=> {
     const router = useRouter();
     const { asPath, query } = router;
+    
+    // ✅ SSR FIX: Only render NavigationMenu on client side (prevents "window is not defined" error)
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+      setIsClient(true);
+    }, []);
 
     // ✅ FIX: Get shop and host from multiple sources (priority order: props > query > pageProps > URL)
     const shop = shopOrigin || query.shop || pageProps?.shop || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('shop') : null);
@@ -111,34 +118,37 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
       <Provider config={config}>
         <AppBridgeWrapper asPath={asPath}>
           {/* ✅ App Bridge Navigation - adds sidebar icon and navigation menu */}
-          <NavigationMenu
-            navigationLinks={[
-              {
-                label: 'Dashboard',
-                destination: '/',
-              },
-              {
-                label: 'Documentation',
-                destination: '/?page=about',
-              },
-            ]}
-            matcher={(link, location) => {
-              // Match Dashboard (root path) - default/main page
-              if (link.destination === '/' && location.pathname === '/') {
-                // Check if page query param is not set or is 'main'
-                const params = new URLSearchParams(location.search);
-                const pageParam = params.get('page');
-                return !pageParam || pageParam === 'main';
-              }
-              // Match Documentation page (root path with page=about query param)
-              if (link.destination === '/?page=about' && location.pathname === '/') {
-                const params = new URLSearchParams(location.search);
-                return params.get('page') === 'about';
-              }
-              // Default: exact destination match
-              return link.destination === location.pathname;
-            }}
-          />
+          {/* ✅ SSR FIX: Only render NavigationMenu on client side (prevents "window is not defined" error) */}
+          {isClient && (
+            <NavigationMenu
+              navigationLinks={[
+                {
+                  label: 'Dashboard',
+                  destination: '/',
+                },
+                {
+                  label: 'Documentation',
+                  destination: '/?page=about',
+                },
+              ]}
+              matcher={(link, location) => {
+                // Match Dashboard (root path) - default/main page
+                if (link.destination === '/' && location.pathname === '/') {
+                  // Check if page query param is not set or is 'main'
+                  const params = new URLSearchParams(location.search);
+                  const pageParam = params.get('page');
+                  return !pageParam || pageParam === 'main';
+                }
+                // Match Documentation page (root path with page=about query param)
+                if (link.destination === '/?page=about' && location.pathname === '/') {
+                  const params = new URLSearchParams(location.search);
+                  return params.get('page') === 'about';
+                }
+                // Default: exact destination match
+                return link.destination === location.pathname;
+              }}
+            />
+          )}
           <ClientRouter />
           <Head>
             <title>Simple Wordpress Post Feed</title>
