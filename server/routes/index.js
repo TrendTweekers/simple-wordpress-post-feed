@@ -558,6 +558,138 @@ const downloadMetafield = async (ctx) => {
   }
 };
 
+/** Fetch WordPress posts for storefront theme extension
+ * @param  {context} ctx
+ */
+const getPosts = async (ctx) => {
+  const shop = ctx.query.shop;
+
+  if (!shop) {
+    ctx.status = 400;
+    ctx.body = { posts: [] };
+    return;
+  }
+
+  try {
+    // Load offline session
+    const session = await loadSessionWithErrorHandling(shop, ctx, ctx.query.host, `GET /api/posts`);
+    if (!session) return; // Redirect was triggered
+
+    const token = session.accessToken;
+
+    // Get metafields: url, hostedOnWP, postNumber
+    const metafields = await getMultipleMetafields(shop, token);
+
+    const wpUrl = metafields.url?.value || '';
+    const postNumber = parseInt(metafields.postNumber?.value || '5', 10) || 5;
+
+    // Safely parse hostedOnWP (may be string or boolean)
+    const hostedOnWPValue = metafields.hostedOnWP?.value;
+    const isWordPressHosted =
+      hostedOnWPValue === true ||
+      hostedOnWPValue === 'true' ||
+      hostedOnWPValue === '1';
+
+    // If no WordPress URL configured, return empty posts
+    if (!wpUrl || typeof wpUrl !== 'string' || wpUrl.trim() === '') {
+      ctx.status = 200;
+      ctx.body = { posts: [] };
+      return;
+    }
+
+    // Normalize WordPress URL: add https if missing, remove trailing slash
+    let normalizedUrl = wpUrl.trim();
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+    normalizedUrl = normalizedUrl.replace(/\/$/, '');
+
+    // Build WordPress REST API endpoint
+    let wpEndpoint;
+    if (isWordPressHosted) {
+      // WordPress.com hosted
+      wpEndpoint = `https://public-api.wordpress.com/rest/v1.1/sites/${normalizedUrl.replace(/^https?:\/\//, '')}/posts/?number=${postNumber}`;
+    } else {
+      // Self-hosted WordPress
+      wpEndpoint = `${normalizedUrl}/wp-json/wp/v2/posts?_embed&order=desc&per_page=${postNumber}`;
+    }
+
+    // Fetch from WordPress REST API
+    const axios = require('axios');
+    let wpResponse;
+    try {
+      wpResponse = await axios.get(wpEndpoint, {
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'SimpleWordPressPostFeed/1.0'
+        }
+      });
+    } catch (wpError) {
+      // WordPress site unreachable or error - return empty posts
+      console.warn(`[/api/posts] Failed to fetch from WordPress (${shop}):`, wpError.message);
+      ctx.status = 200;
+      ctx.body = { posts: [] };
+      return;
+    }
+
+    // Transform WordPress posts to extension format
+    const wpData = wpResponse.data;
+    const postsArray = Array.isArray(wpData) ? wpData : (wpData.posts || []);
+
+    const posts = postsArray
+      .slice(0, postNumber)
+      .map(post => {
+        try {
+          // Handle both WordPress.com and self-hosted formats
+          const url = post.link || post.URL || '';
+          const title = post.title?.rendered || post.title || '';
+
+          // Clean excerpt of HTML tags
+          let excerpt = post.excerpt?.rendered || post.excerpt || '';
+          excerpt = excerpt.replace(/<[^>]*>/g, '').trim();
+
+          // Parse date safely
+          const postDate = post.date || post.modified || new Date().toISOString();
+          const dateObj = new Date(postDate);
+          const dateStr = dateObj.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+
+          return {
+            url,
+            title,
+            excerpt,
+            date: dateStr
+          };
+        } catch (transformError) {
+          console.warn(`[/api/posts] Error transforming post for ${shop}:`, transformError.message);
+          return null;
+        }
+      })
+      .filter(post => post !== null && post.url && post.title);
+
+    ctx.status = 200;
+    ctx.body = { posts };
+
+  } catch (error) {
+    // Safe error handling - never crash
+    const isAxiosError = error.isAxiosError || (error.response && error.response.status);
+    const status = error.response?.status;
+
+    if (isAxiosError && (status === 401 || status === 403)) {
+      // Auth error - attempt redirect
+      const handled = await handleShopifyAuthError(error, ctx, shop, ctx.query.host, `GET /api/posts`);
+      if (handled) return;
+    }
+
+    console.error(`[/api/posts] Error for ${shop}:`, error.message || error);
+    ctx.status = 200;
+    ctx.body = { posts: [] };
+  }
+};
+
 module.exports.getData = getData;
 module.exports.uploadData = uploadData;
 module.exports.redact = redact;
@@ -569,3 +701,4 @@ module.exports.customerRedact = customerRedact;
 module.exports.customerData = customerData;
 module.exports.cancelCharge = cancelCharge;
 module.exports.downloadMetafield = downloadMetafield;
+module.exports.getPosts = getPosts;

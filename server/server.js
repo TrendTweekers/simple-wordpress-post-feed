@@ -31,6 +31,7 @@ import {
   customerRedact,
   cancelCharge,
   downloadMetafield,
+  getPosts,
 } from "./routes/";
 import { checkDevShop, checkCharge, checkAppSubscription } from "./lib/shopify/functions";
 
@@ -1094,6 +1095,7 @@ app
       .post("/api/data", uploadData)
       .post("/api/deletedata", deleteAllMeta)
       .get("/api/meta", downloadMetafield)
+      .get("/api/posts", getPosts)
       .get("/api/install", install)
       .post("/api/update", update)
       .post("/swpf/shop/redact", webhook, redact)
