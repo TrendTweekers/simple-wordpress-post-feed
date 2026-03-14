@@ -563,8 +563,11 @@ const downloadMetafield = async (ctx) => {
  */
 const getPosts = async (ctx) => {
   const shop = ctx.query.shop;
+  console.log(`[/api/posts] ========== START REQUEST ==========`);
+  console.log(`[/api/posts] shop: ${shop}`);
 
   if (!shop) {
+    console.log(`[/api/posts] No shop parameter - returning empty posts`);
     ctx.status = 400;
     ctx.body = { posts: [] };
     return;
@@ -575,32 +578,41 @@ const getPosts = async (ctx) => {
     // If no session exists (shop not installed), gracefully return empty posts
     let session = null;
     try {
+      console.log(`[/api/posts] Attempting to load offline session for ${shop}...`);
       session = await loadOfflineSession(shop, shopifyApi);
+      console.log(`[/api/posts] ✅ Offline session loaded for ${shop}`);
     } catch (sessionError) {
       // Shop may not be installed yet - this is OK for public /api/posts endpoint
-      console.log(`[/api/posts] No offline session for shop ${shop} (shop may not be installed) - returning empty posts`);
+      console.log(`[/api/posts] ❌ No offline session for shop ${shop} - returning empty posts`);
+      console.log(`[/api/posts] Reason: ${sessionError.message || sessionError}`);
       ctx.status = 200;
       ctx.body = { posts: [] };
+      console.log(`[/api/posts] ========== END REQUEST (no session) ==========`);
       return;
     }
 
     if (!session) {
+      console.log(`[/api/posts] Session is null for ${shop} - returning empty posts`);
       ctx.status = 200;
       ctx.body = { posts: [] };
+      console.log(`[/api/posts] ========== END REQUEST (session null) ==========`);
       return;
     }
 
     const token = session.accessToken;
+    console.log(`[/api/posts] Got access token for ${shop}, fetching metafields...`);
 
     // Get metafields: url, hostedOnWP, postNumber
     let metafields;
     try {
       metafields = await getMultipleMetafields(shop, token);
+      console.log(`[/api/posts] Raw metafields from Shopify:`, JSON.stringify(metafields, null, 2));
     } catch (metafieldError) {
       // If we can't fetch metafields, return empty posts
-      console.log(`[/api/posts] Failed to fetch metafields for shop ${shop}:`, metafieldError.message || metafieldError);
+      console.log(`[/api/posts] ❌ Failed to fetch metafields for shop ${shop}:`, metafieldError.message || metafieldError);
       ctx.status = 200;
       ctx.body = { posts: [] };
+      console.log(`[/api/posts] ========== END REQUEST (metafield fetch error) ==========`);
       return;
     }
 
@@ -614,10 +626,14 @@ const getPosts = async (ctx) => {
       hostedOnWPValue === 'true' ||
       hostedOnWPValue === '1';
 
+    console.log(`[/api/posts] Config: url="${wpUrl}", postNumber=${postNumber}, isWordPressHosted=${isWordPressHosted}`);
+
     // If no WordPress URL configured, return empty posts
     if (!wpUrl || typeof wpUrl !== 'string' || wpUrl.trim() === '') {
+      console.log(`[/api/posts] ⚠️ No WordPress URL configured for ${shop} - returning empty posts`);
       ctx.status = 200;
       ctx.body = { posts: [] };
+      console.log(`[/api/posts] ========== END REQUEST (no config) ==========`);
       return;
     }
 
@@ -627,6 +643,7 @@ const getPosts = async (ctx) => {
       normalizedUrl = 'https://' + normalizedUrl;
     }
     normalizedUrl = normalizedUrl.replace(/\/$/, '');
+    console.log(`[/api/posts] Normalized WordPress URL: ${normalizedUrl}`);
 
     // Build WordPress REST API endpoint
     let wpEndpoint;
@@ -637,28 +654,40 @@ const getPosts = async (ctx) => {
       // Self-hosted WordPress
       wpEndpoint = `${normalizedUrl}/wp-json/wp/v2/posts?_embed&order=desc&per_page=${postNumber}`;
     }
+    console.log(`[/api/posts] Calling WordPress API: ${wpEndpoint}`);
+    console.log(`[/api/posts] Request type: ${isWordPressHosted ? 'WordPress.com' : 'Self-hosted'}`);
+    console.log(`[/api/posts] Posts to fetch: ${postNumber}`);
+
 
     // Fetch from WordPress REST API
     const axios = require('axios');
     let wpResponse;
     try {
+      console.log(`[/api/posts] Fetching from WordPress...`);
       wpResponse = await axios.get(wpEndpoint, {
         timeout: 5000,
         headers: {
           'User-Agent': 'SimpleWordPressPostFeed/1.0'
         }
       });
+      console.log(`[/api/posts] ✅ WordPress fetch successful (status ${wpResponse.status})`);
+      console.log(`[/api/posts] Raw WordPress response:`, JSON.stringify(wpResponse.data).substring(0, 500) + '...');
     } catch (wpError) {
       // WordPress site unreachable or error - return empty posts
-      console.warn(`[/api/posts] Failed to fetch from WordPress (${shop}):`, wpError.message);
+      console.log(`[/api/posts] ❌ WordPress fetch failed for ${shop}: ${wpError.message}`);
+      if (wpError.response) {
+        console.log(`[/api/posts]   HTTP ${wpError.response.status} from ${wpEndpoint}`);
+      }
       ctx.status = 200;
       ctx.body = { posts: [] };
+      console.log(`[/api/posts] ========== END REQUEST (WordPress fetch error) ==========`);
       return;
     }
 
     // Transform WordPress posts to extension format
     const wpData = wpResponse.data;
     const postsArray = Array.isArray(wpData) ? wpData : (wpData.posts || []);
+    console.log(`[/api/posts] Extracted posts array from response (length: ${postsArray.length})`);
 
     const posts = postsArray
       .slice(0, postNumber)
@@ -694,14 +723,17 @@ const getPosts = async (ctx) => {
       })
       .filter(post => post !== null && post.url && post.title);
 
+    console.log(`[/api/posts] ✅ Successfully transformed ${posts.length} posts`);
     ctx.status = 200;
     ctx.body = { posts };
+    console.log(`[/api/posts] ========== END REQUEST (success) ==========`);
 
   } catch (error) {
     // Safe error handling - GET /api/posts is public, always return empty posts on error
-    console.error(`[/api/posts] Error for ${shop}:`, error.message || error);
+    console.error(`[/api/posts] ❌ Unexpected error for ${shop}:`, error.message || error);
     ctx.status = 200;
     ctx.body = { posts: [] };
+    console.log(`[/api/posts] ========== END REQUEST (unexpected error) ==========`);
   }
 };
 
