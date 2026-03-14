@@ -593,7 +593,16 @@ const getPosts = async (ctx) => {
     const token = session.accessToken;
 
     // Get metafields: url, hostedOnWP, postNumber
-    const metafields = await getMultipleMetafields(shop, token);
+    let metafields;
+    try {
+      metafields = await getMultipleMetafields(shop, token);
+    } catch (metafieldError) {
+      // If we can't fetch metafields, return empty posts
+      console.log(`[/api/posts] Failed to fetch metafields for shop ${shop}:`, metafieldError.message || metafieldError);
+      ctx.status = 200;
+      ctx.body = { posts: [] };
+      return;
+    }
 
     const wpUrl = metafields.url?.value || '';
     const postNumber = parseInt(metafields.postNumber?.value || '5', 10) || 5;
@@ -689,16 +698,7 @@ const getPosts = async (ctx) => {
     ctx.body = { posts };
 
   } catch (error) {
-    // Safe error handling - never crash
-    const isAxiosError = error.isAxiosError || (error.response && error.response.status);
-    const status = error.response?.status;
-
-    if (isAxiosError && (status === 401 || status === 403)) {
-      // Auth error - attempt redirect
-      const handled = await handleShopifyAuthError(error, ctx, shop, ctx.query.host, `GET /api/posts`);
-      if (handled) return;
-    }
-
+    // Safe error handling - GET /api/posts is public, always return empty posts on error
     console.error(`[/api/posts] Error for ${shop}:`, error.message || error);
     ctx.status = 200;
     ctx.body = { posts: [] };
