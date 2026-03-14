@@ -459,6 +459,25 @@ app
       await next();
     });
     
+    // ✅ CORS MIDDLEWARE: Enable CORS for /api/posts (storefront theme extension)
+    // The theme extension block fetches from client-side JavaScript cross-origin
+    server.use(async (ctx, next) => {
+      if (ctx.path === "/api/posts") {
+        // Handle CORS preflight
+        if (ctx.method === "OPTIONS") {
+          ctx.set("Access-Control-Allow-Origin", "*");
+          ctx.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+          ctx.set("Access-Control-Allow-Headers", "Content-Type");
+          ctx.status = 204;
+          return;
+        }
+        // Set CORS headers for actual request
+        ctx.set("Access-Control-Allow-Origin", "*");
+        ctx.set("Access-Control-Allow-Methods", "GET, OPTIONS");
+      }
+      await next();
+    });
+
     // ✅ BILLING ENFORCEMENT: Centralized billing check for API routes only
     // Billing enforcement MUST apply only to API routes (/api/*)
     // Never enforce billing on document / iframe loads
@@ -535,59 +554,68 @@ app
     // Must run BEFORE router.get("/") so it catches all /api/* routes
     server.use(async (ctx, next) => {
       if (ctx.path.startsWith("/api/")) {
-        // Step 1: Verify Bearer token
-        const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
-        const hasBearer = auth.toLowerCase().startsWith("bearer ");
-        if (!hasBearer) {
-          console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} missing Authorization Bearer token, returning 401 JSON`);
-          ctx.status = 401;
-          ctx.body = { error: "missing_session_token" };
-          return;
-        }
-        
-        // Step 2: Check for trial stores (BEFORE billing enforcement)
-        const shop = ctx.query.shop;
-        if (shop) {
-          // 2-month trial for testing stores
-          const TRIAL_STORES = {
-            'japexstore.myshopify.com': {
-              trialEndsAt: '2025-02-20', // 2 months from now
-              reason: 'Testing/troubleshooting compensation'
-            }
-          };
-          
-          const trialInfo = TRIAL_STORES[shop];
-          if (trialInfo && new Date() < new Date(trialInfo.trialEndsAt)) {
-            console.log(`[BILLING] Trial active for ${shop} until ${trialInfo.trialEndsAt} - ${trialInfo.reason}`);
-            // Skip billing check, allow app to load
-            console.log(`[BILLING] API request ${ctx.method} ${ctx.path} allowed - trial active for ${shop}`);
-            console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token and trial access, proceeding`);
-            await next();
+        // ✅ EXEMPTION: GET /api/posts does not require Bearer token (public storefront endpoint)
+        const isPublicPostsEndpoint = ctx.method === "GET" && ctx.path === "/api/posts";
+
+        // Step 1: Verify Bearer token (skip for public /api/posts endpoint)
+        if (!isPublicPostsEndpoint) {
+          const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
+          const hasBearer = auth.toLowerCase().startsWith("bearer ");
+          if (!hasBearer) {
+            console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} missing Authorization Bearer token, returning 401 JSON`);
+            ctx.status = 401;
+            ctx.body = { error: "missing_session_token" };
             return;
           }
-        }
-        
-        // Step 3: Enforce active subscription (after Bearer token verification and trial check)
-        if (shop) {
-          const billingCheck = await requireActiveSubscription(shop);
-          if (!billingCheck.allowed) {
-            console.log(`[BILLING] API request ${ctx.method} ${ctx.path} blocked - ${billingCheck.reason} for shop ${shop}`);
-            ctx.status = 402;
-            ctx.body = { 
-              error: "subscription_required",
-              reason: billingCheck.reason,
-              message: "Active subscription required to access this API endpoint"
-            };
-            return;
-          }
-          console.log(`[BILLING] API request ${ctx.method} ${ctx.path} allowed - active subscription verified for ${shop}`);
         } else {
-          // No shop parameter - skip billing check (may be public API endpoint)
-          console.log(`[BILLING] API request ${ctx.method} ${ctx.path} - no shop parameter, skipping billing check`);
+          console.log(`[API GUARD] Public endpoint GET /api/posts - skipping Bearer token requirement`);
         }
-        
-        // Bearer token exists and billing verified - continue to route handler
-        console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token and active subscription, proceeding`);
+
+        // Step 2: Skip billing checks for public /api/posts endpoint
+        if (!isPublicPostsEndpoint) {
+          const shop = ctx.query.shop;
+          if (shop) {
+            // 2-month trial for testing stores
+            const TRIAL_STORES = {
+              'japexstore.myshopify.com': {
+                trialEndsAt: '2025-02-20', // 2 months from now
+                reason: 'Testing/troubleshooting compensation'
+              }
+            };
+
+            const trialInfo = TRIAL_STORES[shop];
+            if (trialInfo && new Date() < new Date(trialInfo.trialEndsAt)) {
+              console.log(`[BILLING] Trial active for ${shop} until ${trialInfo.trialEndsAt} - ${trialInfo.reason}`);
+              // Skip billing check, allow app to load
+              console.log(`[BILLING] API request ${ctx.method} ${ctx.path} allowed - trial active for ${shop}`);
+              console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token and trial access, proceeding`);
+              await next();
+              return;
+            }
+          }
+
+          // Step 3: Enforce active subscription (after Bearer token verification and trial check)
+          if (shop) {
+            const billingCheck = await requireActiveSubscription(shop);
+            if (!billingCheck.allowed) {
+              console.log(`[BILLING] API request ${ctx.method} ${ctx.path} blocked - ${billingCheck.reason} for shop ${shop}`);
+              ctx.status = 402;
+              ctx.body = {
+                error: "subscription_required",
+                reason: billingCheck.reason,
+                message: "Active subscription required to access this API endpoint"
+              };
+              return;
+            }
+            console.log(`[BILLING] API request ${ctx.method} ${ctx.path} allowed - active subscription verified for ${shop}`);
+          } else {
+            // No shop parameter - skip billing check (may be public API endpoint)
+            console.log(`[BILLING] API request ${ctx.method} ${ctx.path} - no shop parameter, skipping billing check`);
+          }
+
+          // Bearer token exists and billing verified - continue to route handler
+          console.log(`[API GUARD] API request ${ctx.method} ${ctx.path} has Bearer token and active subscription, proceeding`);
+        }
       } else {
         // Not an API route - skip billing check (document loads)
         console.log(`[BILLING] Skipping billing check for non-API route: ${ctx.path} (document load)`);
