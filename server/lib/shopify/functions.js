@@ -215,7 +215,13 @@ const checkDevShop = async (shop, token = null) => {
       }
       console.log(`[checkDevShop] GraphQL returned: partnerDevelopment is false or not present`);
     } catch (graphqlErr) {
-      console.log(`[checkDevShop] GraphQL query failed, falling back to REST:`, graphqlErr.message || graphqlErr);
+      console.log(`[checkDevShop] GraphQL query failed for ${shop}, falling back to REST`);
+      console.log(`[checkDevShop] GraphQL error payload:`, {
+        message: graphqlErr.message,
+        body: graphqlErr.response?.body,
+        errors: graphqlErr.errors,
+        fullError: graphqlErr
+      });
     }
 
     // ✅ FALLBACK: Use REST API with plan_name as backup
@@ -254,14 +260,15 @@ const checkDevShop = async (shop, token = null) => {
 
       const data = await response.json();
       const { shop: { plan_name } } = data;
-      console.log(`[checkDevShop] REST API response for ${shop}: plan_name="${plan_name}"`);
+      console.log(`[checkDevShop] REST API success (HTTP ${response.status}) for ${shop}: plan_name="${plan_name}"`);
 
-      if (plan_name === "affiliate" || plan_name === "partner_test") {
+      const isDevShop = plan_name === "affiliate" || plan_name === "partner_test";
+      if (isDevShop) {
         console.log(`[checkDevShop] ✅ Dev shop detected via REST plan_name="${plan_name}" for ${shop}`);
-        return true;
+      } else {
+        console.log(`[checkDevShop] ❌ Not a dev shop - plan_name="${plan_name}" for ${shop}`);
       }
-      console.log(`[checkDevShop] ❌ Not a dev shop - plan_name="${plan_name}" is not dev/affiliate/partner_test`);
-      return false;
+      return isDevShop;
     } catch (err) {
       // Re-throw auth errors
       if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {

@@ -23,6 +23,7 @@ const getSubscriptionUrlDEV = async (
   getUrl = false,
   webhook = true
 ) => {
+  console.log(`[BILLING PATH] DEV handler entered for ${shop}`);
   // ✅ IDEMPOTENT BILLING GUARD: Check Shopify first - never charge twice
   const { checkAppSubscription } = require("../lib/shopify/functions");
   const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
@@ -85,6 +86,7 @@ const getSubscriptionUrlDEV = async (
   await initShop(shop, accessToken, chargeID, confirmationUrl);
 
   /** Creating Uninstall webhook on shopify that will be triggered directly after uninstall */
+  console.log(`[BILLING PATH] DEV handler returning confirmationUrl for ${shop}: ${confirmationUrl}`);
 
   if (!getUrl) {
     return ctx.redirect(confirmationUrl);

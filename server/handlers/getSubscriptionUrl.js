@@ -23,6 +23,7 @@ const getSubscriptionUrl = async (
   getUrl = false,
   webhook = true
 ) => {
+  console.log(`[BILLING PATH] REGULAR handler entered for ${shop}`);
   // ✅ IDEMPOTENT BILLING GUARD: Check Shopify first - never charge twice
   const { checkAppSubscription } = require("../lib/shopify/functions");
   const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
@@ -83,6 +84,8 @@ const getSubscriptionUrl = async (
     response.body.data.appSubscriptionCreate.appSubscription?.id?.split("/")[4] || null;
 
   initShop(shop, accessToken, chargeID, confirmationUrl);
+
+  console.log(`[BILLING PATH] REGULAR handler returning confirmationUrl for ${shop}: ${confirmationUrl}`);
 
   if (!getUrl) {
     return ctx.redirect(confirmationUrl);

@@ -430,6 +430,7 @@ const install = async (ctx) => {
           ctx.body = { allowed: true, themeAccess };
         } else if (longTrial) {
           /** Runs when its normal store and got one year free */
+          console.log(`[BILLING] install() route: longTrial=true → calling getSubscriptionUrlLongTrial() for ${shop}`);
           const sessionToken = session?.accessToken;
           const confirmationUrl = await getSubscriptionUrlLongTrial(
             ctx,
@@ -439,6 +440,7 @@ const install = async (ctx) => {
             true,
             false
           );
+          console.log(`[BILLING] install() route: getSubscriptionUrlLongTrial() returned confirmationUrl=${confirmationUrl ? 'present' : 'null'} for ${shop}`);
           // If confirmationUrl is null, active subscription exists - allow access
           if (!confirmationUrl) {
             ctx.status = 200;
@@ -449,6 +451,7 @@ const install = async (ctx) => {
           }
         } else if (development) {
           /** Runs when its dev store */
+          console.log(`[BILLING] install() route: development=true → calling getSubscriptionUrlDEV() for ${shop}`);
           const sessionToken = session?.accessToken;
           const confirmationUrl = await getSubscriptionUrlDEV(
             ctx,
@@ -458,6 +461,7 @@ const install = async (ctx) => {
             true,
             false
           );
+          console.log(`[BILLING] install() route: getSubscriptionUrlDEV() returned confirmationUrl=${confirmationUrl ? 'present' : 'null'} for ${shop}`);
           // If confirmationUrl is null, active subscription exists - allow access
           if (!confirmationUrl) {
             ctx.status = 200;
@@ -468,6 +472,7 @@ const install = async (ctx) => {
           }
         } else {
           /** Runs when its normal store */
+          console.log(`[BILLING] install() route: development=false, longTrial=false → calling getSubscriptionUrl() for ${shop}`);
           const sessionToken = session?.accessToken;
           const confirmationUrl = await getSubscriptionUrl(
             ctx,
@@ -477,6 +482,7 @@ const install = async (ctx) => {
             true,
             false
           );
+          console.log(`[BILLING] install() route: getSubscriptionUrl() returned confirmationUrl=${confirmationUrl ? 'present' : 'null'} for ${shop}`);
           // If confirmationUrl is null, active subscription exists - allow access
           if (!confirmationUrl) {
             ctx.status = 200;
