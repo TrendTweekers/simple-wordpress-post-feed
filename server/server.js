@@ -955,12 +955,15 @@ app
         
         // ✅ SHOP GUARD: Determine request type
         const acceptHeader = ctx.get("accept") || ctx.request.headers.accept || '';
-        const isDocumentRequest = acceptHeader.includes("text/html") || 
+        const isDocumentRequest = acceptHeader.includes("text/html") ||
                                   (!acceptHeader.includes("application/json") && (ctx.path === '/' || ctx.path === ''));
         const isApiRequest = ctx.path.startsWith("/api/");
-        
-        // ✅ SHOP GUARD RULE 1: API requests require valid Bearer token
-        if (isApiRequest) {
+
+        // ✅ EXEMPTION: GET /api/posts is public (no Bearer token required)
+        const isPublicPostsEndpoint = ctx.method === "GET" && ctx.path === "/api/posts";
+
+        // ✅ SHOP GUARD RULE 1: API requests require valid Bearer token (skip for public /api/posts)
+        if (isApiRequest && !isPublicPostsEndpoint) {
           const auth = ctx.get("Authorization") || ctx.request.headers.authorization || "";
           const hasBearer = auth.toLowerCase().startsWith("bearer ");
           if (!hasBearer) {
@@ -971,6 +974,8 @@ app
           }
           // Bearer token exists - continue to session/charge checks below
           console.log(`[SHOP GUARD] API request ${ctx.path} has Bearer token, proceeding`);
+        } else if (isPublicPostsEndpoint) {
+          console.log(`[SHOP GUARD] Public endpoint GET /api/posts - skipping Bearer token requirement`);
         }
         
         // ✅ SHOP GUARD RULE 2: Document/iframe requests - allow rendering if offline session exists

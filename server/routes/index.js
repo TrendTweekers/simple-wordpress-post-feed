@@ -571,9 +571,24 @@ const getPosts = async (ctx) => {
   }
 
   try {
-    // Load offline session
-    const session = await loadSessionWithErrorHandling(shop, ctx, ctx.query.host, `GET /api/posts`);
-    if (!session) return; // Redirect was triggered
+    // ✅ CRITICAL: GET /api/posts is public - try to load session without auth errors
+    // If no session exists (shop not installed), gracefully return empty posts
+    let session = null;
+    try {
+      session = await loadOfflineSession(shop, shopifyApi);
+    } catch (sessionError) {
+      // Shop may not be installed yet - this is OK for public /api/posts endpoint
+      console.log(`[/api/posts] No offline session for shop ${shop} (shop may not be installed) - returning empty posts`);
+      ctx.status = 200;
+      ctx.body = { posts: [] };
+      return;
+    }
+
+    if (!session) {
+      ctx.status = 200;
+      ctx.body = { posts: [] };
+      return;
+    }
 
     const token = session.accessToken;
 
