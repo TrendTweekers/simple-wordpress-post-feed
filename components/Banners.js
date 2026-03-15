@@ -57,11 +57,11 @@ export const ReviewBanner = ({showBanner, setShowBanner}) => {
           <li>
             Send it to us!{" "}
             <a
-              href="mailto: support@stackedboosthelp.zendesk.com"
+              href="mailto:admin@stackedboost.com"
               target="_blank"
               rel="noopener noreferrer"
             >
-              support@stackedboosthelp.zendesk.com
+              admin@stackedboost.com
             </a>
           </li>
         </ol>

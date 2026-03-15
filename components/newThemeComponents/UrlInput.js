@@ -172,11 +172,11 @@ const UrlInput = () => {
       />
       If it's just keeps not working{"  "}
       <a
-        href={`mailto:support@stackedboosthelp.zendesk.com?subject=Simple Wordpress Post Feed- help for ${shop}`}
+        href={`mailto:admin@stackedboost.com?subject=Simple Wordpress Post Feed- help for ${shop}`}
         target="_blank"
         rel="noopener noreferrer"
       >
-        support@stackedboosthelp.zendesk.com
+        admin@stackedboost.com
       </a>
     </>
   );
