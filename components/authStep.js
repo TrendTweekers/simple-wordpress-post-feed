@@ -7,7 +7,8 @@ import { StoreProvider } from "../store/store";
 import React, { useState, useEffect } from "react";
 import { useAppBridge, Provider } from "@shopify/app-bridge-react";
 import { Redirect } from "@shopify/app-bridge/actions";
-import { authenticatedFetch } from "../lib/authenticatedFetch";
+import { getSessionToken } from "@shopify/app-bridge-utils";
+import { manualTokenFetch } from "../lib/manualTokenFetch";
 import en from "@shopify/polaris/locales/en.json";
 import pl from "@shopify/polaris/locales/pl.json";
 import sv from "@shopify/polaris/locales/sv.json";
@@ -17,37 +18,34 @@ const { TUNNEL_URL } = env;
 
 import Spinner from "./SpinnerComponent";
 
-const userLoggedInFetch = (app) => {
-  const fetchFunction = authenticatedFetch(app);
-
-  return async (uri, options) => {
-    const response = await fetchFunction(uri, options);
-
-    if (
-      response.headers.get("X-Shopify-API-Request-Failure-Reauthorize") === "1"
-    ) {
-      const authUrlHeader = response.headers.get(
-        "X-Shopify-API-Request-Failure-Reauthorize-Url"
-      );
-
-      const redirect = Redirect.create(app);
-      redirect.dispatch(Redirect.Action.APP, authUrlHeader || `/auth`);
-      return null;
-    }
-
-    return response;
-  };
-};
-
+// ✅ v3 PATTERN: MyProvider creates ApolloClient using getSessionToken(app) for each request
 const MyProvider = (props) => {
   const app = useAppBridge();
 
   const client = new ApolloClient({
-    fetch: userLoggedInFetch(app),
+    // ✅ FIX: Custom fetch that gets a fresh session token per request (App Bridge v3)
+    fetch: async (url, options = {}) => {
+      try {
+        const token = await getSessionToken(app);
+        return fetch(url, {
+          ...options,
+          headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+      } catch (err) {
+        console.error("[MyProvider] Failed to get session token for Apollo:", err);
+        // Fall back to unauthenticated fetch rather than throwing — lets Apollo show its own error
+        return fetch(url, { ...options, credentials: "include" });
+      }
+    },
     fetchOptions: {
       credentials: "include",
     },
   });
+
   const Component = props.Component;
 
   return (
@@ -64,203 +62,165 @@ const authStep = ({ config, Component, pageProps }) => {
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ✅ FIX: Use App Bridge instance from Provider context instead of creating duplicate
-  // This ensures we're using the same instance as _app.js Provider
+  // ✅ v3 PATTERN: Get app instance from Provider context
   const app = useAppBridge();
-  
-  // Only create redirect if app is available
   const redirect = app ? Redirect.create(app) : null;
 
-  // ✅ CRITICAL: Use manual token fetch since automatic App Bridge interceptor is failing
-  // manualTokenFetch and waitForShopify are imported at top of file
-  
-  // Also keep userLoggedInFetch as fallback
-  const authenticatedFetch = app ? userLoggedInFetch(app) : null;
-
   /**
-   * Build absolute URL with host parameter preserved
+   * Build absolute URL with host + shop parameters preserved
    */
   const buildAuthUrl = (reauthUrl) => {
-    // Start with absolute URL
     const url = new URL(reauthUrl, window.location.origin);
-    
-    // Ensure host exists (Shopify requires it) - get from current URL
     const currentHost = new URLSearchParams(window.location.search).get("host");
     if (!url.searchParams.get("host") && currentHost) {
       url.searchParams.set("host", currentHost);
     }
-    
-    // Ensure shop parameter exists
     const currentShop = new URLSearchParams(window.location.search).get("shop");
     if (!url.searchParams.get("shop") && currentShop) {
       url.searchParams.set("shop", currentShop);
     }
-    
     return url.toString();
   };
 
   /**
-   * Helper function to redirect using App Bridge (works reliably in embedded iframe)
-   * Falls back to window.location.assign if App Bridge isn't ready
+   * Redirect via App Bridge (embedded-safe), fallback to window.location.assign
    */
   const redirectToAuth = (reauthUrl) => {
-    // Build absolute URL with host parameter
     const fullUrl = buildAuthUrl(reauthUrl);
-    
     console.log(`[AUTH] Redirecting to: ${fullUrl}`);
-    
     try {
-      // Use App Bridge Redirect for embedded apps
       if (redirect) {
         redirect.dispatch(Redirect.Action.REMOTE, fullUrl);
         console.log(`[AUTH] App Bridge redirect dispatched`);
       } else {
-        // Fallback if App Bridge redirect isn't available
         console.warn(`[AUTH] App Bridge redirect not available, using window.location.assign`);
         window.location.assign(fullUrl);
       }
     } catch (err) {
-      // Fallback on error
       console.error(`[AUTH] App Bridge redirect failed:`, err);
       window.location.assign(fullUrl);
     }
   };
 
   /**
-   * Make install route run and returning if the shop allowed to log in or not, if not, returning an existing confirmation url or a new one
-   * Uses authenticated fetch instead of axios to avoid cookie dependency
+   * Check install/billing status.
+   * ✅ v3 PATTERN: getSessionToken(app) → manualTokenFetch
+   * No window.shopify, no authenticatedFetch, no getSessionTokenSafe.
    */
   const makeInstall = async () => {
     try {
       const url = `/api/install?shop=${encodeURIComponent(shopOrigin)}&host=${encodeURIComponent(host)}`;
-      console.log(`[AUTH] Calling /api/install for ${shopOrigin} with authenticatedFetch`);
-      
-      // ✅ CRITICAL: Use new authenticatedFetch which automatically handles Bearer token
-      const response = await authenticatedFetch(url, {
-        method: 'GET',
-      });
-      
+      console.log(`[AUTH] Calling /api/install for ${shopOrigin}`);
+
+      // ✅ CRITICAL: Get token via App Bridge v3 — getSessionToken(app)
+      let token;
+      try {
+        token = await getSessionToken(app);
+      } catch (err) {
+        console.error("[AUTH] getSessionToken failed:", err.message);
+        // No token — fall through to unauthenticated request so the server can respond
+      }
+
+      let response;
+      if (token) {
+        response = await manualTokenFetch(url, token, { method: "GET" });
+      } else {
+        console.warn("[AUTH] No token available, attempting unauthenticated install check");
+        response = await fetch(url, { method: "GET", credentials: "include" });
+      }
+
       if (!response) {
-        // Response was null (shouldn't happen with new authenticatedFetch, but handle gracefully)
-        console.log(`[AUTH] Response was null`);
+        console.log(`[AUTH] Response was null (reauth redirect triggered)`);
         return;
       }
-      
-      // ✅ FIX: Only redirect on 401/403 if explicitly told to reauth
-      // Don't redirect on every 401/403 - backend might be handling it
+
       if (response.status === 401 || response.status === 403) {
-        let data;
-        try {
-          data = await response.json();
-        } catch (e) {
-          console.log(`[AUTH] Could not parse error response, checking status only`);
-          data = {};
-        }
-        
-        const needsReauth = data?.reauth === true || data?.code === "SHOPIFY_AUTH_REQUIRED" || data?.code === "NO_OFFLINE_SESSION";
-        
+        let data = {};
+        try { data = await response.json(); } catch (_) {}
+
+        const needsReauth =
+          data?.reauth === true ||
+          data?.code === "SHOPIFY_AUTH_REQUIRED" ||
+          data?.code === "NO_OFFLINE_SESSION";
+
         if (needsReauth && data.reauthUrl) {
-          console.log(`[AUTH] Reauth required detected (code: ${data.code}), redirecting to: ${data.reauthUrl}`);
+          console.log(`[AUTH] Reauth required (code: ${data.code}), redirecting`);
           redirectToAuth(data.reauthUrl);
           return;
         }
-        
-        // ✅ FIX: Don't redirect on 401/403 if backend didn't explicitly request it
-        // The backend SHOP GUARD might be handling auth differently
-        console.log(`[AUTH] 401/403 received but no explicit reauth flag, checking if we're already authenticated`);
-        
-        // If we're on the home page and got 401/403, it might be a false positive
-        // Let the backend SHOP GUARD handle it instead of redirecting immediately
-        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-        if (currentPath === '/' || currentPath === '/index') {
-          console.log(`[AUTH] On home page with 401/403 but no reauth flag - backend may handle it, not redirecting`);
-          // Don't redirect - let the page render and backend will handle it
+
+        // 401/403 without explicit reauth flag — stay on page, let backend handle
+        const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+        if (currentPath === "/" || currentPath === "/index") {
+          console.log(`[AUTH] 401/403 on home page with no reauth flag — not redirecting`);
           setLoading(false);
           return;
         }
-        
-        // Only redirect if we're not on home page and got explicit error
-        console.log(`[AUTH] Not on home page, using fallback URL`);
-        const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
-        const fallbackUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
+
+        const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : "");
+        const fallbackUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || "")}&host=${encodeURIComponent(finalHost)}`;
         redirectToAuth(fallbackUrl);
         return;
       }
-      
+
       const data = await response.json();
       const { allowed: isAllowed, confirmationUrl: confirmUrl, themeAccess } = data;
-      
-      // Store themeAccess in localStorage or pass to store if needed
+
       if (themeAccess === false) {
-        localStorage.setItem('themeAccess', 'false');
+        localStorage.setItem("themeAccess", "false");
       } else {
-        localStorage.removeItem('themeAccess');
+        localStorage.removeItem("themeAccess");
       }
-      
-      // ✅ CRITICAL: Billing must NOT be part of the initial render gate
-      // Render UI immediately, billing checks happen asynchronously
-      // After billing confirmation, the app should render immediately
+
       if (isAllowed) {
         setAllowed(true);
         setLoading(false);
-        console.log('[AUTH] ✅ Shop allowed - rendering app UI');
+        console.log("[AUTH] ✅ Shop allowed — rendering app UI");
       } else {
-        console.log("[AUTH] ⚠️ Shop not allowed - billing may be pending");
-        // ✅ CRITICAL: Still render UI even if billing is pending
-        // Billing confirmation will happen asynchronously
-        setAllowed(true); // Allow rendering - billing check happens in background
+        console.log("[AUTH] ⚠️ Shop not allowed — billing may be pending");
+        setAllowed(true);
         setLoading(false);
         if (confirmUrl) {
           setConfirmationUrl(`${TUNNEL_URL}${confirmUrl}`);
-          console.log('[AUTH] Billing confirmation URL available:', confirmUrl);
+          console.log("[AUTH] Billing confirmation URL available:", confirmUrl);
         }
       }
     } catch (err) {
-      console.error('Error checking install status:', err);
-      // On error, force reauth using App Bridge
-      const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : '');
-      const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || '')}&host=${encodeURIComponent(finalHost)}`;
+      console.error("Error checking install status:", err);
+      const finalHost = host || (shopOrigin ? btoa(`${shopOrigin}/admin`) : "");
+      const reauthUrl = `/install/auth?shop=${encodeURIComponent(shopOrigin || "")}&host=${encodeURIComponent(finalHost)}`;
       redirectToAuth(reauthUrl);
     }
   };
 
   useEffect(() => {
-    // ✅ FIX: Only call makeInstall if we have shop and host
-    // Prevent unnecessary redirects if parameters are missing
     if (!shopOrigin || !host) {
-      console.warn('[AUTH] Missing shop or host, skipping install check');
+      console.warn("[AUTH] Missing shop or host, skipping install check");
       setLoading(false);
-      setAllowed(true); // ✅ CRITICAL: Allow rendering even without shop/host
+      setAllowed(true);
       return;
     }
-    
-    // ✅ CRITICAL: Render UI immediately, billing check happens asynchronously
-    // Don't block rendering on billing checks
+
+    // ✅ CRITICAL: Render UI immediately — billing check is non-blocking
     setLoading(false);
     setAllowed(true);
-    
-    // Trigger billing check in background (non-blocking)
-    makeInstall().catch(err => {
-      console.error('[AUTH] Billing check failed:', err);
-      // Don't block UI on billing check failure
+
+    makeInstall().catch((err) => {
+      console.error("[AUTH] Billing check failed:", err);
     });
-    
-    // ✅ CRITICAL: Hard fallback - if billing check hangs, still render UI
-    // After 2 seconds, ensure UI is rendered regardless of billing status
+
     const timeout = setTimeout(() => {
       if (loading) {
-        console.warn('[AUTH] ⚠️ Billing check timeout - rendering UI anyway');
+        console.warn("[AUTH] ⚠️ Billing check timeout — rendering UI anyway");
         setLoading(false);
         setAllowed(true);
       }
     }, 2000);
-    
+
     return () => clearTimeout(timeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopOrigin, host]);
-  
-  // ✅ CRITICAL: Render UI immediately - don't block on loading state
-  // Billing checks happen asynchronously and shouldn't prevent rendering
+
   if (loading && !shopOrigin && !host) {
     return (
       <AppProvider>
@@ -268,18 +228,14 @@ const authStep = ({ config, Component, pageProps }) => {
       </AppProvider>
     );
   }
+
   if (allowed) {
     return (
       <AppProvider
         i18n={{
           Polaris: {
-            Frame: {
-              skipToContent: "Skip to content",
-            },
-            ContextualSaveBar: {
-              save: "Save",
-              discard: "Discard",
-            },
+            Frame: { skipToContent: "Skip to content" },
+            ContextualSaveBar: { save: "Save", discard: "Discard" },
           },
           translations: [en, pl, sv, es],
         }}

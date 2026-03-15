@@ -280,9 +280,6 @@ const Index = ({ shopOrigin: shop }) => {
   const getSettings = async () => {
     dispatch({ type: types.LOADING, payload: true });
     
-    // ✅ CRITICAL: authenticatedFetch handles token retrieval automatically
-    // No need to wait for Shopify - authenticatedFetch will throw if App Bridge isn't ready
-    
     try {
       const metaData = await getMetaData();
       if (!metaData) {

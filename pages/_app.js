@@ -88,43 +88,9 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
       forceRedirect: false,
     };
 
-    // ✅ CRITICAL FIX: Verify App Bridge Provider has initialized window.shopify
-    useEffect(() => {
-      if (typeof window === 'undefined') return;
-
-      // ✅ CRITICAL: window.shopify is set by @shopify/app-bridge-react Provider
-      // It's async, so we poll for it instead of trying to use it synchronously
-      const checkAppBridge = () => {
-        if (!window.shopify) {
-          console.warn('[App] ⏳ window.shopify not yet available - Provider initializing');
-          return false;
-        }
-
-        // Check if idToken function exists (App Bridge v4)
-        if (typeof window.shopify.idToken !== 'function') {
-          console.warn('[App] ⏳ window.shopify.idToken() not yet available - waiting for Provider');
-          return false;
-        }
-
-        console.log('[App] ✅ Provider initialized: window.shopify.idToken is available');
-        return true;
-      };
-
-      // Poll for Provider initialization
-      let attempts = 0;
-      const maxAttempts = 30; // 3 seconds at 100ms intervals
-      const pollInterval = setInterval(() => {
-        attempts++;
-        if (checkAppBridge()) {
-          clearInterval(pollInterval);
-        } else if (attempts >= maxAttempts) {
-          console.error('[App] ❌ Provider initialization timeout - window.shopify.idToken still not available after 3 seconds');
-          clearInterval(pollInterval);
-        }
-      }, 100);
-
-      return () => clearInterval(pollInterval);
-    }, []);
+    // ✅ NOTE: App Bridge v3 does NOT use window.shopify.idToken (that is v4 only).
+    // Token retrieval uses getSessionToken(app) from @shopify/app-bridge-utils inside components.
+    // No polling needed here.
 
     return (
       <Provider config={config}>
