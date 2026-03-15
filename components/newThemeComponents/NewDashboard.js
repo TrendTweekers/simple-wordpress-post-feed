@@ -57,18 +57,21 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
 
   // Check if app is running inside Shopify admin
   useEffect(() => {
-    const checkAdmin = async () => {
+    const checkAdmin = () => {
       const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
       const hostParam = urlParams.get('host');
 
-      if (!hostParam) {
-        setIsShopifyAdmin(false);
-        return;
-      }
+      // ✅ CRITICAL FIX: Presence of host parameter from Shopify means we're in embedded admin context
+      // Do NOT wait for App Bridge initialization here - that's handled by manualTokenFetch when making API calls
+      // Shopify's embedded iframe always includes host parameter if launched from Admin > Apps
+      const isAdmin = !!hostParam;
+      setIsShopifyAdmin(isAdmin);
 
-      // Wait for App Bridge to initialize
-      const isReady = await waitForShopify(3000);
-      setIsShopifyAdmin(isReady);
+      if (!isAdmin) {
+        console.warn('[NewDashboard] Admin context check: No host parameter found - not embedded in Shopify admin');
+      } else {
+        console.log('[NewDashboard] Admin context check: ✅ Host parameter present - embedded in Shopify admin');
+      }
     };
 
     checkAdmin();
