@@ -13,7 +13,6 @@ import {
   Banner,
 } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge-utils";
 import { TroubleShootBanner, ReviewBanner } from "../Banners";
@@ -23,7 +22,6 @@ import UrlInput from "./UrlInput";
 import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
 import ShowExcerpt from "./ShowExcerpt";
-import LastPost from "./LastPost";
 import { manualTokenFetch } from "../../lib/manualTokenFetch";
 
 /**
@@ -189,26 +187,24 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
     }
   };
 
-  /** Link to the shop theme customizer - ✅ FIX: Use shop from URL params directly */
-  const themeSectionEditor = (
-    <Button
-      primary
-      disabled={!testedOK}
-      onClick={() => {
-        // ✅ FIX: Get shop directly from URL params to ensure it's always available
-        const shopFromUrl = new URLSearchParams(window.location.search).get("shop");
-        const shopToUse = shopFromUrl || shop;
-        if (shopToUse) {
-          const themeUrl = `https://${shopToUse}/admin/themes/current/editor?context=apps`;
-          window.open(themeUrl, "_blank");
-        } else {
-          console.error("[NewDashboard] Cannot open theme editor: shop parameter missing");
-        }
-      }}
-    >
-      Theme section editor
-    </Button>
-  );
+  const openThemeEditor = () => {
+    const shopFromUrl = new URLSearchParams(window.location.search).get("shop");
+    const shopToUse = shopFromUrl || shop;
+    if (shopToUse) {
+      window.open(`https://${shopToUse}/admin/themes/current/editor?context=apps`, "_blank");
+    } else {
+      console.error("[NewDashboard] Cannot open theme editor: shop parameter missing");
+    }
+  };
+
+  const themeButtonDisabled = !testedOK || !disableSave;
+  const themeButtonHint = !settings.url.value
+    ? "Enter and verify your WordPress URL first."
+    : !testedOK
+    ? "WordPress URL could not be verified — check the URL above."
+    : !disableSave
+    ? "Save your settings to continue."
+    : null;
 
   const SaveBar = disableSave || !isShopifyAdmin ? null : (
     <ContextualSaveBar
@@ -326,23 +322,15 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
         <Page title="Simple Wordpress Post Feed">
           <Card sectioned>
             <TextContainer>
-              <Heading>
-                Thank you for installing Simple Wordpress Post Feed!
-              </Heading>
+              <Heading>Get started in 3 steps</Heading>
               <p>
-                To get started please set your Wordpress URL and some basic
-                settings here below. After saving the settings you can head over
-                to the Theme section editor to customize the widget
+                <strong>1.</strong> Enter your WordPress site URL in the &ldquo;Hosting settings&rdquo; card below and wait for the green confirmation.
               </p>
-              {themeSectionEditor}
               <p>
-                <i>
-                  Hope you enjoy the app and please don&apos;t forget to leave a
-                  review{" "}
-                  <span role="img" aria-label="kisses">
-                    😘
-                  </span>
-                </i>
+                <strong>2.</strong> Save your settings using the bar that appears at the top of the page.
+              </p>
+              <p>
+                <strong>3.</strong> Open the theme editor to place the WordPress feed block on any page of your store.
               </p>
             </TextContainer>
           </Card>
@@ -359,6 +347,19 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
               <ShowExcerpt />
             </Layout.Section>
           </Layout>
+          <div className="menu-spacer" style={{ height: "16px" }}></div>
+          <Card sectioned title="Step 3 — Add the feed to your store">
+            <TextContainer>
+              {themeButtonHint && <p>{themeButtonHint}</p>}
+              <Button
+                primary
+                disabled={themeButtonDisabled}
+                onClick={openThemeEditor}
+              >
+                Open theme editor
+              </Button>
+            </TextContainer>
+          </Card>
           <div className="menu-spacer" style={{ height: "16px" }}></div>
           <ReviewBanner
             showBanner={showReviewBanner}
