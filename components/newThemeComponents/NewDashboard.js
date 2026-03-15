@@ -37,6 +37,8 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
   const [showReviewBanner, setShowReviewBanner] = useState(
     reviewBanner === "true"
   );
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showDangerZone, setShowDangerZone] = useState(false);
   const { theme, shop: shopFromState, disableSave, settings, testedOK } = data;
 
   // ✅ FIX: Get shop from URL query params as fallback (strict enforcement)
@@ -50,9 +52,8 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
   useEffect(() => {
     if (banner === undefined) {
       setShowBanner(true);
-      setShowReviewBanner(true);
     }
-  }, [banner, reviewBanner]);
+  }, [banner]);
 
   // Check if app is running inside Shopify admin
   useEffect(() => {
@@ -316,20 +317,19 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
         )}
         {newThemeCapable === false && (
           <div style={{ padding: '16px' }}>
-            <Banner
-              title="Theme compatibility notice"
-              status="info"
-            >
+            <Banner title="Theme compatibility notice" status="info">
               Your current theme has limited support for Online Store 2.0 app blocks. The WordPress feed can still be embedded using the legacy section method, but some features may not be available. Consider upgrading to a 2.0-compatible theme for the best experience.
             </Banner>
           </div>
         )}
         <Page title="Simple Wordpress Post Feed">
+
+          {/* ── Step 1: URL ── */}
           <Card sectioned>
             <TextContainer>
               <Heading>Get started in 3 steps</Heading>
               <p>
-                <strong>1.</strong> Enter your WordPress site URL in the &ldquo;Hosting settings&rdquo; card below and wait for the green confirmation.
+                <strong>1.</strong> Enter your WordPress site URL below and wait for the green confirmation.
               </p>
               <p>
                 <strong>2.</strong> Save your settings using the bar that appears at the top of the page.
@@ -340,18 +340,8 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
             </TextContainer>
           </Card>
           <UrlInput />
-          <div className="menu-spacer" style={{ height: "16px" }}></div>
-          <Layout>
-            <Layout.Section oneThird>
-              <BasicSetings />
-            </Layout.Section>
-            <Layout.Section oneThird>
-              <Filters />
-            </Layout.Section>
-            <Layout.Section oneThird>
-              <ShowExcerpt />
-            </Layout.Section>
-          </Layout>
+
+          {/* ── Step 3: theme editor ── */}
           <div className="menu-spacer" style={{ height: "16px" }}></div>
           <Card sectioned title="Step 3 — Add the feed to your store">
             <TextContainer>
@@ -365,18 +355,93 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
               </Button>
             </TextContainer>
           </Card>
-          <div className="menu-spacer" style={{ height: "16px" }}></div>
-          <ReviewBanner
-            showBanner={showReviewBanner}
-            setShowBanner={setShowReviewBanner}
-          />
-          <div className="menu-spacer" style={{ height: "16px" }}></div>
-          <TroubleShootBanner
-            showBanner={showBanner}
-            setShowBanner={setShowBanner}
-          />
-          <Button destructive onClick={handleDeleteAllMeta} disabled={!isShopifyAdmin}>Delete all meta tags</Button>
-          
+
+          {/* ── Review banner — only shown after setup is complete ── */}
+          {testedOK && disableSave && (
+            <>
+              <div className="menu-spacer" style={{ height: "16px" }}></div>
+              <ReviewBanner
+                showBanner={showReviewBanner}
+                setShowBanner={setShowReviewBanner}
+              />
+            </>
+          )}
+
+          {/* ── Advanced options (collapsible) ── */}
+          <div className="menu-spacer" style={{ height: "24px" }}></div>
+          <Card sectioned>
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                fontSize: '0.9375rem',
+                fontWeight: 600,
+                color: 'inherit',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              {showAdvanced ? '▾' : '▸'} Advanced options
+            </button>
+            {showAdvanced && (
+              <div style={{ marginTop: '16px' }}>
+                <Layout>
+                  <Layout.Section oneThird>
+                    <BasicSetings />
+                  </Layout.Section>
+                  <Layout.Section oneThird>
+                    <Filters />
+                  </Layout.Section>
+                  <Layout.Section oneThird>
+                    <ShowExcerpt />
+                  </Layout.Section>
+                </Layout>
+              </div>
+            )}
+          </Card>
+
+          {/* ── Danger zone (collapsible) ── */}
+          <div className="menu-spacer" style={{ height: "8px" }}></div>
+          <Card sectioned>
+            <button
+              onClick={() => setShowDangerZone(!showDangerZone)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                fontSize: '0.9375rem',
+                fontWeight: 600,
+                color: '#bf0711',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              {showDangerZone ? '▾' : '▸'} Danger zone
+            </button>
+            {showDangerZone && (
+              <div style={{ marginTop: '16px' }}>
+                <TroubleShootBanner
+                  showBanner={showBanner}
+                  setShowBanner={setShowBanner}
+                />
+                <div style={{ marginTop: '12px' }}>
+                  <Button destructive onClick={handleDeleteAllMeta} disabled={!isShopifyAdmin}>
+                    Delete all meta tags
+                  </Button>
+                  <p style={{ marginTop: '8px', fontSize: '0.8125rem', opacity: 0.6 }}>
+                    Removes all saved settings for this store. This cannot be undone.
+                  </p>
+                </div>
+              </div>
+            )}
+          </Card>
+
         </Page>
       </Frame>
     );
