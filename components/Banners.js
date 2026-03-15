@@ -33,7 +33,7 @@ export const ReviewBanner = ({showBanner, setShowBanner}) => {
     return (
       <Banner
         className="infobanner"
-        title="Leave a review and Win 1 year free use!"
+        title="Is the feed working on your store?"
         onDismiss={() => {
           lscache.set("review", "false", 300000);
           setShowBanner(false);
@@ -41,30 +41,15 @@ export const ReviewBanner = ({showBanner, setShowBanner}) => {
         status="info"
       >
         <p>
-          Don&apos;t forget to leave a review. You can be the lucky one who will get
-          one year free subscription monthly!
+          If it is, a short review helps other merchants find the app and takes less than a minute.{" "}
+          <a
+            href="https://apps.shopify.com/simple-wordpress-post-feed#reviews"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Leave a review →
+          </a>
         </p>
-        <ol>
-          <li>
-            <a
-              href="https://apps.shopify.com/simple-wordpress-post-feed"
-              target="blank"
-            >
-              Leave a review here
-            </a>
-          </li>
-          <li> Make a screenshot</li>
-          <li>
-            Send it to us!{" "}
-            <a
-              href="mailto:admin@stackedboost.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              admin@stackedboost.com
-            </a>
-          </li>
-        </ol>
       </Banner>
     );
   } else {
