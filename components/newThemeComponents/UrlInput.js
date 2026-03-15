@@ -129,6 +129,7 @@ const UrlInput = () => {
   };
 
   useEffect(() => {
+    if (!url) return;
     const delayedTestFetch = setTimeout(() => {
       testFetch();
     }, 1000);
@@ -204,7 +205,7 @@ const UrlInput = () => {
           onBlur={() => testFetch()}
           inputMode="url"
         />
-        {testing ? SpinnerBanner : TestBanner}
+        {url ? (testing ? SpinnerBanner : TestBanner) : null}
       </FormLayout>
     </Card>
   );
