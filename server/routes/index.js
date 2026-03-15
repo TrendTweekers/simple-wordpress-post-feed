@@ -675,11 +675,19 @@ const getPosts = async (ctx) => {
             day: 'numeric'
           });
 
+          // Featured image: self-hosted uses _embedded media; WP.com uses post_thumbnail
+          const image =
+            post._embedded?.['wp:featuredmedia']?.[0]?.source_url ||
+            post.post_thumbnail?.URL ||
+            post.featured_image ||
+            '';
+
           return {
             url,
             title,
             excerpt,
-            date: dateStr
+            date: dateStr,
+            image,
           };
         } catch (transformError) {
           console.warn(`[/api/posts] Error transforming post for ${shop}:`, transformError.message);

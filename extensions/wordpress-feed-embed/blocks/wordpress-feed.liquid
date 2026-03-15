@@ -36,6 +36,7 @@
     }
 
     var postCount = {{ block.settings.post_count | default: 5 }};
+    var showImage = {{ block.settings.show_image | default: true }};
     fetch('https://simple-wordpress-post-feed-production.up.railway.app/api/posts?shop=' + shopDomain + '&count=' + postCount)
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -46,7 +47,11 @@
         container.innerHTML = data.posts.map(function(post) {
           var excerpt = stripTags(post.excerpt || '');
           var date    = formatDate(post.date);
+          var imageHtml = (showImage && post.image)
+            ? '<img class="wp-feed-post__image" src="' + post.image + '" alt="" loading="lazy" decoding="async">'
+            : '';
           return '<article class="wp-feed-post">'
+            + imageHtml
             + '<a class="wp-feed-post__link" href="' + post.url + '" target="_blank" rel="noopener">'
             +   '<h3 class="wp-feed-post__title">' + post.title + '</h3>'
             + '</a>'
@@ -231,6 +236,27 @@
       padding: 0.75rem 0;
     }
   }
+
+  /* ── Featured image ── */
+  .wp-feed-post__image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .wp-feed-posts[data-layout="cards"] .wp-feed-post__image {
+    aspect-ratio: 16 / 9;
+    border-radius: 0.625rem 0.625rem 0 0;
+    margin: -1.5rem -1.5rem 1.25rem;
+    width: calc(100% + 3rem);
+  }
+
+  .wp-feed-posts[data-layout="compact"] .wp-feed-post__image {
+    display: none;
+  }
 </style>
 
 {% schema %}
@@ -238,6 +264,12 @@
   "name": "WordPress Post Feed",
   "target": "body",
   "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_image",
+      "label": "Show Featured Image",
+      "default": true
+    },
     {
       "type": "text",
       "id": "title",
