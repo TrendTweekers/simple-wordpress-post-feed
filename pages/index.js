@@ -163,36 +163,41 @@ const Index = ({ shopOrigin: shop }) => {
   } = data;
   
   // ✅ CRITICAL: Initialize App Bridge token before making any API calls
-  // Add timeout fallback to prevent infinite loading spinner
+  // getSessionTokenSafe() now properly waits for Provider initialization
   useEffect(() => {
     let timeoutId = null;
-    
+
     (async () => {
       try {
-        // ✅ CRITICAL: Ensure App Bridge is alive and token works before making requests
-        await getSessionTokenSafe(); // just validates token can be obtained
-        setShopifyReady(true);
-        console.log('[Index] ✅ App Bridge token initialized successfully');
-        
-        // Clear timeout if token init succeeds
-        if (timeoutId) {
-          clearTimeout(timeoutId);
+        // ✅ CRITICAL FIX: getSessionTokenSafe() now waits for window.shopify.idToken to be available
+        // This handles the async Provider initialization
+        const token = await getSessionTokenSafe();
+        if (token) {
+          setShopifyReady(true);
+          console.log('[Index] ✅ App Bridge token initialized successfully');
+          // Clear timeout if token init succeeds
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
+        } else {
+          console.error('[Index] ❌ Token init returned empty token');
         }
       } catch (e) {
-        console.error("[Index] Token init failed:", e);
-        // Don't set ready if token init fails - authenticatedFetch will throw anyway
+        console.error('[Index] ❌ Token init failed:', e.message);
+        // Still render UI after timeout even if token init fails
+        // authenticatedFetch will handle missing tokens gracefully
       }
     })();
-    
+
     // ✅ CRITICAL: Hard fallback - render UI after 3 seconds even if token init fails
-    // This prevents infinite loading spinner after billing confirmation
+    // This prevents infinite loading spinner and allows partial functionality
     timeoutId = setTimeout(() => {
       if (!shopifyReady) {
-        console.warn('[Index] ⚠️ App Bridge token init timeout - rendering UI anyway');
+        console.warn('[Index] ⚠️ App Bridge token init timeout after 3s - rendering UI anyway (will try token on first API call)');
         setShopifyReady(true);
       }
     }, 3000);
-    
+
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);

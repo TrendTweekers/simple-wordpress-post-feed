@@ -46,23 +46,34 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
 
     // ✅ FIX: Get shop and host from multiple sources (priority order: props > query > pageProps > URL)
     const shop = shopOrigin || query.shop || pageProps?.shop || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('shop') : null);
-    
-    // ✅ FIX: Ensure host is valid - generate if missing but shop exists
-    let hostValue = host || query.host || pageProps?.host;
-    if (!hostValue && typeof window !== 'undefined') {
+
+    // ✅ CRITICAL FIX: Ensure host is always extracted from URL search params first (Shopify always sends it there)
+    let hostValue = null;
+
+    // Priority 1: Get from URL search params (most reliable - Shopify always puts it there)
+    if (typeof window !== 'undefined') {
       hostValue = new URLSearchParams(window.location.search).get('host');
     }
-    // ✅ FIX: Generate host from shop if still missing (required for App Bridge embedding)
+
+    // Priority 2: Use from props if not in URL (getInitialProps fallback)
+    if (!hostValue) {
+      hostValue = host || query.host || pageProps?.host;
+    }
+
+    // Priority 3: Generate from shop if absolutely needed (fallback)
     if (!hostValue && shop) {
       try {
         hostValue = btoa(`${shop}/admin`);
+        console.warn('[App] ⚠️ Generated host from shop (not from Shopify parameter)');
       } catch (e) {
         console.error('[App] Failed to generate host from shop:', e);
       }
     }
 
-    // ✅ FIX: Validate host is present before initializing App Bridge
-    if (!hostValue) {
+    // ✅ CRITICAL: Log host resolution for debugging embedded context
+    if (hostValue) {
+      console.log('[App] ✅ Host parameter found for Provider:', hostValue.substring(0, 20) + '...');
+    } else {
       console.warn('[App] ⚠️ Host parameter missing - App Bridge may not embed correctly');
     }
 
@@ -77,41 +88,42 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
       forceRedirect: false,
     };
 
-    // ✅ CRITICAL: Global fetch interceptor to verify App Bridge v4 token exchange
+    // ✅ CRITICAL FIX: Verify App Bridge Provider has initialized window.shopify
     useEffect(() => {
       if (typeof window === 'undefined') return;
-      
-      // Wait for App Bridge to initialize
+
+      // ✅ CRITICAL: window.shopify is set by @shopify/app-bridge-react Provider
+      // It's async, so we poll for it instead of trying to use it synchronously
       const checkAppBridge = () => {
         if (!window.shopify) {
-          console.warn('[App] ⚠️ window.shopify not available - App Bridge may not be loaded');
-          return;
+          console.warn('[App] ⏳ window.shopify not yet available - Provider initializing');
+          return false;
         }
-        
+
         // Check if idToken function exists (App Bridge v4)
         if (typeof window.shopify.idToken !== 'function') {
-          console.warn('[App] ⚠️ window.shopify.idToken() not available - App Bridge v4 token exchange may fail');
-          return;
+          console.warn('[App] ⏳ window.shopify.idToken() not yet available - waiting for Provider');
+          return false;
         }
-        
-        // Test idToken retrieval
-        try {
-          const token = window.shopify.idToken();
-          if (token) {
-            console.log('[App] ✅ App Bridge v4 idToken available:', token.substring(0, 20) + '...');
-          } else {
-            console.warn('[App] ⚠️ App Bridge idToken() returned null - token exchange may fail');
-          }
-        } catch (err) {
-          console.error('[App] ❌ Error getting App Bridge idToken:', err);
-        }
+
+        console.log('[App] ✅ Provider initialized: window.shopify.idToken is available');
+        return true;
       };
-      
-      // Check immediately and after a short delay (App Bridge may load async)
-      checkAppBridge();
-      const timeout = setTimeout(checkAppBridge, 500);
-      
-      return () => clearTimeout(timeout);
+
+      // Poll for Provider initialization
+      let attempts = 0;
+      const maxAttempts = 30; // 3 seconds at 100ms intervals
+      const pollInterval = setInterval(() => {
+        attempts++;
+        if (checkAppBridge()) {
+          clearInterval(pollInterval);
+        } else if (attempts >= maxAttempts) {
+          console.error('[App] ❌ Provider initialization timeout - window.shopify.idToken still not available after 3 seconds');
+          clearInterval(pollInterval);
+        }
+      }, 100);
+
+      return () => clearInterval(pollInterval);
     }, []);
 
     return (
