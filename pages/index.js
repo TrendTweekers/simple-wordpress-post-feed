@@ -10,7 +10,7 @@ import Header from "../components/Header";
 import SpinnerComponent from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
-import { authenticatedFetch } from "../lib/authenticatedFetch";
+import { manualTokenFetch } from "../lib/manualTokenFetch";
 
 /* ------------------ SAFE REVIEW BANNER ------------------ */
 function ReviewBanner() {
@@ -211,22 +211,28 @@ const Index = ({ shopOrigin: shop }) => {
       console.error('[Index] Shopify not ready, cannot fetch shop data');
       return null;
     }
-    
+
     try {
-      const response = await authenticatedFetch(`/api/data`, {
+      // ✅ v3 PATTERN: Get token directly from app instance, then pass to manualTokenFetch
+      const token = await getSessionToken(app);
+      if (!token) {
+        console.error('[Index] Could not obtain session token for fetchShopData');
+        return null;
+      }
+      const response = await manualTokenFetch(`/api/data`, token, {
         method: 'GET',
       });
-      
+
       if (!response) {
         console.log('[Index] Request failed or redirect triggered');
         return null;
       }
-      
+
       if (!response.ok) {
         console.error(`[Index] API error: ${response.status} ${response.statusText}`);
         return null;
       }
-      
+
       const data = await response.json();
       return data;
     } catch (err) {
@@ -234,29 +240,35 @@ const Index = ({ shopOrigin: shop }) => {
       return null;
     }
   };
-  
+
   const getMetaData = async () => {
     // ✅ CRITICAL: Force-gate API calls until token init is complete
     if (!shopifyReady) {
       console.error('[Index] Shopify not ready, cannot fetch metadata');
       return null;
     }
-    
+
     try {
-      const response = await authenticatedFetch(`/api/meta`, {
+      // ✅ v3 PATTERN: Get token directly from app instance, then pass to manualTokenFetch
+      const token = await getSessionToken(app);
+      if (!token) {
+        console.error('[Index] Could not obtain session token for getMetaData');
+        return null;
+      }
+      const response = await manualTokenFetch(`/api/meta`, token, {
         method: 'GET',
       });
-      
+
       if (!response) {
         console.log('[Index] Request failed or redirect triggered');
         return null;
       }
-      
+
       if (!response.ok) {
         console.error(`[Index] API error: ${response.status} ${response.statusText}`);
         return null;
       }
-      
+
       const data = await response.json();
       return data;
     } catch (err) {

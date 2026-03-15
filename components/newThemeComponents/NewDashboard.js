@@ -101,7 +101,9 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         console.warn('[NewDashboard] Invalid URL - no hostname');
         return '';
       }
-      return `https://${urlObj.hostname}${urlObj.pathname ? urlObj.pathname : ''}`;
+      // Only include pathname if it's not just the root '/'
+      const path = urlObj.pathname && urlObj.pathname !== '/' ? urlObj.pathname.replace(/\/+$/, '') : '';
+      return `https://${urlObj.hostname}${path}`;
     } catch (e) {
       console.error('[NewDashboard] Invalid URL:', e.message);
       return '';

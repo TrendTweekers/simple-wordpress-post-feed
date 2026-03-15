@@ -44,8 +44,9 @@ const UrlInput = () => {
         console.warn('[UrlInput] Invalid URL - no hostname found');
         return '';
       }
-      // Return normalized URL from the hostname
-      return `https://${urlObj.hostname}${urlObj.pathname ? urlObj.pathname : ''}`;
+      // Return normalized URL — only include pathname if it's not just the root '/'
+      const path = urlObj.pathname && urlObj.pathname !== '/' ? urlObj.pathname.replace(/\/+$/, '') : '';
+      return `https://${urlObj.hostname}${path}`;
     } catch (e) {
       console.error('[UrlInput] Invalid URL:', e.message);
       return '';
@@ -80,12 +81,23 @@ const UrlInput = () => {
   };
 
   const testFetch = async () => {
-    const selfHostedURL = `${isUrl(
-      url
-    )}/wp-json/wp/v2/posts?_embed&order=desc&per_page=1`;
-    const wpHostedURL = `https://public-api.wordpress.com/rest/v1.1/sites/${urlStripWPHost(
-      url
-    )}/posts/?number=1`;
+    // ✅ FIX Bug 3: Validate isUrl() returns a non-empty string before building fetch URL
+    const normalizedSelfUrl = isUrl(url);
+    const normalizedWPHost = urlStripWPHost(url);
+
+    if (!normalizedSelfUrl && !hostedOnWP) {
+      console.warn('[UrlInput] testFetch: normalized URL is empty, skipping fetch');
+      dispatch({ type: types.TESTEDOK, payload: false });
+      return;
+    }
+    if (!normalizedWPHost && hostedOnWP) {
+      console.warn('[UrlInput] testFetch: WP host is empty, skipping fetch');
+      dispatch({ type: types.TESTEDOK, payload: false });
+      return;
+    }
+
+    const selfHostedURL = `${normalizedSelfUrl}/wp-json/wp/v2/posts?_embed&order=desc&per_page=1`;
+    const wpHostedURL = `https://public-api.wordpress.com/rest/v1.1/sites/${normalizedWPHost}/posts/?number=1`;
     try {
       const hostUrl = hostedOnWP ? wpHostedURL : selfHostedURL;
       const wpContent = await axios(hostUrl).then(({status,data}) =>{
