@@ -76,6 +76,37 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
 
     checkAdmin();
   }, []);
+
+  // ✅ FIX: Normalize WordPress URL before sending to server
+  const normalizeWordPressUrl = (urlValue) => {
+    if (!urlValue || typeof urlValue !== 'string') {
+      return '';
+    }
+
+    let normalized = urlValue.trim();
+
+    // Add https:// if no protocol
+    if (!normalized.match(/^https?:\/\//)) {
+      normalized = `https://${normalized}`;
+    }
+
+    // Remove trailing slashes
+    normalized = normalized.replace(/\/+$/, '');
+
+    // Validate URL has a domain
+    try {
+      const urlObj = new URL(normalized);
+      if (!urlObj.hostname) {
+        console.warn('[NewDashboard] Invalid URL - no hostname');
+        return '';
+      }
+      return `https://${urlObj.hostname}${urlObj.pathname ? urlObj.pathname : ''}`;
+    } catch (e) {
+      console.error('[NewDashboard] Invalid URL:', e.message);
+      return '';
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       setSaveMessage(null);
@@ -101,9 +132,18 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         return;
       }
 
+      // ✅ FIX: Normalize WordPress URL before sending
+      const normalizedSettings = {
+        ...settings,
+        url: {
+          ...settings.url,
+          value: normalizeWordPressUrl(settings.url.value)
+        }
+      };
+
       const response = await manualTokenFetch(`/api/data`, {
         method: 'POST',
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({ settings: normalizedSettings }),
       });
 
       if (!response || !response.ok) {

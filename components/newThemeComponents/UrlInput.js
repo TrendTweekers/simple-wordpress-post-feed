@@ -18,23 +18,65 @@ const UrlInput = () => {
   const { value: hostedOnWP } = data.settings.hostedOnWP;
   const { testedOK, shop, testing } = data;
 
-  const isUrl = (inputString) => {
-    const regexp =
-      /(https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
-    if (regexp.test(inputString)) {
-      return inputString;
+  // ✅ FIX: Properly normalize WordPress URL
+  // - Prepend https:// if missing
+  // - Remove trailing slashes
+  // - Validate domain exists
+  const normalizeUrl = (inputString) => {
+    if (!inputString || typeof inputString !== 'string') {
+      return '';
     }
 
-    return `https://${inputString}`;
+    let normalized = inputString.trim();
+
+    // ✅ FIX: Add https:// if no protocol
+    if (!normalized.match(/^https?:\/\//)) {
+      normalized = `https://${normalized}`;
+    }
+
+    // ✅ FIX: Remove trailing slashes
+    normalized = normalized.replace(/\/+$/, '');
+
+    // ✅ FIX: Validate URL has a domain (not just "https://")
+    try {
+      const urlObj = new URL(normalized);
+      if (!urlObj.hostname) {
+        console.warn('[UrlInput] Invalid URL - no hostname found');
+        return '';
+      }
+      // Return normalized URL from the hostname
+      return `https://${urlObj.hostname}${urlObj.pathname ? urlObj.pathname : ''}`;
+    } catch (e) {
+      console.error('[UrlInput] Invalid URL:', e.message);
+      return '';
+    }
+  };
+
+  const isUrl = (inputString) => {
+    // ✅ FIX: Use normalized URL instead of regex-based function
+    const normalized = normalizeUrl(inputString);
+    if (!normalized) {
+      console.warn('[UrlInput] isUrl: URL normalization failed for:', inputString);
+      return '';
+    }
+    return normalized;
   };
 
   const urlStripWPHost = (inputString) => {
-    const regexp =
-      /(https):\/\/(\w+:{0,1}\w*@)?(\S+)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?/;
-    if (regexp.test(inputString)) {
-      return inputString.slice(8);
+    // ✅ FIX: Extract domain from normalized URL
+    const normalized = normalizeUrl(inputString);
+    if (!normalized) {
+      return '';
     }
-    return inputString;
+
+    try {
+      const urlObj = new URL(normalized);
+      // For WordPress.com API, return domain.com (without https://)
+      return urlObj.hostname;
+    } catch (e) {
+      console.error('[UrlInput] urlStripWPHost failed:', e.message);
+      return '';
+    }
   };
 
   const testFetch = async () => {
