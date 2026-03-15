@@ -69,9 +69,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       setIsShopifyAdmin(isAdmin);
 
       if (!isAdmin) {
-        console.warn('[NewDashboard] Admin context check: No host parameter found - not embedded in Shopify admin');
-      } else {
-        console.log('[NewDashboard] Admin context check: ✅ Host parameter present - embedded in Shopify admin');
+        console.warn('[NewDashboard] No host parameter — app may not be running inside Shopify Admin');
       }
     };
 
@@ -127,17 +125,14 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       // ✅ CORRECT v3 PATTERN: Get session token using App Bridge instance
       let token;
       try {
-        console.log('[NewDashboard] Getting session token from App Bridge...');
         token = await getSessionToken(app);
         if (!token) {
           setSaveMessage({
             type: 'error',
             message: 'Failed to get session token. Please refresh and try again.'
           });
-          console.error('[NewDashboard] getSessionToken returned empty token');
           return;
         }
-        console.log('[NewDashboard] ✅ Got session token successfully');
       } catch (err) {
         setSaveMessage({
           type: 'error',
@@ -166,7 +161,6 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
           type: 'error',
           message: 'Failed to save settings. Please try again.'
         });
-        console.log("!!! Request failed or redirect triggered !!!");
         return;
       }
 
@@ -274,7 +268,6 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
           type: 'error',
           message: 'Failed to delete metadata. Please try again.'
         });
-        console.log("!!! Request failed or redirect triggered !!!");
         return;
       }
 
@@ -287,11 +280,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
           type: 'success',
           message: 'All metadata deleted successfully!'
         });
-        // Clear success message after 3 seconds
         setTimeout(() => setSaveMessage(null), 3000);
-      } else {
-        // Redirect was triggered
-        console.log("!!! Redirect triggered for reauth !!!");
       }
     } catch (err) {
       setSaveMessage({

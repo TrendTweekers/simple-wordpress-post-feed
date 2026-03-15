@@ -179,18 +179,9 @@ const checkDevShop = async (shop, token = null) => {
     accessToken = session.accessToken;
   }
 
-  console.log(`[checkDevShop] Starting dev shop detection for ${shop}`);
-
-  // Temporary dev-store override for testing
-  if (shop === "trustscore-dev.myshopify.com") {
-    console.log("[checkDevShop] Forced dev mode for trustscore-dev.myshopify.com");
-    return true;
-  }
-
   if (accessToken) {
-    // ✅ PRIMARY: Try GraphQL first for more reliable partner development detection
+    // PRIMARY: Try GraphQL first for more reliable partner development detection
     try {
-      console.log(`[checkDevShop] Attempting GraphQL query for shop.plan.partnerDevelopment...`);
       const { default: Shopify } = require("@shopify/shopify-api");
       const client = new Shopify.Clients.Graphql(shop, accessToken);
 
@@ -207,32 +198,17 @@ const checkDevShop = async (shop, token = null) => {
       const response = await client.query({ data: query });
 
       if (response?.body?.data?.shop?.plan) {
-        const { partnerDevelopment, publicDisplayName, displayName } = response.body.data.shop.plan;
-        console.log(`[checkDevShop] GraphQL success for ${shop}:`, {
-          partnerDevelopment,
-          publicDisplayName,
-          displayName
-        });
-
+        const { partnerDevelopment } = response.body.data.shop.plan;
         if (partnerDevelopment === true) {
-          console.log(`[checkDevShop] ✅ Dev shop detected via GraphQL partnerDevelopment=true for ${shop}`);
           return true;
         }
       }
-      console.log(`[checkDevShop] GraphQL returned: partnerDevelopment is false or not present`);
     } catch (graphqlErr) {
-      console.log(`[checkDevShop] GraphQL query failed for ${shop}, falling back to REST`);
-      console.log(`[checkDevShop] GraphQL error payload:`, {
-        message: graphqlErr.message,
-        body: graphqlErr.response?.body,
-        errors: graphqlErr.errors,
-        fullError: graphqlErr
-      });
+      // Fall through to REST fallback
     }
 
-    // ✅ FALLBACK: Use REST API with plan_name as backup
+    // FALLBACK: Use REST API with plan_name as backup
     try {
-      console.log(`[checkDevShop] Falling back to REST API (shop.json) for ${shop}...`);
       const response = await fetch(
         `https://${shop}/admin/api/${API_VERSION}/shop.json`,
         {
@@ -266,25 +242,15 @@ const checkDevShop = async (shop, token = null) => {
 
       const data = await response.json();
       const { shop: { plan_name } } = data;
-      console.log(`[checkDevShop] REST API success (HTTP ${response.status}) for ${shop}: plan_name="${plan_name}"`);
-
-      const isDevShop = plan_name === "affiliate" || plan_name === "partner_test";
-      if (isDevShop) {
-        console.log(`[checkDevShop] ✅ Dev shop detected via REST plan_name="${plan_name}" for ${shop}`);
-      } else {
-        console.log(`[checkDevShop] ❌ Not a dev shop - plan_name="${plan_name}" for ${shop}`);
-      }
-      return isDevShop;
+      return plan_name === "affiliate" || plan_name === "partner_test";
     } catch (err) {
       // Re-throw auth errors
       if (err.isAxiosError || (err.response && (err.response.status === 401 || err.response.status === 403))) {
         throw err;
       }
-      console.log(`[checkDevShop] REST API error: ${err.message || err}`);
       return false;
     }
   } else {
-    console.log(`[checkDevShop] No access token available for ${shop}`);
     return false;
   }
 };

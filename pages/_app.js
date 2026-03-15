@@ -70,10 +70,7 @@ const App = ({ Component, pageProps, shopOrigin, host })=> {
       }
     }
 
-    // ✅ CRITICAL: Log host resolution for debugging embedded context
-    if (hostValue) {
-      console.log('[App] ✅ Host parameter found for Provider:', hostValue.substring(0, 20) + '...');
-    } else {
+    if (!hostValue) {
       console.warn('[App] ⚠️ Host parameter missing - App Bridge may not embed correctly');
     }
 

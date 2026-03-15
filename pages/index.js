@@ -174,8 +174,6 @@ const Index = ({ shopOrigin: shop }) => {
         const token = await getSessionToken(app);
         if (token) {
           setShopifyReady(true);
-          console.log('[Index] ✅ App Bridge token initialized successfully');
-          // Clear timeout if token init succeeds
           if (timeoutId) {
             clearTimeout(timeoutId);
           }
@@ -223,13 +221,10 @@ const Index = ({ shopOrigin: shop }) => {
         method: 'GET',
       });
 
-      if (!response) {
-        console.log('[Index] Request failed or redirect triggered');
-        return null;
-      }
+      if (!response) return null;
 
       if (!response.ok) {
-        console.error(`[Index] API error: ${response.status} ${response.statusText}`);
+        console.error(`[Index] /api/data error: ${response.status} ${response.statusText}`);
         return null;
       }
 
@@ -259,13 +254,10 @@ const Index = ({ shopOrigin: shop }) => {
         method: 'GET',
       });
 
-      if (!response) {
-        console.log('[Index] Request failed or redirect triggered');
-        return null;
-      }
+      if (!response) return null;
 
       if (!response.ok) {
-        console.error(`[Index] API error: ${response.status} ${response.statusText}`);
+        console.error(`[Index] /api/meta error: ${response.status} ${response.statusText}`);
         return null;
       }
 
@@ -283,16 +275,12 @@ const Index = ({ shopOrigin: shop }) => {
     try {
       const metaData = await getMetaData();
       if (!metaData) {
-        // Request failed or redirect triggered
-        console.log('[Index] Metadata fetch failed or redirect triggered');
         dispatch({ type: types.LOADING, payload: false });
         return;
       }
-      
+
       const shopData = await fetchShopData();
       if (!shopData) {
-        // Request failed or redirect triggered
-        console.log('[Index] Shop data fetch failed or redirect triggered');
         dispatch({ type: types.LOADING, payload: false });
         return;
       }
@@ -316,13 +304,8 @@ const Index = ({ shopOrigin: shop }) => {
       return;
     }
     
-    // Guard: Only fetch settings when shopifyReady becomes true
-    if (!shopifyReady) {
-      console.log('[Index] ⏳ Waiting for App Bridge to initialize before fetching settings...');
-      return;
-    }
-    
-    console.log('[Index] ✅ App Bridge ready, fetching settings...');
+    if (!shopifyReady) return;
+
     getSettings();
     
     return () => abortController.abort();
@@ -335,13 +318,8 @@ const Index = ({ shopOrigin: shop }) => {
       return;
     }
     
-    // Guard: Only refetch if App Bridge is already ready
-    if (!shopifyReady) {
-      console.log('[Index] ⏳ Shop/theme changed but App Bridge not ready, skipping refetch');
-      return;
-    }
-    
-    console.log('[Index] ✅ Shop/theme changed and App Bridge ready, refetching settings...');
+    if (!shopifyReady) return;
+
     getSettings();
   }, [shop, themeOverride]); // Only refetch when shop or themeOverride changes (and App Bridge is ready)
 
@@ -351,7 +329,6 @@ const Index = ({ shopOrigin: shop }) => {
   const hasShopAndHost = shop && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('host');
   
   if (!hasShopAndHost && !shopifyReady) {
-    console.log('[Index] ⏳ Waiting for shop/host parameters...');
     return (
       <div style={{ 
         display: 'flex', 
@@ -369,13 +346,6 @@ const Index = ({ shopOrigin: shop }) => {
     );
   }
   
-  // ✅ CRITICAL: Show loading spinner only briefly while App Bridge initializes
-  // After 3 seconds, render UI anyway (timeout handled in useEffect above)
-  if (!shopifyReady && hasShopAndHost) {
-    console.log('[Index] ⏳ App Bridge initializing, rendering UI...');
-    // Continue to render - don't block UI on App Bridge initialization
-  }
-
   const dashboardComponent =
     newThemeCapable || themeOverride ? (
       <NewDashboard getSettings={getSettings} />
