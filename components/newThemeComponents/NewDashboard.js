@@ -193,7 +193,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     const shopToUse = shopFromUrl || shop;
     if (shopToUse) {
       window.open(
-        `https://${shopToUse}/admin/themes/current/editor?template=index`,
+        `https://${shopToUse}/admin/themes/current/editor?context=apps&activateAppId=312f1491e10a2848b3ef63a7cd13e91d/wordpress-feed`,
         "_blank"
       );
     } else {
@@ -334,7 +334,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
 
           {/* ── Step 3: theme editor ── */}
           <div className="menu-spacer" style={{ height: "16px" }}></div>
-          <Card sectioned title="Step 3 — Add the WordPress Feed block">
+          <Card sectioned title="Step 3 — Enable the WordPress Feed">
             <TextContainer>
               {themeButtonHint && <p>{themeButtonHint}</p>}
               <Button
@@ -345,7 +345,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
                 Open theme editor
               </Button>
               <p style={{ marginTop: '8px', fontSize: '0.875rem', opacity: 0.65 }}>
-                In the editor: click <strong>Add block</strong> → <strong>Apps</strong> → <strong>WordPress Feed</strong>
+                In the editor: go to <strong>Theme settings</strong> → <strong>App embeds</strong> → enable <strong>WordPress Feed</strong>
               </p>
             </TextContainer>
           </Card>
