@@ -347,6 +347,9 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
               <p style={{ marginTop: '8px', fontSize: '0.875rem', opacity: 0.65 }}>
                 In the editor: go to <strong>Theme settings</strong> → <strong>App embeds</strong> → enable <strong>WordPress Feed</strong>
               </p>
+              <p style={{ marginTop: '6px', fontSize: '0.8125rem', opacity: 0.5 }}>
+                If the editor opens blank or looks unexpected, close it and try again, or go to <strong>Online Store → Themes → Customize → Theme settings → App embeds</strong> and enable <strong>WordPress Post Feed</strong> from there. This is caused by Shopify editor state, not your WordPress URL setup.
+              </p>
             </TextContainer>
           </Card>
 
