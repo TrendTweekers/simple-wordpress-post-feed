@@ -343,7 +343,7 @@ const Index = ({ shopOrigin: shop }) => {
     page === "about" || page === "documentation" ? (
       <About newThemeCapable={newThemeCapable} />
     ) : (
-      <NewDashboard getSettings={getSettings} newThemeCapable={newThemeCapable} />
+      <NewDashboard getSettings={getSettings} />
     );
 
   if (data.isLoading) {
