@@ -277,13 +277,11 @@ const Index = ({ shopOrigin: shop }) => {
       }
 
       const shopData = await fetchShopData();
-      if (!shopData) {
-        dispatch({ type: types.LOADING, payload: false });
-        return;
-      }
 
       dispatch({ type: types.FETCH_METADATA, payload: metaData });
-      dispatch({ type: types.FETCH_DATA, payload: shopData });
+      if (shopData) {
+        dispatch({ type: types.FETCH_DATA, payload: shopData });
+      }
       dispatch({ type: types.LOADING, payload: false });
     } catch (err) {
       console.error('[Index] Error fetching settings:', err);

@@ -192,10 +192,8 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     const shopFromUrl = new URLSearchParams(window.location.search).get("shop");
     const shopToUse = shopFromUrl || shop;
     if (shopToUse) {
-      const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d';
-      const blockHandle = 'wordpress-feed';
       window.open(
-        `https://${shopToUse}/admin/themes/current/editor?template=index&addAppBlockId=${apiKey}/${blockHandle}&target=mainSection`,
+        `https://${shopToUse}/admin/themes/current/editor?template=index`,
         "_blank"
       );
     } else {
@@ -336,7 +334,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
 
           {/* ── Step 3: theme editor ── */}
           <div className="menu-spacer" style={{ height: "16px" }}></div>
-          <Card sectioned title="Step 3 — Add the feed to your store">
+          <Card sectioned title="Step 3 — Add the WordPress Feed block">
             <TextContainer>
               {themeButtonHint && <p>{themeButtonHint}</p>}
               <Button
@@ -346,6 +344,9 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
               >
                 Open theme editor
               </Button>
+              <p style={{ marginTop: '8px', fontSize: '0.875rem', opacity: 0.65 }}>
+                In the editor: click <strong>Add block</strong> → <strong>Apps</strong> → <strong>WordPress Feed</strong>
+              </p>
             </TextContainer>
           </Card>
 
