@@ -5,9 +5,7 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { getSessionToken } from "@shopify/app-bridge-utils";
 import { Spinner } from "@shopify/polaris";
 import About from "../components/About";
-import Dashboard from "../components/Dashboard";
 import Header from "../components/Header";
-import SpinnerComponent from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
 import { manualTokenFetch } from "../lib/manualTokenFetch";
@@ -125,7 +123,6 @@ const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const { data, dispatch } = useContext(Store);
   const app = useAppBridge();
-  const [themeOverride, setThemeOverride] = useState(false);
 
   // ✅ SYNC: Initialize page state from URL query param (for App Bridge Navigation)
   const router = useRouter();
@@ -159,9 +156,7 @@ const Index = ({ shopOrigin: shop }) => {
     }
   };
   const [shopifyReady, setShopifyReady] = useState(false);
-  const {
-    support: { newThemeCapable },
-  } = data;
+  const { support: { newThemeCapable } } = data;
   
   // ✅ CRITICAL: Initialize App Bridge token before making any API calls
   // Uses correct v3 pattern: getSessionToken(app) from @shopify/app-bridge-utils
@@ -294,9 +289,6 @@ const Index = ({ shopOrigin: shop }) => {
     }
   };
 
-  /** Override current theme setting, showing new Theme 2.0 settings */
-  const newThemeSwitch = () => setThemeOverride(!themeOverride);
-
   // ✅ CRITICAL: Separate effect for shopifyReady - only trigger API calls when App Bridge becomes ready
   useEffect(() => {
     // Guard: Only run on client side
@@ -309,9 +301,9 @@ const Index = ({ shopOrigin: shop }) => {
     getSettings();
     
     return () => abortController.abort();
-  }, [shopifyReady]); // ✅ CRITICAL: Only depend on shopifyReady - don't re-fetch on shop/themeOverride changes
-  
-  // ✅ Separate effect for shop/themeOverride changes - only fetch if App Bridge is already ready
+  }, [shopifyReady]);
+
+  // Refetch when shop changes and App Bridge is already ready
   useEffect(() => {
     // Guard: Only run on client side
     if (typeof window === 'undefined') {
@@ -321,7 +313,7 @@ const Index = ({ shopOrigin: shop }) => {
     if (!shopifyReady) return;
 
     getSettings();
-  }, [shop, themeOverride]); // Only refetch when shop or themeOverride changes (and App Bridge is ready)
+  }, [shop]); // Only refetch when shop changes (and App Bridge is ready)
 
   // ✅ CRITICAL: Render UI as soon as shop + host exist, don't block on App Bridge
   // App Bridge initialization happens asynchronously and shouldn't block rendering
@@ -346,21 +338,12 @@ const Index = ({ shopOrigin: shop }) => {
     );
   }
   
-  const dashboardComponent =
-    newThemeCapable || themeOverride ? (
-      <NewDashboard getSettings={getSettings} />
-    ) : (
-      <Dashboard newTheme={newThemeSwitch} />
-    );
-
   // ✅ SYNC: Handle both "about" and "documentation" page values (Header uses "documentation")
   const activePage =
-    page === "main" ? (
-      dashboardComponent
-    ) : page === "about" || page === "documentation" ? (
+    page === "about" || page === "documentation" ? (
       <About newThemeCapable={newThemeCapable} />
     ) : (
-      dashboardComponent // Default fallback
+      <NewDashboard getSettings={getSettings} newThemeCapable={newThemeCapable} />
     );
 
   if (data.isLoading) {
