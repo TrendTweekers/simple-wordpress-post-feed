@@ -9,7 +9,7 @@
       <h2 class="wp-feed-title">{{ block.settings.title | default: "Latest Posts" }}</h2>
     {% endif %}
 
-    <div class="wp-feed-posts" id="wp-feed-posts-{{ block.id }}">
+    <div class="wp-feed-posts" id="wp-feed-posts-{{ block.id }}" data-layout="{{ block.settings.layout | default: 'list' }}">
       <p class="wp-feed-loading">Loading posts&hellip;</p>
     </div>
   </div>
@@ -160,6 +160,40 @@
     padding: 0.25rem 0;
   }
 
+  /* ── Layout: compact — tighter rows, no excerpt ── */
+  .wp-feed-posts[data-layout="compact"] .wp-feed-post {
+    padding: 0.75rem 0;
+  }
+  .wp-feed-posts[data-layout="compact"] .wp-feed-post__title {
+    font-size: 0.9375rem;
+  }
+  .wp-feed-posts[data-layout="compact"] .wp-feed-post__excerpt {
+    display: none;
+  }
+
+  /* ── Layout: cards — CSS grid, bordered cards ── */
+  .wp-feed-posts[data-layout="cards"] {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+  .wp-feed-posts[data-layout="cards"] .wp-feed-post {
+    padding: 1.25rem;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  .wp-feed-posts[data-layout="cards"] .wp-feed-post:first-child {
+    padding-top: 1.25rem;
+  }
+  .wp-feed-posts[data-layout="cards"] .wp-feed-post:last-child {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 1.25rem;
+  }
+  .wp-feed-posts[data-layout="cards"] .wp-feed-post__excerpt {
+    -webkit-line-clamp: 3;
+  }
+
   /* ── Mobile (≤749px) ── */
   @media (max-width: 749px) {
     .wordpress-feed-block {
@@ -186,6 +220,9 @@
     .wp-feed-post__excerpt {
       font-size: 0.875rem;
     }
+    .wp-feed-posts[data-layout="cards"] {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 
@@ -205,6 +242,17 @@
       "id": "show_title",
       "label": "Show Title",
       "default": true
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "default": "list",
+      "options": [
+        { "value": "list",    "label": "List"    },
+        { "value": "compact", "label": "Compact" },
+        { "value": "cards",   "label": "Cards"   }
+      ]
     },
     {
       "type": "range",
