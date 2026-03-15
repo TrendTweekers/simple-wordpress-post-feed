@@ -30,7 +30,7 @@ import { manualTokenFetch } from "../../lib/manualTokenFetch";
  * has to be set
  */
 
-const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
+const Dashboard = ({ banner, reviewBanner, getSettings }) => {
   const { data, dispatch } = React.useContext(Store);
   const app = useAppBridge();
   const [showBanner, setShowBanner] = useState(banner === "true");
@@ -312,13 +312,6 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
           <div style={{ padding: '16px' }}>
             <Banner status="critical">
               Please open this app from Shopify Admin &gt; Apps. The app is not fully functional when accessed directly.
-            </Banner>
-          </div>
-        )}
-        {newThemeCapable === false && (
-          <div style={{ padding: '16px' }}>
-            <Banner title="Theme compatibility notice" status="info">
-              Your current theme has limited support for Online Store 2.0 app blocks. The WordPress feed can still be embedded using the legacy section method, but some features may not be available. Consider upgrading to a 2.0-compatible theme for the best experience.
             </Banner>
           </div>
         )}
