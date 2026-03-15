@@ -35,7 +35,8 @@
       return tmp.textContent || tmp.innerText || '';
     }
 
-    fetch('https://simple-wordpress-post-feed-production.up.railway.app/api/posts?shop=' + shopDomain)
+    var postCount = {{ block.settings.post_count | default: 5 }};
+    fetch('https://simple-wordpress-post-feed-production.up.railway.app/api/posts?shop=' + shopDomain + '&count=' + postCount)
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (!data || !data.posts || !data.posts.length) {

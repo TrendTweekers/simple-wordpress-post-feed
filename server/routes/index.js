@@ -602,7 +602,7 @@ const getPosts = async (ctx) => {
     }
 
     const wpUrl = metafields.url?.value || '';
-    const postNumber = parseInt(metafields.postNumber?.value || '5', 10) || 5;
+    const postNumber = parseInt(ctx.query.count || metafields.postNumber?.value || '5', 10) || 5;
 
     // Safely parse hostedOnWP (may be string or boolean)
     const hostedOnWPValue = metafields.hostedOnWP?.value;
