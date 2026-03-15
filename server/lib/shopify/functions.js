@@ -181,6 +181,12 @@ const checkDevShop = async (shop, token = null) => {
 
   console.log(`[checkDevShop] Starting dev shop detection for ${shop}`);
 
+  // Temporary dev-store override for testing
+  if (shop === "trustscore-dev.myshopify.com") {
+    console.log("[checkDevShop] Forced dev mode for trustscore-dev.myshopify.com");
+    return true;
+  }
+
   if (accessToken) {
     // ✅ PRIMARY: Try GraphQL first for more reliable partner development detection
     try {
