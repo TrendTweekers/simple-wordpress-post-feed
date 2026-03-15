@@ -538,7 +538,7 @@ const cancelCharge = async (ctx) => {
 
 const downloadMetafield = async (ctx) => {
   const referer = new URLSearchParams(ctx.request.header.referer);
-  const shop = referer.get("shop");
+  const shop = ctx.query.shop || referer.get("shop");
   const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
   try {
     // ✅ ALWAYS load offline session from session storage

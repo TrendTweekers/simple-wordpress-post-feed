@@ -245,7 +245,9 @@ const Index = ({ shopOrigin: shop }) => {
         console.error('[Index] Could not obtain session token for getMetaData');
         return null;
       }
-      const response = await manualTokenFetch(`/api/meta`, token, {
+      const shopParam = shop || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('shop') : '');
+      const metaUrl = shopParam ? `/api/meta?shop=${encodeURIComponent(shopParam)}` : `/api/meta`;
+      const response = await manualTokenFetch(metaUrl, token, {
         method: 'GET',
       });
 
