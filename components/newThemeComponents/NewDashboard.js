@@ -191,7 +191,12 @@ const Dashboard = ({ banner, reviewBanner, getSettings, newThemeCapable }) => {
     const shopFromUrl = new URLSearchParams(window.location.search).get("shop");
     const shopToUse = shopFromUrl || shop;
     if (shopToUse) {
-      window.open(`https://${shopToUse}/admin/themes/current/editor?context=apps`, "_blank");
+      const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d';
+      const blockHandle = 'wordpress-feed';
+      window.open(
+        `https://${shopToUse}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/${blockHandle}`,
+        "_blank"
+      );
     } else {
       console.error("[NewDashboard] Cannot open theme editor: shop parameter missing");
     }
