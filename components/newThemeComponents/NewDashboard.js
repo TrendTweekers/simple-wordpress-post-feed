@@ -10,6 +10,7 @@ import {
   Heading,
   Button,
   Layout,
+  Banner,
 } from "@shopify/polaris";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -38,35 +39,79 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     reviewBanner === "true"
   );
   const { theme, shop: shopFromState, disableSave, settings, testedOK } = data;
-  
+
   // ✅ FIX: Get shop from URL query params as fallback (strict enforcement)
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const shop = shopFromState || urlParams.get("shop") || '';
+
+  // Track Shopify admin context and save feedback
+  const [isShopifyAdmin, setIsShopifyAdmin] = useState(null); // null=checking, true=admin, false=not admin
+  const [saveMessage, setSaveMessage] = useState(null); // null, { type: 'success'|'error', message: string }
+
   useEffect(() => {
     if (banner === undefined) {
       setShowBanner(true);
       setShowReviewBanner(true);
     }
   }, [banner, reviewBanner]);
+
+  // Check if app is running inside Shopify admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+      const hostParam = urlParams.get('host');
+
+      if (!hostParam) {
+        setIsShopifyAdmin(false);
+        return;
+      }
+
+      // Wait for App Bridge to initialize
+      const isReady = await waitForShopify(3000);
+      setIsShopifyAdmin(isReady);
+    };
+
+    checkAdmin();
+  }, []);
   const handleSubmit = async () => {
     try {
+      setSaveMessage(null);
+
+      // Check if in Shopify admin
+      if (!isShopifyAdmin) {
+        setSaveMessage({
+          type: 'error',
+          message: 'Please open this app from Shopify Admin > Apps'
+        });
+        console.error('[NewDashboard] Not in Shopify admin context');
+        return;
+      }
+
       // ✅ CRITICAL: Wait for Shopify and use manual token fetch
       const isReady = await waitForShopify(3000);
       if (!isReady) {
+        setSaveMessage({
+          type: 'error',
+          message: 'Failed to connect to Shopify. Please refresh and try again.'
+        });
         console.error('[NewDashboard] window.shopify.idToken() not available');
         return;
       }
-      
+
       const response = await manualTokenFetch(`/api/data`, {
         method: 'POST',
         body: JSON.stringify({ settings }),
       });
-      
+
       if (!response || !response.ok) {
+        setSaveMessage({
+          type: 'error',
+          message: 'Failed to save settings. Please try again.'
+        });
         console.log("!!! Request failed or redirect triggered !!!");
         return;
       }
-      
+
       const responseData = await response.json();
       if (responseData) {
         dispatch({
@@ -76,8 +121,18 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         dispatch({
           type: types.SAVE_DB,
         });
+        setSaveMessage({
+          type: 'success',
+          message: 'Settings saved successfully!'
+        });
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveMessage(null), 3000);
       }
     } catch (err) {
+      setSaveMessage({
+        type: 'error',
+        message: `Error saving settings: ${err.message}`
+      });
       console.error("Error uploading settings:", err);
     }
   };
@@ -103,13 +158,13 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     </Button>
   );
 
-  const SaveBar = disableSave ? null : (
+  const SaveBar = disableSave || !isShopifyAdmin ? null : (
     <ContextualSaveBar
       fullWidth
       message="Unsaved changes"
       saveAction={{
         onAction: () => handleSubmit(),
-        disabled: !testedOK,
+        disabled: !testedOK || !isShopifyAdmin,
       }}
       discardAction={{
         onAction: () => getSettings(),
@@ -119,33 +174,63 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
 
   const handleDeleteAllMeta = async () => {
     try {
+      setSaveMessage(null);
+
+      // Check if in Shopify admin
+      if (!isShopifyAdmin) {
+        setSaveMessage({
+          type: 'error',
+          message: 'Please open this app from Shopify Admin > Apps'
+        });
+        console.error('[NewDashboard] Not in Shopify admin context');
+        return;
+      }
+
       // ✅ CRITICAL: Wait for Shopify and use manual token fetch
       const isReady = await waitForShopify(3000);
       if (!isReady) {
+        setSaveMessage({
+          type: 'error',
+          message: 'Failed to connect to Shopify. Please refresh and try again.'
+        });
         console.error('[NewDashboard] window.shopify.idToken() not available');
         return;
       }
-      
+
       const response = await manualTokenFetch(`/api/deletedata`, {
         method: 'POST',
         body: JSON.stringify({ settings }),
       });
-      
+
       if (!response || !response.ok) {
+        setSaveMessage({
+          type: 'error',
+          message: 'Failed to delete metadata. Please try again.'
+        });
         console.log("!!! Request failed or redirect triggered !!!");
         return;
       }
-      
+
       const responseData = await response.json();
       if (responseData) {
         dispatch({
           type: types.RESET_DATA,
         });
+        setSaveMessage({
+          type: 'success',
+          message: 'All metadata deleted successfully!'
+        });
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveMessage(null), 3000);
       } else {
         // Redirect was triggered
         console.log("!!! Redirect triggered for reauth !!!");
       }
     } catch (err) {
+      setSaveMessage({
+        type: 'error',
+        message: `Error deleting metadata: ${err.message}`
+      });
       console.error("Error deleting meta data:", err);
     }
   }
@@ -154,6 +239,24 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
     return (
       <Frame>
         {SaveBar}
+        {saveMessage && (
+          <div style={{ padding: '16px' }}>
+            <Banner
+              title={saveMessage.type === 'success' ? 'Success' : 'Error'}
+              status={saveMessage.type === 'success' ? 'success' : 'critical'}
+              onDismiss={() => setSaveMessage(null)}
+            >
+              {saveMessage.message}
+            </Banner>
+          </div>
+        )}
+        {isShopifyAdmin === false && (
+          <div style={{ padding: '16px' }}>
+            <Banner status="critical">
+              Please open this app from Shopify Admin &gt; Apps. The app is not fully functional when accessed directly.
+            </Banner>
+          </div>
+        )}
         <Page title="Simple Wordpress Post Feed">
           <Card sectioned>
             <TextContainer>
@@ -200,7 +303,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
             showBanner={showBanner}
             setShowBanner={setShowBanner}
           />
-          <Button destructive onClick={handleDeleteAllMeta}>Delete all meta tags</Button>
+          <Button destructive onClick={handleDeleteAllMeta} disabled={!isShopifyAdmin}>Delete all meta tags</Button>
           
         </Page>
       </Frame>
