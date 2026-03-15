@@ -2,6 +2,7 @@ import React, { useContext, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Store } from "../store/store";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import { getSessionToken } from "@shopify/app-bridge-utils";
 import { Spinner } from "@shopify/polaris";
 import About from "../components/About";
 import Dashboard from "../components/Dashboard";
@@ -10,7 +11,6 @@ import SpinnerComponent from "../components/SpinnerComponent";
 import NewDashboard from "../components/newThemeComponents/NewDashboard";
 import * as types from "../store/types";
 import { authenticatedFetch } from "../lib/authenticatedFetch";
-import { getSessionTokenSafe } from "../lib/shopify/sessionTokenClient";
 
 /* ------------------ SAFE REVIEW BANNER ------------------ */
 function ReviewBanner() {
@@ -124,11 +124,12 @@ function ReviewBanner() {
 const Index = ({ shopOrigin: shop }) => {
   const abortController = new AbortController();
   const { data, dispatch } = useContext(Store);
+  const app = useAppBridge();
   const [themeOverride, setThemeOverride] = useState(false);
-  
+
   // ✅ SYNC: Initialize page state from URL query param (for App Bridge Navigation)
   const router = useRouter();
-  const initialPage = typeof window !== 'undefined' 
+  const initialPage = typeof window !== 'undefined'
     ? new URLSearchParams(window.location.search).get('page') || 'main'
     : 'main';
   const [page, setPage] = useState(initialPage);
@@ -163,15 +164,14 @@ const Index = ({ shopOrigin: shop }) => {
   } = data;
   
   // ✅ CRITICAL: Initialize App Bridge token before making any API calls
-  // getSessionTokenSafe() now properly waits for Provider initialization
+  // Uses correct v3 pattern: getSessionToken(app) from @shopify/app-bridge-utils
   useEffect(() => {
     let timeoutId = null;
 
     (async () => {
       try {
-        // ✅ CRITICAL FIX: getSessionTokenSafe() now waits for window.shopify.idToken to be available
-        // This handles the async Provider initialization
-        const token = await getSessionTokenSafe();
+        // ✅ CORRECT v3 PATTERN: Get token using the app instance
+        const token = await getSessionToken(app);
         if (token) {
           setShopifyReady(true);
           console.log('[Index] ✅ App Bridge token initialized successfully');
@@ -181,11 +181,11 @@ const Index = ({ shopOrigin: shop }) => {
           }
         } else {
           console.error('[Index] ❌ Token init returned empty token');
+          // Will fallback to timeout below
         }
       } catch (e) {
         console.error('[Index] ❌ Token init failed:', e.message);
-        // Still render UI after timeout even if token init fails
-        // authenticatedFetch will handle missing tokens gracefully
+        // Will fallback to timeout below
       }
     })();
 
@@ -193,7 +193,7 @@ const Index = ({ shopOrigin: shop }) => {
     // This prevents infinite loading spinner and allows partial functionality
     timeoutId = setTimeout(() => {
       if (!shopifyReady) {
-        console.warn('[Index] ⚠️ App Bridge token init timeout after 3s - rendering UI anyway (will try token on first API call)');
+        console.warn('[Index] ⚠️ App Bridge token init timeout - rendering UI anyway');
         setShopifyReady(true);
       }
     }, 3000);
@@ -203,7 +203,7 @@ const Index = ({ shopOrigin: shop }) => {
         clearTimeout(timeoutId);
       }
     };
-  }, []);
+  }, [app]);
 
   const fetchShopData = async () => {
     // ✅ CRITICAL: Force-gate API calls until token init is complete

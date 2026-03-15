@@ -15,6 +15,7 @@ import {
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAppBridge } from "@shopify/app-bridge-react";
+import { getSessionToken } from "@shopify/app-bridge-utils";
 import { TroubleShootBanner, ReviewBanner } from "../Banners";
 import * as types from "../../store/types";
 import { Store } from "../../store/store";
@@ -23,7 +24,7 @@ import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
 import ShowExcerpt from "./ShowExcerpt";
 import LastPost from "./LastPost";
-import { manualTokenFetch, waitForShopify } from "../../lib/manualTokenFetch";
+import { manualTokenFetch } from "../../lib/manualTokenFetch";
 
 /**
  * Index is fetching data with graphql from wordpress.
@@ -121,14 +122,26 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         return;
       }
 
-      // ✅ CRITICAL: Wait for Shopify and use manual token fetch
-      const isReady = await waitForShopify(3000);
-      if (!isReady) {
+      // ✅ CORRECT v3 PATTERN: Get session token using App Bridge instance
+      let token;
+      try {
+        console.log('[NewDashboard] Getting session token from App Bridge...');
+        token = await getSessionToken(app);
+        if (!token) {
+          setSaveMessage({
+            type: 'error',
+            message: 'Failed to get session token. Please refresh and try again.'
+          });
+          console.error('[NewDashboard] getSessionToken returned empty token');
+          return;
+        }
+        console.log('[NewDashboard] ✅ Got session token successfully');
+      } catch (err) {
         setSaveMessage({
           type: 'error',
-          message: 'Failed to connect to Shopify. Please refresh and try again.'
+          message: 'Failed to authenticate with Shopify. Please refresh and try again.'
         });
-        console.error('[NewDashboard] window.shopify.idToken() not available');
+        console.error('[NewDashboard] ❌ getSessionToken failed:', err.message);
         return;
       }
 
@@ -141,7 +154,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         }
       };
 
-      const response = await manualTokenFetch(`/api/data`, {
+      const response = await manualTokenFetch(`/api/data`, token, {
         method: 'POST',
         body: JSON.stringify({ settings: normalizedSettings }),
       });
@@ -229,18 +242,27 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
         return;
       }
 
-      // ✅ CRITICAL: Wait for Shopify and use manual token fetch
-      const isReady = await waitForShopify(3000);
-      if (!isReady) {
+      // ✅ CORRECT v3 PATTERN: Get session token using App Bridge instance
+      let token;
+      try {
+        token = await getSessionToken(app);
+        if (!token) {
+          setSaveMessage({
+            type: 'error',
+            message: 'Failed to get session token. Please refresh and try again.'
+          });
+          return;
+        }
+      } catch (err) {
         setSaveMessage({
           type: 'error',
-          message: 'Failed to connect to Shopify. Please refresh and try again.'
+          message: 'Failed to authenticate with Shopify. Please refresh and try again.'
         });
-        console.error('[NewDashboard] window.shopify.idToken() not available');
+        console.error('[NewDashboard] getSessionToken failed:', err.message);
         return;
       }
 
-      const response = await manualTokenFetch(`/api/deletedata`, {
+      const response = await manualTokenFetch(`/api/deletedata`, token, {
         method: 'POST',
         body: JSON.stringify({ settings }),
       });
