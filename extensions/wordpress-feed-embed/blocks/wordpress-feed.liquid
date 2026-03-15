@@ -35,8 +35,11 @@
       return tmp.textContent || tmp.innerText || '';
     }
 
-    var postCount = {{ block.settings.post_count | default: 5 }};
-    var showImage = {{ block.settings.show_image | default: true }};
+    var postCount    = {{ block.settings.post_count | default: 5 }};
+    var showImage    = {{ block.settings.show_image | default: true }};
+    var showDate     = {{ block.settings.show_date | default: true }};
+    var excerptLines = {{ block.settings.excerpt_lines | default: 2 }};
+    container.style.setProperty('--wp-clamp', excerptLines);
     fetch('https://simple-wordpress-post-feed-production.up.railway.app/api/posts?shop=' + shopDomain + '&count=' + postCount)
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -55,7 +58,7 @@
             + '<a class="wp-feed-post__link" href="' + post.url + '" target="_blank" rel="noopener">'
             +   '<h3 class="wp-feed-post__title">' + post.title + '</h3>'
             + '</a>'
-            + (date ? '<time class="wp-feed-post__date">' + date + '</time>' : '')
+            + (showDate && date ? '<time class="wp-feed-post__date">' + date + '</time>' : '')
             + (excerpt ? '<p class="wp-feed-post__excerpt">' + excerpt + '</p>' : '')
             + '</article>';
         }).join('');
@@ -141,7 +144,7 @@
     margin: 0;
     opacity: 0.6;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: var(--wp-clamp, 2);
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -292,6 +295,21 @@
         { "value": "compact", "label": "Compact" },
         { "value": "cards",   "label": "Cards"   }
       ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_date",
+      "label": "Show Date",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "excerpt_lines",
+      "label": "Excerpt Lines",
+      "min": 0,
+      "max": 5,
+      "default": 2,
+      "step": 1
     },
     {
       "type": "range",

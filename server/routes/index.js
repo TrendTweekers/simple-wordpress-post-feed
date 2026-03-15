@@ -27,6 +27,17 @@ const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
 
 const { APP, TUNNEL_URL, API_VERSION } = config;
 
+// ── Post cache — 10-minute in-process TTL, keyed by shop:count ───────────────
+const _postCache = new Map();
+const POST_CACHE_TTL = 10 * 60 * 1000;
+const getPostCache = (key) => {
+  const e = _postCache.get(key);
+  if (!e) return null;
+  if (Date.now() - e.ts > POST_CACHE_TTL) { _postCache.delete(key); return null; }
+  return e.posts;
+};
+const setPostCache = (key, posts) => _postCache.set(key, { posts, ts: Date.now() });
+
 /**
  * Helper function to load offline session with error handling
  * Wraps loadOfflineSession and handles 401 errors by calling handleShopifyAuthError
@@ -603,6 +614,7 @@ const getPosts = async (ctx) => {
 
     const wpUrl = metafields.url?.value || '';
     const postNumber = parseInt(ctx.query.count || metafields.postNumber?.value || '5', 10) || 5;
+    const cacheKey = `${shop}:${postNumber}`;
 
     // Safely parse hostedOnWP (may be string or boolean)
     const hostedOnWPValue = metafields.hostedOnWP?.value;
@@ -625,6 +637,14 @@ const getPosts = async (ctx) => {
     }
     normalizedUrl = normalizedUrl.replace(/\/$/, '');
 
+    // Serve from cache if fresh
+    const cachedPosts = getPostCache(cacheKey);
+    if (cachedPosts) {
+      ctx.status = 200;
+      ctx.body = { posts: cachedPosts, cached: true };
+      return;
+    }
+
     // Build WordPress REST API endpoint
     let wpEndpoint;
     if (isWordPressHosted) {
@@ -645,8 +665,9 @@ const getPosts = async (ctx) => {
       });
     } catch (wpError) {
       console.error(`[/api/posts] WordPress fetch failed for ${shop}: ${wpError.message}${wpError.response ? ` (HTTP ${wpError.response.status})` : ''}`);
+      const stale = getPostCache(cacheKey);
       ctx.status = 200;
-      ctx.body = { posts: [] };
+      ctx.body = { posts: stale || [], cached: !!stale, stale: !!stale };
       return;
     }
 
@@ -696,6 +717,7 @@ const getPosts = async (ctx) => {
       })
       .filter(post => post !== null && post.url && post.title);
 
+    setPostCache(cacheKey, posts);
     ctx.status = 200;
     ctx.body = { posts };
 
