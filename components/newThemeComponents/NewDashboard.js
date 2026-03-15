@@ -195,7 +195,7 @@ const Dashboard = ({ banner, reviewBanner, getSettings }) => {
       const apiKey = process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || '312f1491e10a2848b3ef63a7cd13e91d';
       const blockHandle = 'wordpress-feed';
       window.open(
-        `https://${shopToUse}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/${blockHandle}`,
+        `https://${shopToUse}/admin/themes/current/editor?template=index&addAppBlockId=${apiKey}/${blockHandle}&target=newAppsSection`,
         "_blank"
       );
     } else {
