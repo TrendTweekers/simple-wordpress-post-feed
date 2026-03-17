@@ -1181,9 +1181,12 @@ app
           const { app_subscription } = ctx.request.body || {};
           const status = app_subscription?.status;
           const price = "7.90";
+          const { db } = require("./lib/firebase/firebase.js");
           if (status === "ACTIVE") {
+            await db.collection("swpf").doc(shop).set({ status: "active" }, { merge: true });
             await sendTelegram(`💰 <b>New Paying Merchant — WP Simple Feed</b>\n🏪 ${shop}\n💵 $${price}/mo`);
           } else if (status === "CANCELLED" || status === "EXPIRED" || status === "DECLINED") {
+            await db.collection("swpf").doc(shop).set({ status: "cancelled" }, { merge: true });
             await sendTelegram(`💸 <b>Subscription Cancelled — WP Simple Feed</b>\n🏪 ${shop}`);
           }
           ctx.status = 200;
@@ -1314,7 +1317,7 @@ app
           const data = doc.data();
           const installDate = data.installDate?.toDate?.();
           if (installDate && installDate > yesterday) installs++;
-          if (data.chargeID && data.plan !== "" && data.plan !== "free") {
+          if (data.chargeID && data.plan !== "" && data.plan !== "free" && data.status === "active") {
             paying++;
             revenue += 7.90;
           }
