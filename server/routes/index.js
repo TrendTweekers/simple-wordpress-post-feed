@@ -24,6 +24,7 @@ const { handleShopifyAuthError } = require("../lib/shopify/authError");
 const getSubscriptionUrl = require("../handlers/getSubscriptionUrl");
 const getSubscriptionUrlLongTrial = require("../handlers/getSubscriptionUrlLongTrial");
 const getSubscriptionUrlDEV = require("../handlers/getSubscriptionUrlDEV");
+const { sendTelegram } = require("../lib/telegram/index.js");
 
 const { APP, TUNNEL_URL, API_VERSION } = config;
 
@@ -290,6 +291,11 @@ const uninstall = async (ctx) => {
     const { myshopify_domain } = await ctx.request.body;
     console.log(`Uninstall webhook ran ${myshopify_domain}`);
     const shopData = await getFs(APP, myshopify_domain);
+    const installDate = shopData?.installDate?.toDate?.() || new Date();
+    const minutesSince = Math.floor((Date.now() - installDate.getTime()) / 60000);
+    const timeLabel = minutesSince < 60 ? `${minutesSince} minutes` : minutesSince < 1440 ? `${Math.floor(minutesSince/60)} hours` : `${Math.floor(minutesSince/1440)} days`;
+    const flag = minutesSince < 1440 ? "\n⚠️ Same-day uninstall!" : "";
+    await sendTelegram(`🔴 <b>Uninstall — WP Simple Feed</b>\n🏪 ${myshopify_domain}\n⏱ Time since install: ${timeLabel}${flag}`);
     const action = "uninstall";
     if (shopData) {
       pushTopic(
