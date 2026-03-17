@@ -1,7 +1,7 @@
 /* eslint-disable require-atomic-updates */
 /* eslint-disable babel/camelcase */
 
-const { getFs, getSettings, writeFs } = require("../lib/firebase/firebase");
+const { getFs, getSettings, writeFs, db } = require("../lib/firebase/firebase");
 const { checkTheme } = require("../lib/shopify/functions");
 const { loadOfflineSession } = require("../lib/shopify/session");
 const { shopifyApi } = require("../lib/shopify/shopify");
@@ -296,6 +296,7 @@ const uninstall = async (ctx) => {
     const timeLabel = minutesSince < 60 ? `${minutesSince} minutes` : minutesSince < 1440 ? `${Math.floor(minutesSince/60)} hours` : `${Math.floor(minutesSince/1440)} days`;
     const flag = minutesSince < 1440 ? "\n⚠️ Same-day uninstall!" : "";
     await sendTelegram(`🔴 <b>Uninstall — WP Simple Feed</b>\n🏪 ${myshopify_domain}\n⏱ Time since install: ${timeLabel}${flag}`);
+    await db.collection("swpf").doc(myshopify_domain).set({ status: "cancelled" }, { merge: true });
     const action = "uninstall";
     if (shopData) {
       pushTopic(
