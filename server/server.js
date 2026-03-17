@@ -35,6 +35,9 @@ import {
 } from "./routes/";
 import { checkDevShop, checkCharge, checkAppSubscription } from "./lib/shopify/functions";
 
+const cron = require("node-cron");
+const { sendTelegram } = require("./lib/telegram/index.js");
+
 const { SHOPIFY_API_SECRET_KEY, SHOPIFY_API_KEY, APP, TUNNEL_URL, SCOPES: ENV_SCOPES } = env;
 
 // ✅ FIX: Ensure SCOPES is always an array with ALL 4 required scopes
@@ -322,6 +325,43 @@ app
             console.warn(`[AFTER AUTH] ⚠️ Session storage not available or session missing`);
           }
           
+          // Telegram: new install notification
+          try {
+            const country = "Unknown";
+            await sendTelegram(`🟢 <b>New Install — WP Simple Feed</b>\n🏪 ${shop}\n🌍 Country: ${country}\n📅 ${new Date().toUTCString()}`);
+          } catch (tgErr) { console.error("Telegram notify error:", tgErr); }
+
+          // Register billing webhook
+          try {
+            const webhookResponse = await fetch(
+              `https://${shop}/admin/api/2025-07/webhooks.json`,
+              {
+                method: "POST",
+                headers: {
+                  "X-Shopify-Access-Token": accessToken,
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  webhook: {
+                    topic: "app_subscriptions/update",
+                    address: `${TUNNEL_URL}/webhooks/billing`,
+                    format: "json"
+                  }
+                })
+              }
+            );
+            if (webhookResponse.status === 201) {
+              console.log("registered APP_SUBSCRIPTIONS_UPDATE webhook");
+            } else if (webhookResponse.status === 422) {
+              console.log("already registered");
+            } else {
+              const body = await webhookResponse.text();
+              console.error("webhook registration failed:", webhookResponse.status, body);
+            }
+          } catch (err) {
+            console.error("webhook registration error:", err);
+          }
+
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
           
@@ -1135,6 +1175,23 @@ app
       .post("/swpf/customers/data_request", webhook, customerData)
       .post("/swpf/customers/redact", webhook, customerRedact)
       .post("/swpf/uninstall", webhook, uninstall)
+      .post("/webhooks/billing", webhook, async (ctx) => {
+        try {
+          const shop = ctx.get("x-shopify-shop-domain");
+          const { app_subscription } = ctx.request.body || {};
+          const status = app_subscription?.status;
+          const price = "7.90";
+          if (status === "ACTIVE") {
+            await sendTelegram(`💰 <b>New Paying Merchant — WP Simple Feed</b>\n🏪 ${shop}\n💵 $${price}/mo`);
+          } else if (status === "CANCELLED" || status === "EXPIRED" || status === "DECLINED") {
+            await sendTelegram(`💸 <b>Subscription Cancelled — WP Simple Feed</b>\n🏪 ${shop}`);
+          }
+          ctx.status = 200;
+        } catch (err) {
+          console.error("Billing webhook error:", err);
+          ctx.status = 200;
+        }
+      })
       .post("/api/cancel", cancelCharge)
       // ✅ OAuth scope management routes
       .get("/force-reauth", async (ctx) => {
@@ -1246,5 +1303,32 @@ app
     server.listen(port, () => {
       console.log(`> Ready on http://localhost:${port}`);
     });
+
+    cron.schedule("0 8 * * *", async () => {
+      try {
+        const { db } = require("./lib/firebase/firebase.js");
+        const yesterday = new Date(Date.now() - 86400000);
+        const shops = await db.collection("swpf").get();
+        let installs = 0, paying = 0, revenue = 0;
+        shops.forEach(doc => {
+          const data = doc.data();
+          const installDate = data.installDate?.toDate?.();
+          if (installDate && installDate > yesterday) installs++;
+          if (data.chargeID && data.plan !== "" && data.plan !== "free") {
+            paying++;
+            revenue += 7.90;
+          }
+        });
+        await sendTelegram(
+          `📊 <b>WP Simple Feed — Daily Summary</b>\n` +
+          `🟢 New installs (24h): ${installs}\n` +
+          `💰 Paying merchants: ${paying}\n` +
+          `💵 Est. MRR: $${revenue.toFixed(2)}\n` +
+          `📅 ${new Date().toUTCString()}`
+        );
+      } catch (err) {
+        console.error("Daily summary error:", err);
+      }
+    }, { timezone: "UTC" });
   })
   .catch((err) => console.log(err));
