@@ -228,7 +228,7 @@ const Dashboard = ({ getSettings }) => {
             title="Add app block to your theme"
             description={
               themeOpened
-                ? "You opened the theme editor. Add the "WP Post Feed" block to a page section and click Save."
+                ? 'You opened the theme editor. Add the "WP Post Feed" block to a page section and click Save.'
                 : "Open the theme editor and add the WP Simple Feed app block to any section of your storefront."
             }
             status={stepStatus(2)}

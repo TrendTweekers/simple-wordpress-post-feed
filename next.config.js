@@ -8,6 +8,9 @@ const { SHOPIFY_API_KEY } = APIconfig;
 const apiKey = JSON.stringify(SHOPIFY_API_KEY);
 
 module.exports = {
+  // ✅ eslint is not a direct dependency; skip lint at build time to avoid
+  // "Cannot find module 'eslint'" failures on Railway.
+  eslint: { ignoreDuringBuilds: true },
   // ✅ CRITICAL: assetPrefix must be empty string - bad assetPrefix causes blank screen
   assetPrefix: '',
   basePath: '',
