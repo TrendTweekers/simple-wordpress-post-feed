@@ -351,7 +351,7 @@ const Index = ({ shopOrigin: shop }) => {
   } else {
     return (
       <>
-        <Header shop={shop} handleClick={setPage} />
+        <Header shop={shop} handleClick={handlePageChange} activePage={page} />
         <ReviewBanner /> {/* ← banner rendered here */}
         {activePage}
       </>

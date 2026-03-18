@@ -639,6 +639,18 @@ app
           console.log(`[API GUARD] Public endpoint GET /api/posts - skipping Bearer token requirement`);
         }
 
+        // ✅ EXEMPTION: /api/install and /api/meta handle their own billing logic.
+        // Blocking them with the billing guard creates a circular dependency:
+        // the merchant needs /api/install to set up billing, but billing guard
+        // blocks /api/install before it can run. Same for /api/meta which is
+        // needed to render the dashboard after billing confirmation.
+        const isOnboardingRoute = ctx.path === '/api/install' || ctx.path === '/api/meta';
+        if (isOnboardingRoute) {
+          console.log(`[API GUARD] ${ctx.path} is onboarding-exempt — skipping billing enforcement, proceeding to route handler`);
+          await next();
+          return;
+        }
+
         // Step 2: Skip billing checks for public /api/posts endpoint
         if (!isPublicPostsEndpoint) {
           const shop = ctx.query.shop;

@@ -1,447 +1,370 @@
 /* eslint-disable shopify/jsx-no-hardcoded-content */
-/* eslint-disable shopify/prefer-early-return */
 /* eslint-disable react/prop-types */
 import {
   Frame,
   Page,
   ContextualSaveBar,
   Card,
-  TextContainer,
-  Heading,
   Button,
   Layout,
+  Badge,
   Banner,
 } from "@shopify/polaris";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { getSessionToken } from "@shopify/app-bridge-utils";
-import { TroubleShootBanner, ReviewBanner } from "../Banners";
 import * as types from "../../store/types";
 import { Store } from "../../store/store";
 import UrlInput from "./UrlInput";
 import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
 import ShowExcerpt from "./ShowExcerpt";
-import { manualTokenFetch } from "../../lib/manualTokenFetch";
+import { manualTokenFetch, waitForShopify } from "../../lib/manualTokenFetch";
 
-/**
- * Index is fetching data with graphql from wordpress.
- * @param  {pageURI}
- * has to be set
- */
+/* ─── Single setup step ─────────────────────────────────── */
+const Step = ({ number, title, description, status, action }) => {
+  const palette = {
+    complete: { bg: "#f0fdf4", border: "#86efac", dotBg: "#22c55e", badgeStatus: "success" },
+    active:   { bg: "#eff6ff", border: "#93c5fd", dotBg: "#3b82f6", badgeStatus: "info" },
+    pending:  { bg: "#f9fafb", border: "#e5e7eb", dotBg: "#d1d5db", badgeStatus: "subdued" },
+  };
+  const p = palette[status] || palette.pending;
 
-const Dashboard = ({ banner, reviewBanner, getSettings }) => {
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "flex-start",
+      gap: 16,
+      padding: "14px 18px",
+      borderRadius: 10,
+      background: p.bg,
+      border: `1px solid ${p.border}`,
+      marginBottom: 10,
+    }}>
+      {/* Step number dot */}
+      <div style={{
+        minWidth: 30,
+        height: 30,
+        borderRadius: "50%",
+        background: p.dotBg,
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 700,
+        fontSize: 13,
+        flexShrink: 0,
+        marginTop: 1,
+      }}>
+        {status === "complete" ? "✓" : number}
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>{title}</span>
+          <Badge status={p.badgeStatus}>
+            {status === "complete" ? "Done" : status === "active" ? "Next step" : "Pending"}
+          </Badge>
+        </div>
+        <p style={{ margin: 0, fontSize: 13, color: "#6b7280", lineHeight: "1.5" }}>{description}</p>
+        {action && status !== "complete" && (
+          <div style={{ marginTop: 10 }}>{action}</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Main dashboard ────────────────────────────────────── */
+const Dashboard = ({ getSettings }) => {
   const { data, dispatch } = React.useContext(Store);
   const app = useAppBridge();
-  const [showBanner, setShowBanner] = useState(banner === "true");
-  const [showReviewBanner, setShowReviewBanner] = useState(
-    reviewBanner === "true"
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+
+  const { shop: shopFromState, disableSave, settings, testedOK } = data;
+
+  const urlParams = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : ""
   );
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showDangerZone, setShowDangerZone] = useState(false);
-  const { theme, shop: shopFromState, disableSave, settings, testedOK } = data;
+  const shop = shopFromState || urlParams.get("shop") || "";
+  const urlValue = settings?.url?.value || "";
 
-  // ✅ FIX: Get shop from URL query params as fallback (strict enforcement)
-  const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const shop = shopFromState || urlParams.get("shop") || '';
-
-  // Track Shopify admin context and save feedback
-  const [isShopifyAdmin, setIsShopifyAdmin] = useState(null); // null=checking, true=admin, false=not admin
-  const [saveMessage, setSaveMessage] = useState(null); // null, { type: 'success'|'error', message: string }
-
-  useEffect(() => {
-    if (banner === undefined) {
-      setShowBanner(true);
-    }
-  }, [banner]);
-
-  // Check if app is running inside Shopify admin
-  useEffect(() => {
-    const checkAdmin = () => {
-      const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-      const hostParam = urlParams.get('host');
-
-      // ✅ CRITICAL FIX: Presence of host parameter from Shopify means we're in embedded admin context
-      // Do NOT wait for App Bridge initialization here - that's handled by manualTokenFetch when making API calls
-      // Shopify's embedded iframe always includes host parameter if launched from Admin > Apps
-      const isAdmin = !!hostParam;
-      setIsShopifyAdmin(isAdmin);
-
-      if (!isAdmin) {
-        console.warn('[NewDashboard] No host parameter — app may not be running inside Shopify Admin');
-      }
-    };
-
-    checkAdmin();
-  }, []);
-
-  // ✅ FIX: Normalize WordPress URL before sending to server
-  const normalizeWordPressUrl = (urlValue) => {
-    if (!urlValue || typeof urlValue !== 'string') {
-      return '';
-    }
-
-    let normalized = urlValue.trim();
-
-    // Add https:// if no protocol
-    if (!normalized.match(/^https?:\/\//)) {
-      normalized = `https://${normalized}`;
-    }
-
-    // Remove trailing slashes
-    normalized = normalized.replace(/\/+$/, '');
-
-    // Validate URL has a domain
-    try {
-      const urlObj = new URL(normalized);
-      if (!urlObj.hostname) {
-        console.warn('[NewDashboard] Invalid URL - no hostname');
-        return '';
-      }
-      // Only include pathname if it's not just the root '/'
-      const path = urlObj.pathname && urlObj.pathname !== '/' ? urlObj.pathname.replace(/\/+$/, '') : '';
-      return `https://${urlObj.hostname}${path}`;
-    } catch (e) {
-      console.error('[NewDashboard] Invalid URL:', e.message);
-      return '';
-    }
-  };
-
+  /* ── Save ───────────────────────────────────────────── */
   const handleSubmit = async () => {
     try {
-      setSaveMessage(null);
-
-      // Check if in Shopify admin
-      if (!isShopifyAdmin) {
-        setSaveMessage({
-          type: 'error',
-          message: 'Please open this app from Shopify Admin > Apps'
-        });
-        console.error('[NewDashboard] Not in Shopify admin context');
-        return;
-      }
-
-      // ✅ CORRECT v3 PATTERN: Get session token using App Bridge instance
-      let token;
-      try {
-        token = await getSessionToken(app);
-        if (!token) {
-          setSaveMessage({
-            type: 'error',
-            message: 'Failed to get session token. Please refresh and try again.'
-          });
-          return;
-        }
-      } catch (err) {
-        setSaveMessage({
-          type: 'error',
-          message: 'Failed to authenticate with Shopify. Please refresh and try again.'
-        });
-        console.error('[NewDashboard] ❌ getSessionToken failed:', err.message);
-        return;
-      }
-
-      // ✅ FIX: Normalize WordPress URL before sending
-      const normalizedSettings = {
-        ...settings,
-        url: {
-          ...settings.url,
-          value: normalizeWordPressUrl(settings.url.value)
-        }
-      };
-
-      const response = await manualTokenFetch(`/api/data`, token, {
-        method: 'POST',
-        body: JSON.stringify({ settings: normalizedSettings }),
+      const isReady = await waitForShopify(3000);
+      if (!isReady) { console.error("[Dashboard] Shopify not ready"); return; }
+      const response = await manualTokenFetch("/api/data", {
+        method: "POST",
+        body: JSON.stringify({ settings }),
       });
-
-      if (!response || !response.ok) {
-        setSaveMessage({
-          type: 'error',
-          message: 'Failed to save settings. Please try again.'
-        });
-        return;
-      }
-
-      const responseData = await response.json();
-      if (responseData) {
-        dispatch({
-          type: types.FETCH_METADATA,
-          payload: responseData,
-        });
-        dispatch({
-          type: types.SAVE_DB,
-        });
-        setSaveMessage({
-          type: 'success',
-          message: 'Settings saved successfully!'
-        });
-        // Clear success message after 3 seconds
-        setTimeout(() => setSaveMessage(null), 3000);
+      if (!response || !response.ok) return;
+      const rd = await response.json();
+      if (rd) {
+        dispatch({ type: types.FETCH_METADATA, payload: rd });
+        dispatch({ type: types.SAVE_DB });
       }
     } catch (err) {
-      setSaveMessage({
-        type: 'error',
-        message: `Error saving settings: ${err.message}`
+      console.error("[Dashboard] Save error:", err);
+    }
+  };
+
+  /* ── Delete all ─────────────────────────────────────── */
+  const handleDeleteAllMeta = async () => {
+    try {
+      const isReady = await waitForShopify(3000);
+      if (!isReady) return;
+      const response = await manualTokenFetch("/api/deletedata", {
+        method: "POST",
+        body: JSON.stringify({ settings }),
       });
-      console.error("Error uploading settings:", err);
+      if (!response || !response.ok) return;
+      const rd = await response.json();
+      if (rd) dispatch({ type: types.RESET_DATA });
+      setDeleteConfirm(false);
+    } catch (err) {
+      console.error("[Dashboard] Delete error:", err);
     }
   };
 
+  /* ── Open theme editor ──────────────────────────────── */
   const openThemeEditor = () => {
-    const shopFromUrl = new URLSearchParams(window.location.search).get("shop");
-    const shopToUse = shopFromUrl || shop;
-    if (shopToUse) {
-      window.open(
-        `https://${shopToUse}/admin/themes/current/editor?context=apps&activateAppId=312f1491e10a2848b3ef63a7cd13e91d/wordpress-feed`,
-        "_blank"
-      );
-    } else {
-      console.error("[NewDashboard] Cannot open theme editor: shop parameter missing");
+    const s = new URLSearchParams(
+      typeof window !== "undefined" ? window.location.search : ""
+    ).get("shop") || shop;
+    if (s) {
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("wpfeed_theme_opened", "1");
+      }
+      window.open(`https://${s}/admin/themes/current/editor?context=apps`, "_blank");
     }
   };
 
-  const themeButtonDisabled = !testedOK || !disableSave;
-  const themeButtonHint = !settings.url.value
-    ? "Enter and verify your WordPress URL first."
-    : !testedOK
-    ? "WordPress URL could not be verified — check the URL above."
-    : !disableSave
-    ? "Save your settings to continue."
+  /* ── Step statuses ──────────────────────────────────── */
+  const billingActive = true; // reached dashboard → billing passed
+  const themeOpened =
+    typeof window !== "undefined" &&
+    window.localStorage.getItem("wpfeed_theme_opened") === "1";
+  const urlSet = !!urlValue && testedOK;
+  const feedVerified = testedOK;
+
+  // First incomplete step
+  const activeStep = !billingActive ? 1
+    : !themeOpened    ? 2
+    : !urlSet         ? 3
+    : !feedVerified   ? 4
     : null;
 
-  const SaveBar = disableSave || !isShopifyAdmin ? null : (
+  const allDone = activeStep === null;
+
+  const stepStatus = (n) =>
+    n < (activeStep ?? 99)     ? "complete"
+    : n === (activeStep ?? 99) ? "active"
+    : "pending";
+
+  const SaveBar = disableSave ? null : (
     <ContextualSaveBar
       fullWidth
       message="Unsaved changes"
-      saveAction={{
-        onAction: () => handleSubmit(),
-        disabled: !testedOK || !isShopifyAdmin,
-      }}
-      discardAction={{
-        onAction: () => getSettings(),
-      }}
+      saveAction={{ onAction: handleSubmit, disabled: !testedOK }}
+      discardAction={{ onAction: () => getSettings() }}
     />
   );
 
-  const handleDeleteAllMeta = async () => {
-    try {
-      setSaveMessage(null);
+  return (
+    <Frame>
+      {SaveBar}
+      <Page>
 
-      // Check if in Shopify admin
-      if (!isShopifyAdmin) {
-        setSaveMessage({
-          type: 'error',
-          message: 'Please open this app from Shopify Admin > Apps'
-        });
-        console.error('[NewDashboard] Not in Shopify admin context');
-        return;
-      }
-
-      // ✅ CORRECT v3 PATTERN: Get session token using App Bridge instance
-      let token;
-      try {
-        token = await getSessionToken(app);
-        if (!token) {
-          setSaveMessage({
-            type: 'error',
-            message: 'Failed to get session token. Please refresh and try again.'
-          });
-          return;
-        }
-      } catch (err) {
-        setSaveMessage({
-          type: 'error',
-          message: 'Failed to authenticate with Shopify. Please refresh and try again.'
-        });
-        console.error('[NewDashboard] getSessionToken failed:', err.message);
-        return;
-      }
-
-      const response = await manualTokenFetch(`/api/deletedata`, token, {
-        method: 'POST',
-        body: JSON.stringify({ settings }),
-      });
-
-      if (!response || !response.ok) {
-        setSaveMessage({
-          type: 'error',
-          message: 'Failed to delete metadata. Please try again.'
-        });
-        return;
-      }
-
-      const responseData = await response.json();
-      if (responseData) {
-        dispatch({
-          type: types.RESET_DATA,
-        });
-        setSaveMessage({
-          type: 'success',
-          message: 'All metadata deleted successfully!'
-        });
-        setTimeout(() => setSaveMessage(null), 3000);
-      }
-    } catch (err) {
-      setSaveMessage({
-        type: 'error',
-        message: `Error deleting metadata: ${err.message}`
-      });
-      console.error("Error deleting meta data:", err);
-    }
-  }
-
-
-    return (
-      <Frame>
-        {SaveBar}
-        {saveMessage && (
-          <div style={{ padding: '16px' }}>
-            <Banner
-              title={saveMessage.type === 'success' ? 'Success' : 'Error'}
-              status={saveMessage.type === 'success' ? 'success' : 'critical'}
-              onDismiss={() => setSaveMessage(null)}
-            >
-              {saveMessage.message}
-            </Banner>
+        {/* ── Page header ──────────────────────────────── */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 24,
+          paddingBottom: 16,
+          borderBottom: "1px solid #e5e7eb",
+        }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#111827" }}>
+              WP Simple Feed
+            </h1>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
+              Display your WordPress blog posts in your Shopify store
+            </p>
           </div>
-        )}
-        {isShopifyAdmin === false && (
-          <div style={{ padding: '16px' }}>
-            <Banner status="critical">
-              Please open this app from Shopify Admin &gt; Apps. The app is not fully functional when accessed directly.
-            </Banner>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+            <Button primary disabled={!testedOK} onClick={openThemeEditor}>
+              Open theme editor ↗
+            </Button>
+            {!testedOK && (
+              <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                Save a valid WordPress URL to unlock
+              </span>
+            )}
           </div>
-        )}
-        <Page title="Simple Wordpress Post Feed">
+        </div>
 
-          {/* ── Step 1: URL ── */}
-          <Card sectioned>
-            <TextContainer>
-              <Heading>Get started in 3 steps</Heading>
-              <p>
-                <strong>1.</strong> Enter your WordPress site URL below and wait for the green confirmation.
-              </p>
-              <p>
-                <strong>2.</strong> Save your settings using the bar that appears at the top of the page.
-              </p>
-              <p>
-                <strong>3.</strong> Open the theme editor to place the WordPress feed block on any page of your store.
-              </p>
-            </TextContainer>
-          </Card>
+        {/* ── Setup checklist ──────────────────────────── */}
+        <Card sectioned>
+          <div style={{ marginBottom: 16 }}>
+            <h2 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 600, color: "#111827" }}>
+              Setup checklist
+            </h2>
+            <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
+              Follow these steps to start showing your WordPress posts.
+            </p>
+          </div>
+
+          <Step
+            number={1}
+            title="Activate billing"
+            description="Your plan is active — you have full access."
+            status={stepStatus(1)}
+          />
+
+          <Step
+            number={2}
+            title="Add app block to your theme"
+            description={
+              themeOpened
+                ? "You opened the theme editor. Add the "WP Post Feed" block to a page section and click Save."
+                : "Open the theme editor and add the WP Simple Feed app block to any section of your storefront."
+            }
+            status={stepStatus(2)}
+            action={
+              <Button size="slim" onClick={openThemeEditor}>
+                Open theme editor ↗
+              </Button>
+            }
+          />
+
+          <Step
+            number={3}
+            title="Enter your WordPress site URL"
+            description={
+              urlSet
+                ? `Connected: ${urlValue}`
+                : "Enter your WordPress URL in the Configuration section below. We test it automatically."
+            }
+            status={stepStatus(3)}
+          />
+
+          <Step
+            number={4}
+            title="Verify your feed is live"
+            description={
+              feedVerified
+                ? "Your WordPress posts are being pulled in successfully."
+                : "Once your URL is saved and the block is in your theme, your feed will go live automatically."
+            }
+            status={stepStatus(4)}
+          />
+
+          {allDone && (
+            <div style={{
+              marginTop: 14,
+              padding: "12px 16px",
+              background: "#f0fdf4",
+              border: "1px solid #86efac",
+              borderRadius: 8,
+              fontSize: 14,
+              color: "#166534",
+              fontWeight: 500,
+            }}>
+              🎉 All steps complete — your feed is live!
+            </div>
+          )}
+        </Card>
+
+        {/* ── Configuration ────────────────────────────── */}
+        <div style={{ marginTop: 24 }}>
+          <h2 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 600, color: "#111827" }}>
+            Configuration
+          </h2>
+
           <UrlInput />
 
-          {/* ── Step 3: theme editor ── */}
-          <div className="menu-spacer" style={{ height: "16px" }}></div>
-          <Card sectioned title="Step 3 — Enable the WordPress Feed">
-            <TextContainer>
-              {themeButtonHint && <p>{themeButtonHint}</p>}
-              <Button
-                primary
-                disabled={themeButtonDisabled}
-                onClick={openThemeEditor}
-              >
-                Open theme editor
-              </Button>
-              <p style={{ marginTop: '8px', fontSize: '0.875rem', opacity: 0.65 }}>
-                In the editor: go to <strong>Theme settings</strong> → <strong>App embeds</strong> → enable <strong>WordPress Feed</strong>
-              </p>
-              <p style={{ marginTop: '6px', fontSize: '0.8125rem', opacity: 0.5 }}>
-                If the editor opens blank or looks unexpected, close it and try again, or go to <strong>Online Store → Themes → Customize → Theme settings → App embeds</strong> and enable <strong>WordPress Post Feed</strong> from there. This is caused by Shopify editor state, not your WordPress URL setup.
-              </p>
-            </TextContainer>
-          </Card>
+          <div style={{ height: 14 }} />
 
-          {/* ── Review banner — only shown after setup is complete ── */}
-          {testedOK && disableSave && (
-            <>
-              <div className="menu-spacer" style={{ height: "16px" }}></div>
-              <ReviewBanner
-                showBanner={showReviewBanner}
-                setShowBanner={setShowReviewBanner}
-              />
-            </>
+          <Layout>
+            <Layout.Section oneThird>
+              <BasicSetings />
+            </Layout.Section>
+            <Layout.Section oneThird>
+              <Filters />
+            </Layout.Section>
+            <Layout.Section oneThird>
+              <ShowExcerpt />
+            </Layout.Section>
+          </Layout>
+        </div>
+
+        {/* ── Need help ────────────────────────────────── */}
+        <div style={{ marginTop: 24 }}>
+          <Card sectioned>
+            <div style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 16,
+              flexWrap: "wrap",
+            }}>
+              <div>
+                <h3 style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 600, color: "#111827" }}>
+                  Need help?
+                </h3>
+                <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>
+                  Full documentation, troubleshooting guides, and contact support.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Button
+                  plain
+                  external
+                  url="https://apps.shopify.com/simple-wordpress-post-feed#reviews"
+                >
+                  Leave a review ⭐
+                </Button>
+                <Button
+                  external
+                  url={`mailto:admin@stackedboost.com?subject=WP Simple Feed Help`}
+                >
+                  Contact support
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* ── Danger zone ──────────────────────────────── */}
+        <div style={{
+          marginTop: 28,
+          paddingTop: 20,
+          borderTop: "1px solid #e5e7eb",
+        }}>
+          <h3 style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#374151" }}>
+            Danger zone
+          </h3>
+          {!deleteConfirm ? (
+            <Button destructive outline onClick={() => setDeleteConfirm(true)}>
+              Delete all saved settings
+            </Button>
+          ) : (
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: "#ef4444" }}>
+                This will remove all configuration. Cannot be undone.
+              </span>
+              <Button destructive onClick={handleDeleteAllMeta}>Yes, delete everything</Button>
+              <Button onClick={() => setDeleteConfirm(false)}>Cancel</Button>
+            </div>
           )}
+        </div>
 
-          {/* ── Advanced options (collapsible) ── */}
-          <div className="menu-spacer" style={{ height: "24px" }}></div>
-          <Card sectioned>
-            <button
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                fontSize: '0.9375rem',
-                fontWeight: 600,
-                color: 'inherit',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              {showAdvanced ? '▾' : '▸'} Advanced options
-            </button>
-            {showAdvanced && (
-              <div style={{ marginTop: '16px' }}>
-                <Layout>
-                  <Layout.Section oneThird>
-                    <BasicSetings />
-                  </Layout.Section>
-                  <Layout.Section oneThird>
-                    <Filters />
-                  </Layout.Section>
-                  <Layout.Section oneThird>
-                    <ShowExcerpt />
-                  </Layout.Section>
-                </Layout>
-              </div>
-            )}
-          </Card>
-
-          {/* ── Danger zone (collapsible) ── */}
-          <div className="menu-spacer" style={{ height: "8px" }}></div>
-          <Card sectioned>
-            <button
-              onClick={() => setShowDangerZone(!showDangerZone)}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: 0,
-                cursor: 'pointer',
-                fontSize: '0.9375rem',
-                fontWeight: 600,
-                color: '#bf0711',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              {showDangerZone ? '▾' : '▸'} Danger zone
-            </button>
-            {showDangerZone && (
-              <div style={{ marginTop: '16px' }}>
-                <TroubleShootBanner
-                  showBanner={showBanner}
-                  setShowBanner={setShowBanner}
-                />
-                <div style={{ marginTop: '12px' }}>
-                  <Button destructive onClick={handleDeleteAllMeta} disabled={!isShopifyAdmin}>
-                    Delete all meta tags
-                  </Button>
-                  <p style={{ marginTop: '8px', fontSize: '0.8125rem', opacity: 0.6 }}>
-                    Removes all saved settings for this store. This cannot be undone.
-                  </p>
-                </div>
-              </div>
-            )}
-          </Card>
-
-        </Page>
-      </Frame>
-    );
+        <div style={{ height: 48 }} />
+      </Page>
+    </Frame>
+  );
 };
 
 export default Dashboard;

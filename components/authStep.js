@@ -163,6 +163,17 @@ const authStep = ({ config, Component, pageProps }) => {
         return;
       }
 
+      // Handle 402 — billing guard intercepted before the route handler ran.
+      // Render UI anyway; the dashboard shows a billing-pending state.
+      if (response.status === 402) {
+        let errData;
+        try { errData = await response.json(); } catch (e) { errData = {}; }
+        console.log(`[AUTH] 402 received — billing pending (${errData?.reason}), rendering UI anyway`);
+        setAllowed(true);
+        setLoading(false);
+        return;
+      }
+
       const data = await response.json();
       const { allowed: isAllowed, confirmationUrl: confirmUrl, themeAccess } = data;
 
