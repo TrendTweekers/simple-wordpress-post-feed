@@ -124,18 +124,23 @@ const getData = async (ctx) => {
     return data;
   } catch (error) {
     // Handle Shopify API errors (403/401) and session load errors
-    const shop = new URLSearchParams(ctx.request.header.referer).get("shop");
-    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
-    
+    // ✅ FIX: same URL-parsing fix as the try block — use new URL() not new URLSearchParams(fullUrl)
+    let _shop = ctx.query.shop, _host = ctx.query.host;
+    try {
+      const u = new URL(ctx.request.header.referer || "");
+      _shop = _shop || u.searchParams.get("shop");
+      _host = _host || u.searchParams.get("host");
+    } catch (_) {}
+
     const isAxiosError = error.isAxiosError || (error.response && error.response.status);
     const status = error.response?.status || error.status;
     const isAuthError = status === 401 || status === 403;
-    
+
     if ((isAxiosError || isAuthError) && isAuthError) {
-      const handled = await handleShopifyAuthError(error, ctx, shop, host, `GET /api/data`);
+      const handled = await handleShopifyAuthError(error, ctx, _shop, _host, `GET /api/data`);
       if (handled) return;
     }
-    
+
     // Other errors
     console.error("Error in /api/data:", error);
     ctx.status = 500;

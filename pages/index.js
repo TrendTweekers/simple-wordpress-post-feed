@@ -156,7 +156,10 @@ const Index = ({ shopOrigin: shop }) => {
     }
   };
   const [shopifyReady, setShopifyReady] = useState(false);
-  const { support: { newThemeCapable } } = data;
+  // ✅ FIX: initialState.support is `false`, not an object. Safe optional-chaining
+  // prevents "Cannot destructure property 'newThemeCapable' of false" crash on
+  // first render (before GET /api/data returns its payload).
+  const newThemeCapable = data.support?.newThemeCapable ?? false;
   
   // ✅ CRITICAL: Initialize App Bridge token before making any API calls
   // Uses correct v3 pattern: getSessionToken(app) from @shopify/app-bridge-utils
@@ -349,17 +352,21 @@ const Index = ({ shopOrigin: shop }) => {
       <NewDashboard getSettings={getSettings} />
     );
 
-  if (data.isLoading) {
-    return <Spinner />;
-  } else {
-    return (
-      <>
-        <Header shop={shop} handleClick={handlePageChange} activePage={page} />
-        <ReviewBanner /> {/* ← banner rendered here */}
-        {activePage}
-      </>
-    );
-  }
+  // ✅ FIX: Keep Header (tabs) always visible even while data is loading.
+  // Replacing the entire UI with a bare <Spinner /> hides the tabs, making tab
+  // switching impossible until the load completes. The spinner now lives inside
+  // the layout so the tab bar is always interactive.
+  return (
+    <>
+      <Header shop={shop} handleClick={handlePageChange} activePage={page} />
+      <ReviewBanner />
+      {data.isLoading ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
+          <Spinner />
+        </div>
+      ) : activePage}
+    </>
+  );
 };
 
 export default Index;

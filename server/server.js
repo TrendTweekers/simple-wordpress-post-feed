@@ -639,14 +639,22 @@ app
           console.log(`[API GUARD] Public endpoint GET /api/posts - skipping Bearer token requirement`);
         }
 
-        // ✅ EXEMPTION: /api/install and /api/meta handle their own billing logic.
-        // Blocking them with the billing guard creates a circular dependency:
-        // the merchant needs /api/install to set up billing, but billing guard
-        // blocks /api/install before it can run. Same for /api/meta which is
-        // needed to render the dashboard after billing confirmation.
-        const isOnboardingRoute = ctx.path === '/api/install' || ctx.path === '/api/meta';
+        // ✅ EXEMPTION: /api/install, /api/meta, and GET /api/data are exempt from
+        // billing enforcement.
+        //
+        // /api/install — handles billing setup; blocking it creates a circular dep.
+        // /api/meta    — needed to load dashboard settings after billing confirmation.
+        // GET /api/data — read-only: returns version, theme-support, chargeID from
+        //   Firestore. Without it the dashboard renders with initialState.support=false,
+        //   which crashes the `support.newThemeCapable` destructuring in index.js.
+        //   The billable feature (showing WP posts) lives in the theme extension
+        //   (/api/posts), not here.  POST /api/data remains billing-gated.
+        const isOnboardingRoute =
+          ctx.path === '/api/install' ||
+          ctx.path === '/api/meta' ||
+          (ctx.method === 'GET' && ctx.path === '/api/data');
         if (isOnboardingRoute) {
-          console.log(`[API GUARD] ${ctx.path} is onboarding-exempt — skipping billing enforcement, proceeding to route handler`);
+          console.log(`[API GUARD] ${ctx.method} ${ctx.path} is onboarding-exempt — skipping billing enforcement, proceeding to route handler`);
           await next();
           return;
         }
