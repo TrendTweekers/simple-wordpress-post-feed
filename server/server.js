@@ -340,36 +340,38 @@ app
             await sendTelegram(`🟢 <b>New Install — WP Simple Feed</b>\n🏪 ${shop}\n🌍 Country: ${country}\n📅 ${new Date().toUTCString()}`);
           } catch (tgErr) { console.error("Telegram notify error:", tgErr); }
 
-          // Register billing webhook
-          try {
-            const webhookResponse = await fetch(
-              `https://${shop}/admin/api/2025-07/webhooks.json`,
-              {
-                method: "POST",
-                headers: {
-                  "X-Shopify-Access-Token": accessToken,
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  webhook: {
-                    topic: "app_subscriptions/update",
-                    address: `${TUNNEL_URL}/webhooks/billing`,
-                    format: "json"
-                  }
-                })
+          // Register webhooks (idempotent — Shopify returns 422 if already registered)
+          const registerWebhook = async (topic, address) => {
+            try {
+              const res = await fetch(
+                `https://${shop}/admin/api/2025-07/webhooks.json`,
+                {
+                  method: "POST",
+                  headers: {
+                    "X-Shopify-Access-Token": accessToken,
+                    "Content-Type": "application/json"
+                  },
+                  body: JSON.stringify({ webhook: { topic, address, format: "json" } })
+                }
+              );
+              if (res.status === 201) {
+                console.log(`[WEBHOOK] Registered ${topic} → ${address}`);
+              } else if (res.status === 422) {
+                console.log(`[WEBHOOK] ${topic} already registered`);
+              } else {
+                const body = await res.text();
+                console.error(`[WEBHOOK] Failed to register ${topic}: ${res.status} ${body}`);
               }
-            );
-            if (webhookResponse.status === 201) {
-              console.log("registered APP_SUBSCRIPTIONS_UPDATE webhook");
-            } else if (webhookResponse.status === 422) {
-              console.log("already registered");
-            } else {
-              const body = await webhookResponse.text();
-              console.error("webhook registration failed:", webhookResponse.status, body);
+            } catch (err) {
+              console.error(`[WEBHOOK] Error registering ${topic}:`, err.message);
             }
-          } catch (err) {
-            console.error("webhook registration error:", err);
-          }
+          };
+
+          await registerWebhook("app_subscriptions/update", `${TUNNEL_URL}/webhooks/billing`);
+          // ✅ FIX: Register app/uninstalled so Shopify calls our handler and we
+          // send the Telegram notification + clear the offline session on uninstall.
+          // Previously this webhook was never registered — Shopify had nowhere to send it.
+          await registerWebhook("app/uninstalled", `${TUNNEL_URL}/swpf/uninstall`);
 
           /** Check if its a development shop */
           const isDev = await checkDevShop(shop, accessToken);
