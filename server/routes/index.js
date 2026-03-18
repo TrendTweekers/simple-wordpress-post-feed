@@ -295,7 +295,7 @@ const uninstall = async (ctx) => {
     const minutesSince = Math.floor((Date.now() - installDate.getTime()) / 60000);
     const timeLabel = minutesSince < 60 ? `${minutesSince} minutes` : minutesSince < 1440 ? `${Math.floor(minutesSince/60)} hours` : `${Math.floor(minutesSince/1440)} days`;
     const flag = minutesSince < 1440 ? "\n⚠️ Same-day uninstall!" : "";
-    await sendTelegram(`🔴 <b>Uninstall — WP Simple Feed</b>\n🏪 ${myshopify_domain}\n⏱ Time since install: ${timeLabel}${flag}`);
+    await sendTelegram(`🔴 <b>Uninstall — WP Simple Feed</b>\n🏪 ${myshopify_domain}\n⏱ Time since install: ${timeLabel}${flag}\n📅 ${new Date().toUTCString()}`);
     await db.collection("swpf").doc(myshopify_domain).set({ status: "cancelled" }, { merge: true });
     const action = "uninstall";
     if (shopData) {
