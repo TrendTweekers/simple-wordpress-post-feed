@@ -6,6 +6,7 @@ const {
 const { createMetafields } = require("../lib/shopify/metafields");
 const { writeFs } = require("../lib/firebase/firebase");
 const { pushTopic } = require("../lib/pubsub/pubsub");
+const { sendTelegram } = require("../lib/telegram/index.js");
 const config = require("../config/config");
 
 const { APP } = config;
@@ -58,6 +59,17 @@ const initShop = async (shop, token, chargeID, confirmationUrl) => {
 
   // push to DB
   await writeFs(APP, shop, newData);
+
+  // Telegram: trial started (billing screen shown, shop initialised)
+  try {
+    await sendTelegram(
+      `🔔 <b>Trial Started — WP Simple Feed</b>\n` +
+      `🏪 ${shop}\n` +
+      `⏳ Trial: ${newData.trial} days\n` +
+      `📅 ${new Date().toUTCString()}`
+    );
+  } catch (tgErr) { console.error("Telegram trial notify error:", tgErr); }
+
   // push to pub/sub
   if (newThemeCapable) {
   } else {
