@@ -131,28 +131,27 @@ const Index = ({ shopOrigin: shop }) => {
     : 'main';
   const [page, setPage] = useState(initialPage);
   
-  // ✅ SYNC: Update page state when URL query param changes (App Bridge Navigation)
+  // ✅ SYNC: Update page state when App Bridge NavigationMenu changes the route.
+  // IMPORTANT: `page` must NOT be in the dependency array.
+  // If it were, clicking a tab would: setPage(newPage) → effect re-fires →
+  // router.query.page still holds the OLD value (pushState doesn't update
+  // Next.js router) → effect resets page back to the old tab. Bug: stuck tab.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const pageParam = router.query.page || 'main';
-      if (pageParam !== page) {
-        setPage(pageParam);
-      }
-    }
-  }, [router.query.page, page]);
-  
-  // ✅ SYNC: Update URL when page state changes (for App Bridge Navigation)
+    const pageParam = router.query.page || 'main';
+    setPage(pageParam);
+  }, [router.query.page]); // ← only react to router changes, never to local page state
+
+  // ✅ SYNC: Tab click → update local state immediately + update Next.js router
+  // so that router.query.page stays in sync (avoids stale-value fight above).
   const handlePageChange = (newPage) => {
-    setPage(newPage);
-    // Update URL query param without full page reload
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location);
-      if (newPage === 'main') {
-        url.searchParams.delete('page');
-      } else {
-        url.searchParams.set('page', newPage);
-      }
-      window.history.pushState({}, '', url);
+    setPage(newPage); // instant visual feedback
+    // Use router.push so Next.js router.query.page stays consistent with local state.
+    // { shallow: true } avoids a full data-refetch on every tab click.
+    if (newPage === 'main') {
+      router.push('/', undefined, { shallow: true });
+    } else {
+      router.push(`/?page=${encodeURIComponent(newPage)}`, undefined, { shallow: true });
     }
   };
   const [shopifyReady, setShopifyReady] = useState(false);
