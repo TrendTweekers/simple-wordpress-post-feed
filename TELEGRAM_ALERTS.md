@@ -76,10 +76,11 @@ Set these in Railway under **Variables** (or in `.env` locally).
 **Also sets:** `status: "cancelled"` in Firestore
 **Message:**
 ```
-💸 Subscription CANCELLED — WP Simple Feed
+💸 Subscription Cancelled — WP Simple Feed
 🏪 shop.myshopify.com
 📅 Wed, 18 Mar 2026 08:00:00 GMT
 ```
+Status is title-cased from the raw Shopify value — can be `Cancelled`, `Expired`, or `Declined`.
 
 ---
 
@@ -92,6 +93,7 @@ Set these in Railway under **Variables** (or in `.env` locally).
 🔴 Uninstall — WP Simple Feed
 🏪 shop.myshopify.com
 ⏱ Time since install: 3 days
+📅 Wed, 18 Mar 2026 08:00:00 GMT
 ```
 Includes `⚠️ Same-day uninstall!` flag if uninstall happens within 24h of install.
 
@@ -103,8 +105,8 @@ Includes `⚠️ Same-day uninstall!` flag if uninstall happens within 24h of in
 **Message:**
 ```
 🚨 CRITICAL ERROR — WP Simple Feed
-❌ Firebase write failed in afterAuth
 🏪 shop.myshopify.com
+❌ Firebase write failed in afterAuth
 ⚠️ Error message here
 📅 Wed, 18 Mar 2026 08:00:00 GMT
 ```

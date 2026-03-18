@@ -286,8 +286,8 @@ app
             try {
               await sendTelegram(
                 `🚨 <b>CRITICAL ERROR — WP Simple Feed</b>\n` +
-                `❌ Firebase write failed in afterAuth\n` +
                 `🏪 ${shop}\n` +
+                `❌ Firebase write failed in afterAuth\n` +
                 `⚠️ ${firebaseError.message || firebaseError}\n` +
                 `📅 ${new Date().toUTCString()}`
               );
@@ -1212,7 +1212,7 @@ app
           } else if (status === "CANCELLED" || status === "EXPIRED" || status === "DECLINED") {
             await db.collection("swpf").doc(shop).set({ status: "cancelled" }, { merge: true });
             await sendTelegram(
-              `💸 <b>Subscription ${status} — WP Simple Feed</b>\n` +
+              `💸 <b>Subscription ${status.charAt(0) + status.slice(1).toLowerCase()} — WP Simple Feed</b>\n` +
               `🏪 ${shop}\n` +
               `📅 ${new Date().toUTCString()}`
             );
