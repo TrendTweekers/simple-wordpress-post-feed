@@ -10,7 +10,7 @@ import {
   Badge,
   Banner,
 } from "@shopify/polaris";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import * as types from "../../store/types";
 import { Store } from "../../store/store";
@@ -81,6 +81,16 @@ const Dashboard = ({ getSettings }) => {
   const { data, dispatch } = React.useContext(Store);
   const app = useAppBridge();
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null); // null | "success" | "error"
+
+  // Auto-dismiss success banner after 4 s
+  useEffect(() => {
+    if (saveStatus === "success") {
+      const t = setTimeout(() => setSaveStatus(null), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [saveStatus]);
 
   const { shop: shopFromState, disableSave, settings, testedOK } = data;
 
@@ -92,16 +102,23 @@ const Dashboard = ({ getSettings }) => {
 
   /* ── Save ───────────────────────────────────────────── */
   const handleSubmit = async () => {
+    setSaving(true);
+    setSaveStatus(null);
     try {
       // ✅ v3 PATTERN: getSessionToken(app) → manualTokenFetch(url, token, options)
       const token = await getSessionToken(app);
-      if (!token) { console.error("[Dashboard] No session token — cannot save"); return; }
+      if (!token) {
+        console.error("[Dashboard] No session token — cannot save");
+        setSaveStatus("error");
+        return;
+      }
       const response = await manualTokenFetch("/api/data", token, {
         method: "POST",
         body: JSON.stringify({ settings }),
       });
       if (!response || !response.ok) {
         console.error("[Dashboard] Save failed:", response?.status);
+        setSaveStatus("error");
         return;
       }
       const rd = await response.json();
@@ -109,8 +126,12 @@ const Dashboard = ({ getSettings }) => {
         dispatch({ type: types.FETCH_METADATA, payload: rd });
         dispatch({ type: types.SAVE_DB });
       }
+      setSaveStatus("success");
     } catch (err) {
       console.error("[Dashboard] Save error:", err.message);
+      setSaveStatus("error");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -172,8 +193,16 @@ const Dashboard = ({ getSettings }) => {
     <ContextualSaveBar
       fullWidth
       message="Unsaved changes"
-      saveAction={{ onAction: handleSubmit, disabled: !testedOK }}
-      discardAction={{ onAction: () => getSettings() }}
+      saveAction={{
+        onAction: handleSubmit,
+        disabled: saving || !testedOK,
+        loading: saving,
+        content: saving ? "Saving…" : "Save",
+      }}
+      discardAction={{
+        onAction: () => { setSaveStatus(null); getSettings(); },
+        disabled: saving,
+      }}
     />
   );
 
@@ -181,6 +210,28 @@ const Dashboard = ({ getSettings }) => {
     <Frame>
       {SaveBar}
       <Page>
+
+        {/* ── Save feedback banner (success / error) ────── */}
+        {saveStatus === "success" && (
+          <div style={{ marginBottom: 16 }}>
+            <Banner
+              status="success"
+              onDismiss={() => setSaveStatus(null)}
+            >
+              Settings saved successfully.
+            </Banner>
+          </div>
+        )}
+        {saveStatus === "error" && (
+          <div style={{ marginBottom: 16 }}>
+            <Banner
+              status="critical"
+              onDismiss={() => setSaveStatus(null)}
+            >
+              Save failed — please try again. Check your connection and that your WordPress URL is valid.
+            </Banner>
+          </div>
+        )}
 
         {/* ── Page header ──────────────────────────────── */}
         <div style={{
