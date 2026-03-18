@@ -297,6 +297,15 @@ const uninstall = async (ctx) => {
     const flag = minutesSince < 1440 ? "\n⚠️ Same-day uninstall!" : "";
     await sendTelegram(`🔴 <b>Uninstall — WP Simple Feed</b>\n🏪 ${myshopify_domain}\n⏱ Time since install: ${timeLabel}${flag}\n📅 ${new Date().toUTCString()}`);
     await db.collection("swpf").doc(myshopify_domain).set({ status: "cancelled" }, { merge: true });
+    // Clear offline session so reinstall gets a fresh OAuth and a new valid token.
+    // Without this, the stale swpf/offline_{shop} doc causes the billing guard to 401-loop.
+    const offlineId = `offline_${myshopify_domain}`;
+    try {
+      await db.collection("swpf").doc(offlineId).delete();
+      console.log(`[UNINSTALL] 🗑 Cleared offline session ${offlineId} — reinstall will trigger fresh OAuth`);
+    } catch (clearErr) {
+      console.error(`[UNINSTALL] Failed to clear offline session for ${myshopify_domain}:`, clearErr.message);
+    }
     const action = "uninstall";
     if (shopData) {
       pushTopic(

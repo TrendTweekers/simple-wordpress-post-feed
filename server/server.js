@@ -566,14 +566,33 @@ app
       try {
         const { checkAppSubscription } = require("./lib/shopify/functions");
         const hasActiveSubscription = await checkAppSubscription(shop, accessToken);
-        
+
         if (hasActiveSubscription) {
           return { allowed: true };
         } else {
           return { allowed: false, reason: "inactive_subscription" };
         }
       } catch (err) {
-        // If check fails, allow request (fail open for API stability)
+        const errStatus = err.response?.status || err.statusCode || err.status;
+        if (errStatus === 401 || errStatus === 403) {
+          // Shopify rejected the token — stale/revoked session. Clear it so the
+          // next request triggers a clean OAuth instead of looping on 401.
+          console.error(`[BILLING] ❌ Shopify rejected token for ${shop} (${errStatus}) — stale session detected`);
+          try {
+            const { getSessionStorageSafe } = require("./lib/shopify/shopify");
+            const { getOfflineIdSafe } = require("./lib/shopify/session");
+            const storage = getSessionStorageSafe(shopifyApi);
+            if (storage) {
+              const offlineId = getOfflineIdSafe(shop, shopifyApi);
+              await storage.deleteSession(offlineId);
+              console.log(`[BILLING] 🗑 Cleared stale offline session for ${shop} (${offlineId})`);
+            }
+          } catch (clearErr) {
+            console.error(`[BILLING] Failed to clear stale session for ${shop}:`, clearErr.message);
+          }
+          return { allowed: false, reason: "auth_error" };
+        }
+        // Non-auth errors: fail open so a transient GCP/network hiccup doesn't brick all merchants
         console.error(`[BILLING] Error checking subscription for ${shop}:`, err.message || err);
         return { allowed: true, reason: "check_failed" };
       }
@@ -620,8 +639,23 @@ app
           const billingCheck = await requireActiveSubscription(shop);
           if (!billingCheck.allowed) {
             console.log(`[BILLING] API request ${ctx.method} ${ctx.path} blocked - ${billingCheck.reason} for shop ${shop}`);
+
+            if (billingCheck.reason === "auth_error") {
+              // Stale/invalid token — session was already cleared in requireActiveSubscription.
+              // Return proper reauth headers so App Bridge redirects to OAuth instead of
+              // showing a subscription error.
+              console.error(`[API GUARD] ❌ Stale token for ${shop} — forcing reauth`);
+              const { handleShopifyAuthError } = require("./lib/shopify/authError");
+              const host = ctx.query.host;
+              const staleErr = Object.assign(new Error("Stale Shopify token detected by billing guard"), {
+                response: { status: 401 }
+              });
+              await handleShopifyAuthError(staleErr, ctx, shop, host, "billing guard / requireActiveSubscription");
+              return;
+            }
+
             ctx.status = 402;
-            ctx.body = { 
+            ctx.body = {
               error: "subscription_required",
               reason: billingCheck.reason,
               message: "Active subscription required to access this API endpoint"
