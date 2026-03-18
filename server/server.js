@@ -282,6 +282,15 @@ app
             console.error(`[AFTER AUTH] ❌ CRITICAL: Failed to save accessToken to Firebase for ${shop}:`, firebaseError);
             console.error(`[AFTER AUTH] Document ID attempted: ${expectedOfflineId}`);
             console.error(`[AFTER AUTH] This will cause SHOP GUARD to trigger OAuth again on next request`);
+            try {
+              await sendTelegram(
+                `🚨 <b>CRITICAL ERROR — WP Simple Feed</b>\n` +
+                `❌ Firebase write failed in afterAuth\n` +
+                `🏪 ${shop}\n` +
+                `⚠️ ${firebaseError.message || firebaseError}\n` +
+                `📅 ${new Date().toUTCString()}`
+              );
+            } catch {}
             // Don't return here - continue with auth flow even if Firebase save fails
           }
           if (sessionId !== expectedOfflineId && sessionId !== 'unknown') {
@@ -1145,14 +1154,33 @@ app
           const shop = ctx.get("x-shopify-shop-domain");
           const { app_subscription } = ctx.request.body || {};
           const status = app_subscription?.status;
+          const trialDays = app_subscription?.trial_days ?? null;
           const price = "7.90";
           const { db } = require("./lib/firebase/firebase.js");
           if (status === "ACTIVE") {
             await db.collection("swpf").doc(shop).set({ status: "active" }, { merge: true });
-            await sendTelegram(`💰 <b>New Paying Merchant — WP Simple Feed</b>\n🏪 ${shop}\n💵 $${price}/mo`);
+            if (trialDays !== null && trialDays > 0) {
+              await sendTelegram(
+                `🔔 <b>Trial Activated — WP Simple Feed</b>\n` +
+                `🏪 ${shop}\n` +
+                `⏳ ${trialDays} trial days remaining\n` +
+                `📅 ${new Date().toUTCString()}`
+              );
+            } else {
+              await sendTelegram(
+                `💰 <b>Paid Conversion — WP Simple Feed</b>\n` +
+                `🏪 ${shop}\n` +
+                `💵 $${price}/mo\n` +
+                `📅 ${new Date().toUTCString()}`
+              );
+            }
           } else if (status === "CANCELLED" || status === "EXPIRED" || status === "DECLINED") {
             await db.collection("swpf").doc(shop).set({ status: "cancelled" }, { merge: true });
-            await sendTelegram(`💸 <b>Subscription Cancelled — WP Simple Feed</b>\n🏪 ${shop}`);
+            await sendTelegram(
+              `💸 <b>Subscription ${status} — WP Simple Feed</b>\n` +
+              `🏪 ${shop}\n` +
+              `📅 ${new Date().toUTCString()}`
+            );
           }
           ctx.status = 200;
         } catch (err) {
