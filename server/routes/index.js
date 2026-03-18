@@ -64,9 +64,20 @@ const loadSessionWithErrorHandling = async (shop, ctx, host, endpoint = "unknown
  */
 const getData = async (ctx) => {
   try {
-    const referer = new URLSearchParams(ctx.request.header.referer);
-    const shop = referer.get("shop");
-    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    // ✅ FIX: Read shop/host from query params first, then fall back to a properly-parsed
+    // Referer URL. The old pattern `new URLSearchParams(fullUrl)` treated the full URL as a
+    // query string, making every key wrong (e.g. key = "https://host/?shop", not "shop").
+    const refererStr = ctx.request.header.referer || "";
+    let refererShop = null, refererHost = null;
+    try {
+      if (refererStr) {
+        const u = new URL(refererStr);
+        refererShop = u.searchParams.get("shop");
+        refererHost = u.searchParams.get("host");
+      }
+    } catch (_) { /* ignore malformed referer */ }
+    const shop = ctx.query.shop || refererShop;
+    const host = ctx.query.host || refererHost;
 
     /** Checking version in settings DB */
     const settings = await getSettings(APP);
@@ -142,9 +153,18 @@ const getData = async (ctx) => {
 const uploadData = async (ctx) => {
   try {
     const { settings } = await ctx.request.body;
-    const referer = new URLSearchParams(ctx.request.header.referer);
-    const shop = referer.get("shop");
-    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
+    // ✅ FIX: same Referer parsing fix as getData — use new URL() not new URLSearchParams(fullUrl)
+    const refererStr = ctx.request.header.referer || "";
+    let refererShop = null, refererHost = null;
+    try {
+      if (refererStr) {
+        const u = new URL(refererStr);
+        refererShop = u.searchParams.get("shop");
+        refererHost = u.searchParams.get("host");
+      }
+    } catch (_) { /* ignore malformed referer */ }
+    const shop = ctx.query.shop || refererShop;
+    const host = ctx.query.host || refererHost;
     console.log(`Upload data route ran for ${shop}`);
     
     // ✅ ALWAYS load offline session from session storage
@@ -186,9 +206,13 @@ const uploadData = async (ctx) => {
     }
     ctx.body = settings;
   } catch (error) {
-    const shop = new URLSearchParams(ctx.request.header.referer).get("shop");
-    const host = ctx.query.host || new URLSearchParams(ctx.request.header.referer).get("host");
-    const handled = await handleShopifyAuthError(error, ctx, shop, host, `POST /api/data (uploadData)`);
+    let _shop = ctx.query.shop, _host = ctx.query.host;
+    try {
+      const u = new URL(ctx.request.header.referer || "");
+      _shop = _shop || u.searchParams.get("shop");
+      _host = _host || u.searchParams.get("host");
+    } catch (_) {}
+    const handled = await handleShopifyAuthError(error, ctx, _shop, _host, `POST /api/data (uploadData)`);
     if (!handled) {
       console.error("Error in /api/data upload:", error);
       ctx.status = 500;

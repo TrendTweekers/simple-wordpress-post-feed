@@ -212,7 +212,10 @@ const Index = ({ shopOrigin: shop }) => {
         console.error('[Index] Could not obtain session token for fetchShopData');
         return null;
       }
-      const response = await manualTokenFetch(`/api/data`, token, {
+      // Pass ?shop= so the server can read it from query params even if Referer is absent/malformed
+      const shopParam = shop || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('shop') : '');
+      const dataUrl = shopParam ? `/api/data?shop=${encodeURIComponent(shopParam)}` : '/api/data';
+      const response = await manualTokenFetch(dataUrl, token, {
         method: 'GET',
       });
 

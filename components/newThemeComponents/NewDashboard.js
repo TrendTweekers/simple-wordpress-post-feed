@@ -18,7 +18,8 @@ import UrlInput from "./UrlInput";
 import BasicSetings from "./BasicSettings";
 import Filters from "./Filters";
 import ShowExcerpt from "./ShowExcerpt";
-import { manualTokenFetch, waitForShopify } from "../../lib/manualTokenFetch";
+import { manualTokenFetch } from "../../lib/manualTokenFetch";
+import { getSessionToken } from "@shopify/app-bridge-utils";
 
 /* ─── Single setup step ─────────────────────────────────── */
 const Step = ({ number, title, description, status, action }) => {
@@ -92,29 +93,34 @@ const Dashboard = ({ getSettings }) => {
   /* ── Save ───────────────────────────────────────────── */
   const handleSubmit = async () => {
     try {
-      const isReady = await waitForShopify(3000);
-      if (!isReady) { console.error("[Dashboard] Shopify not ready"); return; }
-      const response = await manualTokenFetch("/api/data", {
+      // ✅ v3 PATTERN: getSessionToken(app) → manualTokenFetch(url, token, options)
+      const token = await getSessionToken(app);
+      if (!token) { console.error("[Dashboard] No session token — cannot save"); return; }
+      const response = await manualTokenFetch("/api/data", token, {
         method: "POST",
         body: JSON.stringify({ settings }),
       });
-      if (!response || !response.ok) return;
+      if (!response || !response.ok) {
+        console.error("[Dashboard] Save failed:", response?.status);
+        return;
+      }
       const rd = await response.json();
       if (rd) {
         dispatch({ type: types.FETCH_METADATA, payload: rd });
         dispatch({ type: types.SAVE_DB });
       }
     } catch (err) {
-      console.error("[Dashboard] Save error:", err);
+      console.error("[Dashboard] Save error:", err.message);
     }
   };
 
   /* ── Delete all ─────────────────────────────────────── */
   const handleDeleteAllMeta = async () => {
     try {
-      const isReady = await waitForShopify(3000);
-      if (!isReady) return;
-      const response = await manualTokenFetch("/api/deletedata", {
+      // ✅ v3 PATTERN: getSessionToken(app) → manualTokenFetch(url, token, options)
+      const token = await getSessionToken(app);
+      if (!token) { console.error("[Dashboard] No session token — cannot delete"); return; }
+      const response = await manualTokenFetch("/api/deletedata", token, {
         method: "POST",
         body: JSON.stringify({ settings }),
       });
@@ -123,7 +129,7 @@ const Dashboard = ({ getSettings }) => {
       if (rd) dispatch({ type: types.RESET_DATA });
       setDeleteConfirm(false);
     } catch (err) {
-      console.error("[Dashboard] Delete error:", err);
+      console.error("[Dashboard] Delete error:", err.message);
     }
   };
 
