@@ -144,14 +144,23 @@ const Index = ({ shopOrigin: shop }) => {
 
   // ✅ SYNC: Tab click → update local state immediately + update Next.js router
   // so that router.query.page stays in sync (avoids stale-value fight above).
+  // CRITICAL: preserve ALL existing query params (shop, host, etc.) — only mutate
+  // the `page` param. Using router.push('/') would strip shop & host from the URL,
+  // causing _app.js to rebuild config with empty values on re-render, which makes
+  // authStep re-run makeInstall with an empty shopOrigin and then redirect the
+  // top frame to /install/auth?shop=&host= (the "Missing shop parameter" error).
   const handlePageChange = (newPage) => {
     setPage(newPage); // instant visual feedback
-    // Use router.push so Next.js router.query.page stays consistent with local state.
-    // { shallow: true } avoids a full data-refetch on every tab click.
-    if (newPage === 'main') {
-      router.push('/', undefined, { shallow: true });
-    } else {
-      router.push(`/?page=${encodeURIComponent(newPage)}`, undefined, { shallow: true });
+    if (typeof window !== 'undefined') {
+      // Clone current params so shop, host, and anything else Shopify appended survive.
+      const params = new URLSearchParams(window.location.search);
+      if (newPage === 'main') {
+        params.delete('page');
+      } else {
+        params.set('page', encodeURIComponent(newPage));
+      }
+      const qs = params.toString();
+      router.push(`/${qs ? `?${qs}` : ''}`, undefined, { shallow: true });
     }
   };
   const [shopifyReady, setShopifyReady] = useState(false);
